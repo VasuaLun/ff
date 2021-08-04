@@ -1,0 +1,103 @@
+-- Вставить несколько строк в таблицу
+insert all
+    into DV_ORGREG (ID, NAME, ADDRESS) values (3, 'ВайфайКул', 'Москва')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (4, 'СпецВайфай', 'Москва')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (5, 'ТонронМост', 'Москва')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (6, 'Тонрон', 'Санкт-Петербург')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (7, 'Роновкор', 'Санкт-Петербург')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (8, 'Ронов', 'Санкт-Петербург')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (9, 'Торонпит', 'Самара')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (10, 'Торон', 'Санкт-Петербург')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (11, 'Жизньком', 'Новосибирск')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (12, 'Соцсетикрона', 'Новосибирск')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (13, 'КаналЛинк', 'Новосибирск')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (14, 'Поисковиким', 'Ростов')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (15, 'Сообщениямия', 'Новосибирск')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (16, 'Риот', 'Ростов')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (17, 'Алетта', 'Ростов')
+    into DV_ORGREG (ID, NAME, ADDRESS) values (18, 'Мелания', 'Москва')
+SELECT * FROM dual;
+
+-- Изменения значения ячеек в таблице
+update DV_ORGREG
+    set ADDRESS = 'Moscow, Lenina'
+    where ID = 1;
+
+-- Удаление столбца из таблицы
+
+ALTER TABLE DV_SERVREG DROP COLUMN SERV_NAME;
+-- Добавление столбца в таблицу
+ALTER TABLE DV_SERVREG
+ADD SERV_NAME VARCHAR(50) NULL;
+
+-- Создание sequence
+create sequence dv_test_sequence
+start with 1
+increment by 1;
+------------------------------------------------------------------------
+
+-- Заполнение таблицы услуг
+insert all
+SELECT * FROM dual;
+into DV_SERVREG (SERV_NAME) values ('широкополосный доступ в Интернет')
+into DV_SERVREG (SERV_NAME) values ('беспроводной доступ в Интернет')
+into DV_SERVREG (SERV_NAME) values ('выделение дискового пространства для хранения и обеспечения работы сайтов')
+into DV_SERVREG (SERV_NAME) values ('поддержка электронных почтовых ящиков или виртуального почтового сервера')
+into DV_SERVREG (SERV_NAME) values ('размещение оборудования клиента на площадке провайдера')
+into DV_SERVREG (SERV_NAME) values ('аренда выделенных и виртуальных серверов (VPS, VDS)')
+into DV_SERVREG (SERV_NAME) values ('резервирование данных')
+into DV_SERVREG (SERV_NAME) values ('аренда сетевого оборудования')
+
+-- Заполнение словаря-списка
+insert all
+    into DV_CITYDICTIONARY (ID, CITY_NAME) values (1, 'Москва')
+    into DV_CITYDICTIONARY (ID, CITY_NAME) values (2, 'Санкт-Петербург')
+    into DV_CITYDICTIONARY (ID, CITY_NAME) values (3, 'Самара')
+    into DV_CITYDICTIONARY (ID, CITY_NAME) values (4, 'Новосибирск')
+    into DV_CITYDICTIONARY (ID, CITY_NAME) values (5, 'Ростов')
+SELECT * FROM dual;
+
+-- Заполнение таблицы сопоставления услуг и организаций
+insert all
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 1)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 2)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 3)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 4)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 5)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 6)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 7)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 8)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 9)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (1, 10)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (2, 2)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (2, 3)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (2, 6)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (2, 7)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (2, 10)
+    into DV_SERVLINKS (ORG_ID, SERV_ID) values (3, 7)
+SELECT * FROM dual;
+
+-- Двухуровненвый Join для связи компаний и предоставляемых ими услуг
+select org.NAME as orgname, serv.SERV_NAME as servname
+from DV_ORGREG org
+inner join DV_SERVLINKS link on org.ID = link.ORG_ID
+inner join DV_SERVREG serv on link.SERV_ID = serv.ID;
+
+-- Отображение таблицы на странице Учреждения VER 0 (без услуг)
+select DV_ORGREG.NAME as NAME,
+    DV_CITYDICTIONARY.CITY_NAME as CITY_NAME
+ from DV_ORGREG DV_ORGREG,
+    DV_CITYDICTIONARY DV_CITYDICTIONARY
+ where DV_CITYDICTIONARY.ID=DV_ORGREG.CITY_ID
+
+ -- Отображение таблицы на странице Учреждения VER 1 (с количеством услуг)
+select DV_ORGREG.NAME as NAME,
+     DV_CITYDICTIONARY.CITY_NAME as CITY_NAME,
+     (select COUNT(*) as SERV_COUNT
+     from DV_ORGREG DV_ORGREG,
+        DV_SERVLINKS DV_SERVLINKS
+     where DV_ORGREG.ID = DV_SERVLINKS.ORG_ID
+     group by DV_SERVLINKS.ORG_ID)
+  from DV_ORGREG DV_ORGREG,
+     DV_CITYDICTIONARY DV_CITYDICTIONARY
+  where DV_CITYDICTIONARY.ID=DV_ORGREG.CITY_ID
