@@ -1,0 +1,215 @@
+-- Примеры триггеров
+-- триггер копирует сущность в другую сущность в одной табице
+CREATE TRIGGER `copy_odins`
+BEFORE INSERT
+ON `products`
+FOR EACH ROW
+BEGIN
+  SET new.f1=new.f2;
+END
+
+-- Триггер выводить новые значения зарплат
+CREATE OR REPLACE TRIGGER Print_salary_changes
+  BEFORE DELETE OR INSERT OR UPDATE ON Emp_tab
+  FOR EACH ROW
+WHEN (new.Empno > 0)
+DECLARE
+    sal_diff number;
+BEGIN
+    sal_diff  := :new.sal  - :old.sal;
+    dbms_output.put('Old salary: ' || :old.sal);
+    dbms_output.put('  New salary: ' || :new.sal);
+    dbms_output.put_line('  Difference ' || sal_diff);
+END;
+
+create TRIGGER "DV_CREATENEWVERSION"
+insert into DV_ORGREG (ID, NAME, CITY_ID, VERSION)
+    select ID, NAME, CITY_ID, :newitem -- item, в который запсан номер новой версии
+
+
+-- Процедура на копирование строк, но вроде как для SQL Server
+    CREATE PROCEDURE `duplicateRows`(_schemaName text, _tableName text, _whereClause text, _omitColumns text)
+    SQL SECURITY INVOKER
+    BEGIN
+      SELECT IF(TRIM(_omitColumns) <> '', CONCAT('id', ',', TRIM(_omitColumns)), 'id') INTO @omitColumns;
+
+      SELECT GROUP_CONCAT(COLUMN_NAME) FROM information_schema.columns
+      WHERE table_schema = _schemaName AND table_name = _tableName AND FIND_IN_SET(COLUMN_NAME,@omitColumns) = 0 ORDER BY ORDINAL_POSITION INTO @columns;
+
+      SET @sql = CONCAT('INSERT INTO ', _tableName, '(', @columns, ')',
+      'SELECT ', @columns,
+      ' FROM ', _schemaName, '.', _tableName, ' ',  _whereClause);
+
+      PREPARE stmt1 FROM @sql;
+      EXECUTE stmt1;
+    END
+
+-- Процесс по нажатию кнопки создания новой версии
+/*Вставить в таблицу DV_ORGREG данные, где версия равна версии, выбранной в item P1_VERSION,
+новая версия равняется версии, выбранной в item P1_NEWVERSION
+Повторить действие для таблиц DV_SERVJOURNAL, DV_SERVLINKS, DV_SERVREG
+
+*/
+begin
+    INSERT INTO DV_ORGREG(NAME, CITY_ID, VERSION, A_ID)
+    SELECT NAME, CITY_ID, :P1_NEWVERSION, A_ID FROM DV_ORGREG where VERSION = :P1_VERSION;
+    INSERT INTO DV_SERVJOURNAL(ID_ORG, ID_SERV, SERV_DATE, VERSION)
+    SELECT ID_ORG, ID_SERV, SERV_DATE, :P1_NEWVERSION FROM DV_SERVJOURNAL where VERSION = :P1_VERSION;
+    INSERT INTO DV_SERVLINKS(ORG_ID, SERV_ID, VERSION, SEVRE_PRICE)
+    SELECT ORG_ID, SERV_ID, :P1_NEWVERSION, SEVRE_PRICE FROM DV_SERVLINKS where VERSION = :P1_VERSION;
+    INSERT INTO DV_SERVREG(SERV_NAME, VERSION, A_SERVEID)
+    SELECT SERV_NAME, :P1_NEWVERSION, A_SERVEID FROM DV_SERVREG where VERSION = :P1_VERSION;
+end;
+
+for select distinct a, b from numbers order by a, b
+  into :aa, :bb
+do
+begin
+  sm = aa + bb;
+  df = aa - bb;
+  suspend;
+end
+-------------------------************************************************************************
+CREATE GLOBAL TEMPORARY TABLE REG_INFO
+(IDORG_OLD NUMBER,
+IDORG_NEW NUMBER)
+ON COMMIT DELETE ROWS;
+
+CREATE GLOBAL TEMPORARY TABLE SERVE_INFO
+(IDSERVE_OLD NUMBER,
+IDSERVE_NEW NUMBER)
+ON COMMIT DELETE ROWS;
+
+DECLARE
+ID_SERVE_N, ID_ORG_N NUMBER;
+
+begin
+-- Цикл, копирующий значения старой версии в таблицу DV_ORGREG для новой версии
+
+    for recORG in
+    (
+        select * from DV_ORGREG where VERSION = :P1_VERSION order by ID
+    )loop
+        INSERT INTO DV_ORGREG(NAME, CITY_ID, VERSION)
+        values (recORG.NAME, recORG.CIT_ID, :P1_NEWVERSION);
+        -- Заносит значение ID, берет его из последовательности DV_ORGREG_SEQ
+        select "DV_ORGREG_SEQ".currval into ID_ORG_N from dual;
+        -- Сохраняет во временную таблицу REG_INFO значение seq, которое равняется присвоенному ID
+        INSERT INTO REG_INFO(IDORG_OLD, IDORG_NEW)
+        values (recORG.ID, ID_ORG_N);
+    end loop;
+
+    for recSER in
+    (
+        select * from DV_SERVREG where VERSION = :P1_VERSION order by ID
+    )loop
+        INSERT INTO DV_SERVREG(SERVE_NAME, VERSION)
+        values (recSER.SERVE_NAME, :P1_NEWVERSION);
+        select "DV_SERVREG_SEQ".currval into ID_SERVE_N from dual;
+        INSERT INTO SERVE_INFO(IDSERVE_OLD, IDSERVE_NEW)
+        values (recSER.ID, ID_SERVE_N);
+    end loop;
+
+    INSERT INTO DV_SERVLINKS(ORG_ID, SERV_ID, VERSION, SEVRE_PRICE)
+    SELECT oi.IDORG_NEW, si.IDSERVE_NEW, :P1_NEWVERSION, L.SEVRE_PRICE
+    FROM REG_INFO oi
+    inner join DV_SERVLINKS L on oi.IDORG_OLD = L.ORG_ID
+    inner join ID_SERVE_N on L.SEV_ID = si.IDSERVE_OLD
+    where L.VERSION = :P1_VERSION;
+
+    INSERT INTO DV_SERVJOURNAL(ID_ORG, ID_SERV, SERV_DATE, VERSION)
+    SELECT oi.IDORG_NEW, si.IDSERVE_NEW, j.SERV_DATE, :P1_NEWVERSION
+    FROM REG_INFO oi
+    inner join DV_SERVJOURNAL j on oi.IDORG_OLD = j.ID_ORG
+    inner join SERVE_INFO si on j.ID_SERV = si.IDSERVE_OLD
+    where VERSION = :P1_VERSION;
+end;
+--**********************************************************************************
+CREATE OR REPLACE PROCEDURE
+BEGIN
+    INSERT INTO DV_ORGREG(NAME, CITY_ID, VERSION, A_ID)
+    SELECT NAME, CITY_ID, :P1_NEWVERSION FROM DV_ORGREG where VERSION = :P1_VERSION;
+    INSERT INTO DV_SERVREG(SERVE_NAME, VERSION)
+    values (SERVE_NAME, :P1_NEWVERSION);
+    INSERT INTO DV_SERVLINKS(ORG_ID, SERV_ID, VERSION, SEVRE_PRICE)
+    select o.ID, s.ID, :P1_NEWVERSION, L.SEVRE_PRICE
+    FROM DV_ORGREG o
+    inner join DV_SERVLINKS L on o.ID = L.ORG_ID
+    inner join DV_SERVREG s on L.SERV_ID = s.ID
+    where o.VERSION = :P1_NEWVERSION and s.VERSION = :P1_NEWVERSION and L.VERSION = :P1_VERSION;
+    INSERT INTO DV_SERVJOURNAL(ID_ORG, ID_SERV, SERV_DATE, VERSION)
+    SELECT L.ORG_ID, L.SERV_ID, J.SERV_DATE, :P1_NEWVERSION FROM DV_SERVJOURNAL j, DV_SERVLINKS L
+    WHERE
+END;
+
+-- Добивание версий
+DECLARE
+-- номер и название учреждения
+ID_ORG_N NUMBER;
+NAME_ORG_N VARCHAR2(500);
+-- номер и название услуги
+ID_SERVE_N NUMBER;
+NAME_SERVE_N VARCHAR2(500);
+
+BEGIN
+-- Копирование учреждений
+    INSERT INTO DV_ORGREG(NAME, CITY_ID, VERSION)
+    SELECT NAME, CITY_ID, :P1_NEWVERSION FROM DV_ORGREG where VERSION = :P1_VERSION;
+
+-- Копирование услуг
+    INSERT INTO DV_SERVREG(SERV_NAME, VERSION)
+    select SERV_NAME, :P1_NEWVERSION FROM DV_SERVREG where VERSION = :P1_VERSION;
+
+-- Копирование линкования
+    for row in
+    (
+        select * from DV_SERVLINKS where VERSION = :P1_VERSION order by ORG_ID
+    )loop
+        select o.NAME into NAME_ORG_N from DV_ORGREG o
+        where o.ID = row.ORG_ID and o.VERSION = :P1_VERSION;
+        select ID into ID_ORG_N from DV_ORGREG
+        where NAME = NAME_ORG_N and VERSION = :P1_NEWVERSION;
+
+        select s.SERV_NAME into NAME_SERVE_N from DV_SERVREG s
+        where s.ID = row.SERV_ID and s.VERSION = :P1_VERSION;
+        select ID into ID_SERVE_N from DV_SERVREG
+        where SERV_NAME = NAME_SERVE_N and VERSION = :P1_NEWVERSION;
+
+        INSERT INTO DV_SERVLINKS(ORG_ID, SERV_ID, VERSION, SEVRE_PRICE)
+        values (ID_ORG_N, ID_SERVE_N, :P1_NEWVERSION, row.SEVRE_PRICE);
+    end loop;
+end;
+
+DECLARE
+    UNIQ_NAME_ORG VARCHAR2(500); --Уникальное имя учреждения
+    UNIQ_RN_ORG NUMBER; --Уникальный ID учреждения
+
+    UNIQ_NAME_FACULTY_SERV VARCHAR2(500); --Уникальное имя факультета
+    UNIQ_RN_SERV NUMBER; --Уникальный ID факультета
+BEGIN
+
+--Добавление учреждений с новой версией
+INSERT INTO DK_ORGREG(NAME, ORG_DIRECTOR, ORG_ADDRESS, MAIN, LATITUDE, LONGITUDE, CITY_ID, VERSION)
+ SELECT NAME, ORG_DIRECTOR, ORG_ADDRESS, MAIN, LATITUDE, LONGITUDE, CITY_ID, :P19_NEW_VERSION FROM DK_ORGREG WHERE DK_ORGREG.VERSION = :DK_SELECT_VERSION;
+
+
+--Добавление факультетов с новой версией
+INSERT INTO DK_SERVREG(NAME_FACULTY, VERSION) SELECT NAME_FACULTY, :P19_NEW_VERSION FROM DK_SERVREG WHERE DK_SERVREG.VERSION = :DK_SELECT_VERSION;
+
+
+FOR ROW_SERVLINKS IN (SELECT * FROM DK_SERVLINKS WHERE version = :DK_SELECT_VERSION ORDER BY RN)
+loop
+    --Получение уникального ID учреждения с новой версией
+    SELECT NAME INTO UNIQ_NAME_ORG FROM DK_SERVLINKS, DK_ORGREG WHERE DK_SERVLINKS.ORGRN = DK_ORGREG.RN AND DK_ORGREG.VERSION = :DK_SELECT_VERSION AND DK_SERVLINKS.RN = ROW_SERVLINKS.RN;
+    SELECT RN INTO UNIQ_RN_ORG FROM DK_ORGREG WHERE NAME = UNIQ_NAME_ORG AND VERSION = :P19_NEW_VERSION;
+
+    --Получение уникального ID факультета с новой версией
+    SELECT NAME_FACULTY INTO UNIQ_NAME_FACULTY_SERV FROM DK_SERVLINKS, DK_SERVREG WHERE DK_SERVLINKS.SERVRN = DK_SERVREG.RN AND DK_SERVREG.VERSION = :DK_SELECT_VERSION AND DK_SERVLINKS.RN = ROW_SERVLINKS.RN;
+    SELECT RN INTO UNIQ_RN_SERV FROM DK_SERVREG WHERE NAME_FACULTY = UNIQ_NAME_FACULTY_SERV AND VERSION = :P19_NEW_VERSION;
+
+    --Добавление доступного факультета
+    INSERT INTO DK_SERVLINKS(ORGRN, SERVRN, VERSION) VALUES (UNIQ_RN_ORG, UNIQ_RN_SERV, :P19_NEW_VERSION);
+
+end loop;
+
+END;
