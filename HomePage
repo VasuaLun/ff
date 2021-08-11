@@ -1,0 +1,258 @@
+--101; 584; Z_SERVREG
+declare
+ pJURPERS      number          := :P1_JURPERS;
+ pVERSION      number          := :P1_VERSION;
+ pORGRN	       number          := nvl(:P1_ORGRN,:P7_ORGFILTER);
+
+ vID           number;
+ vNAME         varchar2(100);
+ vCID          number;
+ vCNAME        varchar2(100);
+ vVER          number;
+
+ pasteID       varchar2(250);
+ pasteORGNAME  varchar2(250);
+ pasteCITYID   varchar2(250);
+ pasteCITYNAME varchar2(250);
+ pasteVER      varchar2(250);
+
+ pUSER         varchar2(100)   := :APP_USER;
+ pROLE         number          := ZGET_ROLE;
+
+ pSEARCH       varchar2(4000)  := :P584_SEARCH;
+ pWORKSERV     number          := :P584_WORKSERV;
+ pSERVTYPE     number          := :P584_SERVTYPE2;
+ pSERVSIGN     number          := :P584_SERVSIGN;
+ -----------------------------------------------
+ sREGNUM       varchar2(4000);
+ sUNIQREGNUM   varchar2(4000);
+ sSERVCODE     varchar2(4000);
+ sWORKSERV     varchar2(4000);
+ sSERVTYPE     varchar2(4000);
+ sMEASURE      varchar2(4000);
+ sQINDVAL      varchar2(4000);
+ sORGCOUNT     varchar2(4000);
+ -----------------------------------------------
+ nCOUNTROWS    number;
+ nTOTALSUM     number;
+ nKINDQIND     number;
+ nVALQIND      number;
+ nSTATQIND     number;
+ nPREVWORKSERV number;
+
+ sColor        varchar2(100);
+ sCOLORROW     varchar2(100);
+ sMSG	       varchar2(250);
+
+begin
+    -- Права доступа
+    ----------------------------------------------------
+    ----------------------------------------------------
+
+    apex_javascript.add_library (
+    p_name                  => 'jquery.inputmask.bundle',
+    p_directory             => '/i/');
+
+    htp.p(
+    '<style>
+        ::-webkit-scrollbar {
+          width: 17px;
+        }
+
+        /* Track */
+        ::-webkit-scrollbar-track {
+          -webkit-box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
+          -webkit-border-radius: 12px;
+          border-radius: 12px;
+        }
+
+        /* Handle */
+        ::-webkit-scrollbar-thumb {
+          -webkit-border-radius: 10px;
+          border-radius: 12px; border-left: 2px solid #eee; border-right: 2px solid #eee;
+          background: #dbe8f8;
+          -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+
+        }
+        ::-webkit-scrollbar-thumb:window-inactive {
+          background: rgba(255,0,0,0.4);
+        }
+         .report_standard tbody tr:hover td {
+             background-color: #dbe8f8 !important; color: #000;
+                  cursor: pointer; font-weight:bolder;
+            }
+        .report_standard  thead > tr {width: 100%; }
+        .report_standard  tbody > tr {width: 100%; display: block}
+        .report_standard > tbody {
+        display: block; height: 300px; overflow-x: hidden;  overflow-y: scroll;
+          }
+
+        .sub_td {padding:0;margin:0; border:none;}
+
+        .sub_region {
+          width:100%;
+        }
+        .sub_region  {
+
+        }
+
+        .report_standard thead {
+          display: block; width:100%
+        }
+        .report_standard{
+          border: 1px solid grey;
+        }
+
+        .report_standard th, td{
+          text-align:left;
+          vertical-align: middle;
+        }
+        .report_standard th{
+          text-align:center;
+          line-height: 1.5em;
+          vertical-align: middle;
+        }
+        .report_standard th {
+          color:#222;
+          font: bold 12px "Helvetica Neue",Helvetica,Arial,sans-serif;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+          padding: 5px 4px;
+           /* background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 50% #e1e1e1 repeat-x;*/
+          background: #e0e0e0;
+          border-bottom: 1px solid #9fa0a0;
+          border-left:1px solid #9fa0a0;
+        }
+        .report_standard td{
+          padding: 5px 4px;
+          border-bottom: 1px solid #9fa0a0;
+          border-left:1px solid #9fa0a0;
+          background-color: #f2f2f2;
+        }
+
+        .link_code {text-decoration: underline;font-weight: bold; color:#0000ff;}
+        .row { margin-bottom: 5px;}
+
+		.th1{width: 150px;text-align:center; border-left: 0px !important}  .c1 {width: 150px; word-wrap: break-word; text-align:center; border-left: 0px !important}
+        .th2{width: 100%;text-align:center;}   .c2 {width: 100%; word-wrap: break-word; text-align:center;}
+        .th3{width: 150px;text-align:center;}  .c3 {width: 150px; word-wrap: break-word; text-align:center;}
+        .th4{width: 200px;text-align:center;}  .c4 {width: 200px; word-wrap: break-word; text-align:center;}
+        .th5{width: 90px;text-align:center;}   .c5 {width: 73px; word-wrap: break-word; text-align:center;}
+
+        .pagination {text-align: right;
+          border-left: 1px solid grey;
+          border-right: 1px solid grey;
+          border-bottom: 1px solid grey;
+          margin: 0px;
+
+          padding: 5px;
+          background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 100% #e1e1e1 repeat-x;cursor:move;
+        }
+        .pagination li {display: inline; margin-left:5px; font-size: 12px; padding: 2px; cursor:default; }
+        .selected_row{padding: 4px 4px;
+          border-bottom: 1px solid #9fa0a0;
+          background-color: #FAFF82;
+        }
+    </style>');
+
+    htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
+    <thead>
+        <tr>
+         <th class="header th1"><div class="th1">Признак</div></th>
+         <th class="header th2"><div class="th2">Наименование учреждения</div></th>
+         <th class="header th3"><div class="th3">Код города</div></th>
+         <th class="header th4"><div class="th4">Название города</div></th>
+		 <th class="header th5"><div class="th5">Версия</div></th>
+        </tr>
+
+      </thead>
+    <tbody id="fullall" >');
+
+
+    for rec in
+    (
+        select o.ID as ID,
+        o.NAME as NAME,
+        o.CITY_ID as CITY_ID,
+        d.CITY_NAME as CITY,
+        o.VERSION as VER
+        from DV_ORGREG o, DV_CITYDICTIONARY d
+        where o.CITY_ID = d.ID order by o.ID
+    )
+    loop
+
+        pasteID       := '<td class="c1 workserv"><div class="c1">'    || rec.ID        || '</div></td>';
+        pasteORGNAME  := '<td class="c2 workserv"><div class="c2">' || rec.NAME      || '</div></td>';
+        pasteCITYID   := '<td class="c3 workserv"><div class="c3"></>' || rec.CITY_ID    || '</div></td>';
+        pasteCITYNAME := '<td class="c4 workserv"><div class="c4"></>' || rec.CITY || '</div></td>';
+
+        if ((pVERSION is NULL) or rec.VER = pVERSION) then
+            pasteVER      := '<td class="c5 workserv"><div class="c5"></>' || rec.VER   || '</div></td>';
+            htp.p('
+                <tr class="highlight-row">
+                        ' || pasteID
+                        || pasteORGNAME
+                        || pasteCITYID
+                        || pasteCITYNAME
+                        || pasteVER
+                        ||'
+				                    </tr>');
+        end if;
+    end loop;
+
+    if nvl(nCOUNTROWS,0) > 500 then
+		sColor := 'font-weight:regular;color:red';
+		sMSG := 'Выбрано слишком много записей. Отображены первые 500. Необходимо использовать фильтры.';
+	else
+		sColor := '';
+		sMSG := 'Всего записей: <b>'||nCOUNTROWS;
+	end if;
+
+    htp.p('</tbody></table></div>');
+    htp.p('<ul class="pagination" style="margin:0px">');
+    htp.p('<li style="float:right;'||sColor||'">'||sMSG||'</b></li>');
+    htp.p('<li style="float:left; display: none;" id="loading_scroll"><img src="/i/378.GIF" style="width: 130px"/> </li>');
+    htp.p('<li style="float:left; " id="save_shtat"></li>');
+    htp.p('<li style="clear:both"></li></ul>');
+    htp.p(
+    '<script>
+
+        $(function(){
+          table_body=$("#fullall");
+
+
+          if (window.screen.height<=1024) {
+          table_body.height("260px");
+          $(".report_standard").css("width","100%");
+          } else {
+          table_body.height("700px");
+          $(".report_standard").css("width","100%");
+          }
+            $(".pagination").mousedown(startDrag);
+
+
+            function startDrag(e){
+                staticOffset = table_body.height() - e.pageY;
+                table_body.css("opacity", 0.25);
+                $(document).mousemove(performDrag).mouseup(endDrag);
+                return false;
+              }
+
+              function performDrag(e){
+                table_body.height(Math.max(150, staticOffset + e.pageY) + "px");
+                return false;
+              }
+
+              function endDrag(e){
+                $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
+                table_body.css("opacity", 1);
+              }
+        });
+
+        var el = document.getElementById("row_"+$v("P584_SELECTED_ROW"));
+		if (el!==null){
+		 el.scrollIntoView(true);
+		  $(el).children().css("background-color","yellow");
+		}
+
+    </script>');
+end;

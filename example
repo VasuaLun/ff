@@ -220,3 +220,20 @@ select DV_ORGREG.NAME as NAME,
      and o.ID=L.ORG_ID
      and j.VERSION = :P1_VERSION
   order by j.SERV_DATE ASC, o.NAME ASC, s.SERV_NAME ASC
+
+  begin
+  htp.p('<table border = "1" class="uReport uReportStandard">');
+    for rec in
+    (
+  select ROWID, ID,
+  SERV_NAME
+  from DV_SERVREG where VERSION = :P1_VERSION
+    )LOOP
+
+      htp.p('<tr>');
+          htp.p('<td style="background-color: yellow">'||'<a href="f?p=103:19:'||v('APP_SESSION')||'::NO::P19_ID:'||rec.ID||'">Edit</a></td>');
+          htp.p('<td><div style="color:red"><b>'||rec.SERV_NAME||'</b></div></td>');
+      htp.p('</tr>');
+    END LOOP;
+   htp.p('</table>');
+  end;
