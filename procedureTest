@@ -1,0 +1,22 @@
+create or replace procedure ZP_REP_ORGPASS_BODY
+(
+  pFILE        out BLOB,
+  --
+  pJURPERS     number,
+  pVERSION     number,
+  pORGRN       number,
+  --
+  pORGTYPE     number,
+  pORGGR       number,
+  pORGMARK     number,
+  pORGPROFILE  number
+)
+as
+  bPrint       boolean := false;
+  nCountCol    pls_integer:= 45;
+  sTITLE       varchar2(2000);
+  nItemRow     pls_integer := 0;
+  nEXPORTSIGN  number;
+Begin
+    begin
+        APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
