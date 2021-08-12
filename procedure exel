@@ -1,0 +1,354 @@
+-- демо отчет для иллюстрации возможностей технологии (c колонтитулом)
+procedure DEMO_REP
+(
+  oBLOB           out blob
+)
+is
+begin
+  -- открываем отчет
+  OPEN_REPORT
+  (
+    nTYPE           => 1,               -- Тип отчета ( 0 - XLSXML, 1 - XLSX )
+    sAUTHOR         => 'Новая Система', -- Автор
+    sLASTAUTHOR     => 'Не указан',     -- Последний редактировавший
+    sCOMPANY        => 'Новая Система', -- Организация
+    sAPP            => 'Demo',          -- Приложение
+    sENCODING       => 'Windows-1251',  -- Кодировка
+    nSTARTINDENT    => 0,               -- Начальный отступ
+    nADDDEFSTYLE    => 1                -- Добавить стиль по умолчанию (Arial Cyr, 10)
+  );
+
+  -- ***********************************************************************************
+  -- СТИЛИ
+  -- ***********************************************************************************
+  ADD_STYLE
+  (
+    sSTYLE              => 'Default',   -- ID стиля
+    sNAME               => null,        -- Наименование стиля
+    sHALIGNMENT         => 'Left',      -- Горизонтальное выравнивание (Left, Right, Center, CenterAcrossSelection, Distributed, JustifyDistributed)
+    sVALIGNMENT         => 'Center',    -- Вертикальное выравнивание (Top, Bottom, Center, Justify, Distributed, JustifyDistributed)
+    sINDENT             => '0',         -- Отступ
+    nWRAPTEXT           => 0,           -- Перенос текста (0, 1)
+    sBORDERTOPSTYLE     => 'Continuous',-- Верхняя граница ячейки (Continuous, Dot)
+    sBORDERBOTTOMSTYLE  => 'Continuous',-- Нижняя граница ячейки (Continuous, Dot)
+    sBORDERLEFTSTYLE    => 'Continuous',-- Левая граница ячейки (Continuous, Dot)
+    sBORDERRIGHTSTYLE   => 'Continuous',-- Правая граница ячейки (Continuous, Dot)
+    nBORDERTOPWEIGHT    => 0,           -- Верхняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERBOTTOMWEIGHT => 0,           -- Нижняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERLEFTWEIGHT   => 0,           -- Левая граница ячейки, толщина (если 0, то не формируется)
+    nBORDERRIGHTWEIGHT  => 0,           -- Правая граница ячейки, толщина (если 0, то не формируется)
+    sFONTNAME           => 'Verdana',   -- Название шрифта
+    sCHARSET            => '204',       -- Код набора символов
+    nFONTSIZE           => 10,          -- Размер шрифта
+    nFONTBOLD           => 0,           -- Болд (0, 1)
+    nFONTITALIC         => 0,           -- Курсив
+    sFONTCOLOR          => '#000000',   -- Цвет шрифта
+    sBACKCOLOR          => null,        -- Цвет фона '#FFFFFF'
+    sPATTERN            => null,        -- Кисть фона 'Solid'
+    sNUMBERFORMAT       => null         -- Формат числа
+  );
+  -- заголовок
+  ADD_STYLE
+  (
+    sSTYLE              => 'title_rep', -- ID стиля
+    sFONTNAME           => 'Arial Cyr', -- Название шрифта
+    nFONTSIZE           => 14,          -- Размер шрифта
+    nFONTBOLD           => 1,           -- Болд (0, 1)
+    nFONTITALIC         => 1,           -- Курсив
+    sFONTCOLOR          => '38'         -- Цвет шрифта
+  );
+
+  -- шапка таблицы
+  ADD_STYLE
+  (
+    sSTYLE              => 'title_tab', -- ID стиля
+    sFONTNAME           => 'Arial Cyr', -- Название шрифта
+    nFONTSIZE           => 14,          -- Размер шрифта
+    nFONTBOLD           => 1,           -- Болд (0, 1)
+    sBACKCOLOR          => '#99CCFF',   -- Цвет фона '#FFFFFF'
+    nBORDERTOPWEIGHT    => 1,           -- Верхняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERBOTTOMWEIGHT => 1,           -- Нижняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERLEFTWEIGHT   => 1,           -- Левая граница ячейки, толщина (если 0, то не формируется)
+    nBORDERRIGHTWEIGHT  => 1,           -- Правая граница ячейки, толщина (если 0, то не формируется)
+    nWRAPTEXT           => 1,           -- Перенос текста (0, 1)
+    sHALIGNMENT         => 'Center'     -- Горизонтальное выравнивание (Left, Right, Center, CenterAcrossSelection, Distributed, JustifyDistributed)
+  );
+
+  -- строка группировки
+  ADD_STYLE
+  (
+    sSTYLE              => 'grp_type',  -- ID стиля
+    sFONTNAME           => 'Arial Cyr', -- Название шрифта
+    nFONTSIZE           => 12,          -- Размер шрифта
+    nFONTBOLD           => 1,           -- Болд (0, 1)
+    nFONTITALIC         => 1,           -- Курсив
+    sBACKCOLOR          => '#CCFFFF',   -- Цвет фона '#FFFFFF'
+    nBORDERTOPWEIGHT    => 1,           -- Верхняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERBOTTOMWEIGHT => 1,           -- Нижняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERLEFTWEIGHT   => 1,           -- Левая граница ячейки, толщина (если 0, то не формируется)
+    nBORDERRIGHTWEIGHT  => 1,           -- Правая граница ячейки, толщина (если 0, то не формируется)
+    sHALIGNMENT         => 'Center'     -- Горизонтальное выравнивание (Left, Right, Center, CenterAcrossSelection, Distributed, JustifyDistributed)
+  );
+
+  -- столбец 1
+  ADD_STYLE
+  (
+    sSTYLE              => 'col_1',     -- ID стиля
+    sFONTNAME           => 'Arial Cyr', -- Название шрифта
+    sVALIGNMENT         => 'Top',       -- Вертикальное выравнивание (Top, Bottom, Center, Justify, Distributed, JustifyDistributed)
+    sINDENT             => '1',         -- Отступ
+    nFONTBOLD           => 1,           -- Болд (0, 1)
+    nBORDERTOPWEIGHT    => 1,           -- Верхняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERBOTTOMWEIGHT => 1,           -- Нижняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERLEFTWEIGHT   => 1,           -- Левая граница ячейки, толщина (если 0, то не формируется)
+    nBORDERRIGHTWEIGHT  => 1            -- Правая граница ячейки, толщина (если 0, то не формируется)
+  );
+
+  -- столбцы 2,3 бкз защиты
+  ADD_STYLE
+  (
+    sSTYLE              => 'col_23',    -- ID стиля
+    sFONTNAME           => 'Arial Cyr', -- Название шрифта
+    sVALIGNMENT         => 'Top',       -- Вертикальное выравнивание (Top, Bottom, Center, Justify, Distributed, JustifyDistributed)
+    nWRAPTEXT           => 1,           -- Перенос текста (0, 1)
+    nBORDERTOPWEIGHT    => 1,           -- Верхняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERBOTTOMWEIGHT => 1,           -- Нижняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERLEFTWEIGHT   => 1,           -- Левая граница ячейки, толщина (если 0, то не формируется)
+    nBORDERRIGHTWEIGHT  => 1            -- Правая граница ячейки, толщина (если 0, то не формируется)
+  );
+
+  -- столбцы 2,3 с защитой
+  ADD_STYLE
+  (
+    sSTYLE              => 'col_23prot',    -- ID стиля
+    sFONTNAME           => 'Arial Cyr', -- Название шрифта
+    sVALIGNMENT         => 'Top',       -- Вертикальное выравнивание (Top, Bottom, Center, Justify, Distributed, JustifyDistributed)
+    nWRAPTEXT           => 1,           -- Перенос текста (0, 1)
+    nBORDERTOPWEIGHT    => 1,           -- Верхняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERBOTTOMWEIGHT => 1,           -- Нижняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERLEFTWEIGHT   => 1,           -- Левая граница ячейки, толщина (если 0, то не формируется)
+    nBORDERRIGHTWEIGHT  => 1,           -- Правая граница ячейки, толщина (если 0, то не формируется)
+    nPROTECTION         => 0,
+    sFONTCOLOR          => '2'          -- Цвет шрифта
+  );
+
+  -- столбцы 4,5
+  ADD_STYLE
+  (
+    sSTYLE              => 'col_45',    -- ID стиля
+    sFONTNAME           => 'Arial Cyr', -- Название шрифта
+    sVALIGNMENT         => 'Top',       -- Вертикальное выравнивание (Top, Bottom, Center, Justify, Distributed, JustifyDistributed)
+    nBORDERTOPWEIGHT    => 1,           -- Верхняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERBOTTOMWEIGHT => 1,           -- Нижняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERLEFTWEIGHT   => 1,           -- Левая граница ячейки, толщина (если 0, то не формируется)
+    nBORDERRIGHTWEIGHT  => 1            -- Правая граница ячейки, толщина (если 0, то не формируется)
+  );
+
+  -- столбцы 6
+  ADD_STYLE
+  (
+    sSTYLE              => 'col_6',     -- ID стиля
+    sFONTNAME           => 'Arial Cyr', -- Название шрифта
+    sVALIGNMENT         => 'Top',       -- Вертикальное выравнивание (Top, Bottom, Center, Justify, Distributed, JustifyDistributed)
+    sHALIGNMENT         => 'Right',     -- Горизонтальное выравнивание (Left, Right, Center, CenterAcrossSelection, Distributed, JustifyDistributed)
+    nFONTBOLD           => 1,           -- Болд (0, 1)
+    sFONTCOLOR          => '4',         -- Цвет шрифта
+    nBORDERTOPWEIGHT    => 1,           -- Верхняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERBOTTOMWEIGHT => 1,           -- Нижняя граница ячейки, толщина (если 0, то не формируется)
+    nBORDERLEFTWEIGHT   => 1,           -- Левая граница ячейки, толщина (если 0, то не формируется)
+    nBORDERRIGHTWEIGHT  => 1            -- Правая граница ячейки, толщина (если 0, то не формируется)
+  );
+  -- ***********************************************************************************
+
+  -----------------------------------------------------------
+  -- лист1 --------------------------------------------------
+  -- открываем лист
+  OPEN_SHEET
+  (
+    sSHEETNAME        => 'Книги',     -- Название листа.
+    nPROTECTED        => 1,           -- Защищенный лист
+    sDATA             => '',          -- Данные о листе
+    nHSTATICCELLS     => 4,           -- Количество заголовочных ячеек
+    nVSTATICCELLS     => 2,
+    nOPTIMIZE_INSERT  => 0,           -- Оптимизация добавления ячеек
+    sPASSWORD         => 'abcdefghij' -- Пароль для отключения защиты листа
+  );
+
+  -- колонтитул
+  ADD_RUNTITLE( sHEADERLEFT => '&amp;"Vani,обычный"&amp;10&amp;K995555Колонтитул листа &amp;A',
+                sFOOTERCENTER => '&amp;P из &amp;N' );
+
+  -- открываем табличную область
+  OPEN_TABLE();
+
+  ADD_COLUMN( nWIDTH => 59 );
+  ADD_COLUMN( nWIDTH => 89 );
+  ADD_COLUMN( nWIDTH => 204 );
+  ADD_COLUMN( nWIDTH => 38 );
+  ADD_COLUMN( nWIDTH => 124 );
+  ADD_COLUMN( nWIDTH => 106 );
+
+  ADD_ROW( nHEIGHT => 17 );
+
+  ADD_ROW( nHEIGHT => 25 );
+
+  ADD_CELL( sSTYLE => 'Default', sCELLDATA => '', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'title_rep', sCELLDATA => 'Список книг по программированию', sCELLTYPE => 'String', nMERGEACROSS => 4 );
+
+  ADD_ROW( nHEIGHT => 17 );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'title_tab', sCELLDATA => '№ п.п.', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'title_tab', sCELLDATA => 'Автор', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'title_tab', sCELLDATA => 'Название', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'title_tab', sCELLDATA => 'Год', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'title_tab', sCELLDATA => 'Издательство', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'title_tab', sCELLDATA => 'Цена в магазине Озон', sCELLTYPE => 'String' );
+
+  ADD_ROW( nHEIGHT => 20 );
+  ADD_CELL( sSTYLE => 'grp_type', sCELLDATA => 'Python', sCELLTYPE => 'String', nMERGEACROSS => 5 );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '1', sCELLTYPE => 'Number', nMERGEDOWN => 1 );
+  ADD_CELL( sSTYLE => 'col_23prot', sCELLDATA => 'Марк Лутц', sCELLTYPE => 'String', nMERGEDOWN => 1 );
+  ADD_CELL( sSTYLE => 'col_23prot', sCELLDATA => 'Изучаем Python', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '2011', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => 'Символ-Плюс', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_6', sCELLDATA => '100', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '1', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Марк Лутц', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Python. Карманный справочник', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '2014', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => 'Вильямс', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_6', sCELLDATA => '150', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '2', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23prot', sCELLDATA => 'А. Головатый, Дж. Каплан-Мосс', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_23prot', sCELLDATA => 'Django. Подробное руководство', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '2010', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => 'Символ-Плюс', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_6', sCELLDATA => '255', sCELLTYPE => 'Number' );
+
+  for i in 1..25
+  loop
+    ADD_ROW( nAUTOFIT => 0 );
+    ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '3', sCELLTYPE => 'Number' );
+    ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Дэвид Бизли', sCELLTYPE => 'String' );
+    ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Python. Подробное руководство', sCELLTYPE => 'String' );
+    ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '2010', sCELLTYPE => 'Number' );
+    ADD_CELL( sSTYLE => 'col_45', sCELLDATA => 'Символ-Плюс', sCELLTYPE => 'String' );
+    ADD_CELL( sSTYLE => 'col_6', sCELLDATA => '99', sCELLTYPE => 'Number' );
+  end loop;
+
+  ADD_ROW( nHEIGHT => 20 );
+  ADD_CELL( sSTYLE => 'grp_type', sCELLDATA => 'Java', sCELLTYPE => 'String', nMERGEACROSS => 5 );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '5', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23prot', sCELLDATA => 'Герберт Шилдт', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_23prot', sCELLDATA => 'Java. Полное руководство', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '2012', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => 'Вильямс', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_6', sCELLDATA => '350', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '6', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Брюс Эккель', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Философия Java', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '2014', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => 'Питер', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_6', sCELLDATA => '145', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '7', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23prot', sCELLDATA => 'Роберт Лафоре', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_23prot', sCELLDATA => 'Структуры данных и алгоритмы в Java', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '2014', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => 'Питер', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_6', sCELLDATA => '560', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '8', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Патрик Нимейер, Даниэл Леук', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Программирование на Java', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '2014', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => 'Эксмо', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_6', sCELLDATA => '330', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nHEIGHT => 17, nPAGEBREAK => 1 );
+
+  ADD_ROW( nHEIGHT => 17 );
+  ADD_CELL( sSTYLE => 'Default', sCELLDATA => 'Телепрограмма', sCELLTYPE => 'String' );
+
+  ADD_ROW( nHEIGHT => 17 );
+  ADD_CELL( sSTYLE => 'Default', sCELLDATA => '9-00', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'Default', sCELLDATA => 'Вести', sCELLTYPE => 'String' );
+
+  ADD_ROW( nHEIGHT => 17 );
+  ADD_CELL( sSTYLE => 'Default', sCELLDATA => '9-35', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'Default', sCELLDATA => 'Новости', sCELLTYPE => 'String' );
+
+  -- выгружаем сформированные строки и столбцы
+  FLUSH_ROWCELLS();
+
+  -- закрываем табличную область и лист
+  CLOSE_TABLE_AND_SHEET();
+
+  -----------------------------------------------------------
+  -- лист2 --------------------------------------------------
+  -- открываем лист
+  OPEN_SHEET
+  (
+    sSHEETNAME        => 'Итоги',     -- Название листа.
+    nPROTECTED        => 1,           -- Защищенный лист
+    sDATA             => '',          -- Данные о листе
+    nHSTATICCELLS     => 0,           -- Количество заголовочных ячеек
+    nVSTATICCELLS     => 0,
+    nOPTIMIZE_INSERT  => 0            -- Оптимизация добавления ячеек
+  );
+
+  -- открываем табличную область
+  OPEN_TABLE();
+
+  ADD_COLUMN( nWIDTH => 50 );
+  ADD_COLUMN( nWIDTH => 100 );
+  ADD_COLUMN( nWIDTH => 50 );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '1', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Марк Лутц', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '100', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '2', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Евгений Карев', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '200', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '3', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Андрей Кольчугин', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '300', sCELLTYPE => 'Number' );
+
+  ADD_ROW( nAUTOFIT => 0 );
+  ADD_CELL( sSTYLE => 'col_1', sCELLDATA => '', sCELLTYPE => 'Number' );
+  ADD_CELL( sSTYLE => 'col_23', sCELLDATA => 'Итого', sCELLTYPE => 'String' );
+  ADD_CELL( sSTYLE => 'col_45', sCELLDATA => '=SUM(C1:C3)', sCELLTYPE => 'Formula' );
+
+  -- выгружаем сформированные строки и столбцы
+  FLUSH_ROWCELLS();
+
+  -- закрываем табличную область и лист
+  CLOSE_TABLE_AND_SHEET();
+
+  -- закрываем отчет
+  CLOSE_REPORT();
+
+  oBLOB := GET_BLOB;
+exception
+  when others then
+    FREE_BLOB();
+    raise;
+end;
