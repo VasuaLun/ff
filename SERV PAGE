@@ -1,43 +1,17 @@
 --18; DV_SERVREG
 declare
- pJURPERS      number          := :P1_JURPERS;
  pVERSION      number          := :P1_VERSION;
- pORGRN	       number          := nvl(:P1_ORGRN,:P7_ORGFILTER);
 
  vID           number;
- vNAME         varchar2(100);
- vVER          number;
 
  pasteID       varchar2(250);
  pasteSERVNAME  varchar2(250);
  pasteVER      varchar2(250);
 
- pUSER         varchar2(100)   := :APP_USER;
- pROLE         number          := ZGET_ROLE;
-
- pSEARCH       varchar2(4000)  := :P584_SEARCH;
- pWORKSERV     number          := :P584_WORKSERV;
- pSERVTYPE     number          := :P584_SERVTYPE2;
- pSERVSIGN     number          := :P584_SERVSIGN;
- -----------------------------------------------
- sREGNUM       varchar2(4000);
- sUNIQREGNUM   varchar2(4000);
- sSERVCODE     varchar2(4000);
- sWORKSERV     varchar2(4000);
- sSERVTYPE     varchar2(4000);
- sMEASURE      varchar2(4000);
- sQINDVAL      varchar2(4000);
- sORGCOUNT     varchar2(4000);
  -----------------------------------------------
  nCOUNTROWS    number;
- nTOTALSUM     number;
- nKINDQIND     number;
- nVALQIND      number;
- nSTATQIND     number;
- nPREVWORKSERV number;
 
  sColor        varchar2(100);
- sCOLORROW     varchar2(100);
  sMSG	       varchar2(250);
 
 begin
@@ -168,7 +142,7 @@ begin
         from DV_SERVREG
     )
     loop
-     
+
         pasteID       := '<td class="c1 workserv"><div class="c1">' || '<a href="f?p=103:19:'||v('APP_SESSION')||'::NO::P19_ID:'||rec.ID||'">Edit</a></div></td>';
         pasteSERVNAME  := '<td class="c2 workserv"><div class="c2">' || rec.SERV_NAME || '</div></td>';
 

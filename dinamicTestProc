@@ -1,0 +1,118 @@
+create or replace procedure DV_TESTPROC_HEAD
+(
+  pFILE        out BLOB
+)
+as
+  bPrint       boolean := false;
+  nCountCol    pls_integer:= 45;
+  sTITLE       varchar2(2000);
+  nItemRow     pls_integer := 0;
+  nEXPORTSIGN  number;
+begin
+begin
+    APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
+    begin  -- styles
+        ----------------------------------------------Начало стилей--------------------------------
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'title',
+                              sHALIGNMENT         => 'Center',
+                              nFONTSIZE           => 12,
+                              nFONTBOLD           => 1,
+                              nWRAPTEXT           => 1);
+
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_head',
+                              sHALIGNMENT         => 'Center',
+                              nBORDERTOPWEIGHT    => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              nWRAPTEXT           => 1,
+                              sBACKCOLOR          => '#cfdef0',
+                              sFONTCOLOR          => '#1d1d1d',
+                              sPATTERN            => 'Solid');
+
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_center_str',
+                              nWRAPTEXT           => 1,
+                              nBORDERTOPWEIGHT    => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              sHALIGNMENT         => 'Center');
+
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_left_str',
+                              nWRAPTEXT           => 1,
+                              nBORDERTOPWEIGHT    => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              sHALIGNMENT         => 'Left');
+
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_right_num',
+                              sHALIGNMENT         => 'Right',
+                              nWRAPTEXT           => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              sNUMBERFORMAT       => '#,##0',
+                              sINDENT             => 1);
+
+        ----------------------------------------------Конец стилей--------------------------------
+    end;   -- end styles
+
+    begin  -- body
+        sTITLE := 'Паспорт учреждения';
+
+        APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0, nHSTATICCELLS => 4,  nVSTATICCELLS => 8);
+        APKG_XLSREP.ADD_RUNTITLE( sHEADERRIGTH => '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;R&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014Подготовлено в ЭС РАМЗЭС');
+        APKG_XLSREP.ADD_NAMED_RANGE(sRANGE => 'R2:R4');
+        APKG_XLSREP.OPEN_TABLE();
+
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
+
+        APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'title', nMERGEACROSS => nCountCol-1, sCELLDATA => sTITLE, sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => '№ п/п', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Наименование', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Директор', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Адрес', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Тип здания', sCELLTYPE => 'String', nMERGEDOWN => 2);
+
+            for rec in
+            (
+                SELECT ID, NAME, CITY_ID, VERSION FROM DV_ORGREG
+            )
+            loop
+                nItemRow := nItemRow + 1;
+
+                APKG_XLSREP.ADD_ROW();
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => nItemRow, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.ID, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.NAME, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.CITY_ID, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.VERSION, sCELLTYPE => 'String');
+
+                bPrint := true;
+            end loop;  -- end rec
+        end;   -- end body
+
+        APKG_XLSREP.FLUSH_ROWCELLS();
+
+        APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+        APKG_XLSREP.CLOSE_REPORT();
+        pFILE := APKG_XLSREP.GET_BLOB;
+
+    exception when others then
+        APKG_XLSREP.CLOSE_REPORT();
+        APKG_XLSREP.FREE_BLOB;
+       raise;
+    end;
+    if not bPRINT then
+        zp_exception(0,'Формирование пустого отчёта невозможно!');
+    end if;
+end;
+​
