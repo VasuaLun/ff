@@ -1,4 +1,4 @@
-create or replace procedure DV_TESTPROC
+create or replace procedure DV_TESTPROC_HEAD
 (
   pFILE        out BLOB
 )
@@ -66,57 +66,36 @@ begin
         APKG_XLSREP.ADD_NAMED_RANGE(sRANGE => 'R2:R4');
         APKG_XLSREP.OPEN_TABLE();
 
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30, nCOUNT => 2);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 120);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 90, nCOUNT => 4);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 200);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
         APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 90, nCOUNT => 5);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 140, nCOUNT => 3);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 90, nCOUNT => 13);
-
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => 2);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 200, nCOUNT => 2);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => 4);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 150);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => 5);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
 
         APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'title', nMERGEACROSS => nCountCol-1, sCELLDATA => sTITLE, sCELLTYPE => 'String');
 
             APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => '№ п/п', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => '№ п/п', sCELLTYPE => 'String', nMERGEDOWN => 2);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Наименование', sCELLTYPE => 'String', nMERGEDOWN => 2);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Директор', sCELLTYPE => 'String', nMERGEDOWN => 2);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Адрес', sCELLTYPE => 'String', nMERGEDOWN => 2);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Тип здания', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Широта', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Долгота', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Город', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Версия', sCELLTYPE => 'String', nMERGEDOWN => 2);
-
 
             for rec in
             (
-                SELECT RN, NAME, ORG_DIRECTOR, ORG_ADDRESS, MAIN, LATITUDE, LONGITUDE, CITY_ID, VERSION FROM DV_ORGREG
+                SELECT ID, NAME, CITY_ID, VERSION FROM DV_ORGREG
             )
             loop
                 nItemRow := nItemRow + 1;
 
                 APKG_XLSREP.ADD_ROW();
                 APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => nItemRow, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.RN, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.ID, sCELLTYPE => 'String');
                 APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.NAME, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.ORG_DIRECTOR, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.ORG_ADDRESS, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.MAIN, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.LATITUDE, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.LONGITUDE, sCELLTYPE => 'String');
                 APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.CITY_ID, sCELLTYPE => 'String');
-
                 APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.VERSION, sCELLTYPE => 'String');
+
                 bPrint := true;
             end loop;  -- end rec
         end;   -- end body
