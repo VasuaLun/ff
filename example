@@ -1,21 +1,21 @@
 -- Вставить несколько строк в таблицу
 insert all
-    into DV_ORGREG (ID, NAME, ADDRESS) values (3, 'ВайфайКул', 'Москва')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (4, 'СпецВайфай', 'Москва')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (5, 'ТонронМост', 'Москва')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (6, 'Тонрон', 'Санкт-Петербург')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (7, 'Роновкор', 'Санкт-Петербург')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (8, 'Ронов', 'Санкт-Петербург')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (9, 'Торонпит', 'Самара')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (10, 'Торон', 'Санкт-Петербург')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (11, 'Жизньком', 'Новосибирск')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (12, 'Соцсетикрона', 'Новосибирск')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (13, 'КаналЛинк', 'Новосибирск')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (14, 'Поисковиким', 'Ростов')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (15, 'Сообщениямия', 'Новосибирск')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (16, 'Риот', 'Ростов')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (17, 'Алетта', 'Ростов')
-    into DV_ORGREG (ID, NAME, ADDRESS) values (18, 'Мелания', 'Москва')
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('ВайфайКул',    1 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('СпецВайфай',   1 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('ТонронМост',   1 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Тонрон',       1 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Роновкор',     2 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Ронов',        2 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Торонпит',     2 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Торон',        2 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Жизньком',     2 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Соцсетикрона', 2 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('КаналЛинк',    3 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Поисковиким',  3 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Сообщениямия', 3 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Риот',         3 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Алетта',       4 , 1)
+    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Мелания',      4 , 1)
 SELECT * FROM dual;
 
 -- Заполнить все NULL значения определенным
@@ -92,7 +92,6 @@ select "ROWID",
 "ORG_ID",
 "SERV_ID"
 from "#OWNER#"."DV_SERVLINKS"
-
 
 
 -- Отображение таблицы на странице Учреждения VER 0 (без услуг)
