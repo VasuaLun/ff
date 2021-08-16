@@ -59,7 +59,6 @@ begin
     end;   -- end styles
 
     begin  -- body
-        sTITLE := 'Паспорт учреждения';
 
         APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0, nHSTATICCELLS => 4,  nVSTATICCELLS => 8);
         APKG_XLSREP.ADD_RUNTITLE( sHEADERRIGTH => '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;R&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014Подготовлено в ЭС РАМЗЭС');
@@ -68,33 +67,22 @@ begin
 
         APKG_XLSREP.ADD_COLUMN(nWIDTH => 80, nCOUNT => 18);
 
-        APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'title', nMERGEACROSS => nCountCol-1, sCELLDATA => sTITLE, sCELLTYPE => 'String');
-
             APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
             for rec in
             (
                 select ID from DV_ORGREG where VERSION = 1 order by ID
             )
             loop
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.ID, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.ID, sCELLTYPE => 'String');
             end loop;
 
-            for rec in
+            APKG_XLSREP.ADD_ROW();
+            for row in
             (
-                SELECT ID, NAME, CITY_ID, VERSION FROM DV_ORGREG order by ID
+                select NAME from DV_ORGREG where VERSION = 1 order by ID
             )
             loop
-                nItemRow := nItemRow + 1;
-
-                fo
-                APKG_XLSREP.ADD_ROW();
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => nItemRow, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.ID, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.NAME, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.CITY_ID, sCELLTYPE => 'String');
-                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.VERSION, sCELLTYPE => 'String');
-
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => row.NAME, sCELLTYPE => 'String');
                 bPrint := true;
             end loop;  -- end rec
 /*
