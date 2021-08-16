@@ -197,7 +197,7 @@ begin
         APKG_XLSREP.ADD_NAMED_RANGE(sRANGE => 'R2:R4');
         APKG_XLSREP.OPEN_TABLE();
 
-        select COUNT(RN) into nCOUNTIN from Z_ORGREG where VERSION = 435195;
+        select COUNT(RN) into nCOUNTIN from Z_ORGREG where JUR_PERS = 1351099;
         nCOUNTIN := nCOUNTIN + 1;
 
         APKG_XLSREP.ADD_COLUMN(nWIDTH => 80, nCOUNT => nCOUNTIN);
@@ -206,7 +206,7 @@ begin
 
         for rec in
         (
-            select RN from Z_ORGREG where VERSION = 435195 order by RN
+            select RN from Z_ORGREG where JUR_PERS = 1351099 order by RN
         )
         loop
             APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.RN, sCELLTYPE => 'String');
@@ -217,7 +217,7 @@ begin
         APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => 'Название Учреждения', sCELLTYPE => 'String');
         for row in
         (
-            select NAME from Z_ORGREG where VERSION = 435195 order by RN
+            select NAME from Z_ORGREG where JUR_PERS = 1351099 order by RN
         )
         loop
             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => row.NAME, sCELLTYPE => 'String');
@@ -230,7 +230,7 @@ begin
         APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => 'Название города', sCELLTYPE => 'String');
         for row in
         (
-            select j.NAME as NAMEJ from Z_ORGREG o, Z_JURPERS j where o.VERSION = 435195 and o.JUR_PERS = j.RN order by o.RN
+            select j.NAME as NAMEJ from Z_ORGREG o, Z_JURPERS j where o.JUR_PERS = 1351099 and o.JUR_PERS = j.RN order by o.RN
         )
         loop
             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => row.NAMEJ, sCELLTYPE => 'String');

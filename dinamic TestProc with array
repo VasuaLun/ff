@@ -88,6 +88,7 @@ begin
             --APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.RN, sCELLTYPE => 'String');
         end loop;
 
+        nCOUNTIN := nCOUNTIN - 1;
         for i in 1..nCOUNTIN loop
             APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => array(i), sCELLTYPE => 'String');
         end loop;
