@@ -1,4 +1,4 @@
-create or replace procedure DV_TESTPROC_HEAD
+create or replace procedure DV_DINAMIC_TESTPROC
 (
   pFILE        out BLOB
 )
@@ -66,22 +66,38 @@ begin
         APKG_XLSREP.ADD_NAMED_RANGE(sRANGE => 'R2:R4');
         APKG_XLSREP.OPEN_TABLE();
 
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 30);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 80, nCOUNT => 18);
 
         APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'title', nMERGEACROSS => nCountCol-1, sCELLDATA => sTITLE, sCELLTYPE => 'String');
 
             APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => '№ п/п', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Наименование', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Директор', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Адрес', sCELLTYPE => 'String', nMERGEDOWN => 2);
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'Тип здания', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            for rec in
+            (
+                select ID from DV_ORGREG where VERSION = 1 order by ID
+            )
+            loop
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.ID, sCELLTYPE => 'String', nMERGEDOWN => 2);
+            end loop;
 
+            for rec in
+            (
+                SELECT ID, NAME, CITY_ID, VERSION FROM DV_ORGREG order by ID
+            )
+            loop
+                nItemRow := nItemRow + 1;
+
+                fo
+                APKG_XLSREP.ADD_ROW();
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => nItemRow, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.ID, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.NAME, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.CITY_ID, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => rec.VERSION, sCELLTYPE => 'String');
+
+                bPrint := true;
+            end loop;  -- end rec
+/*
             for rec in
             (
                 SELECT ID, NAME, CITY_ID, VERSION FROM DV_ORGREG
@@ -98,6 +114,7 @@ begin
 
                 bPrint := true;
             end loop;  -- end rec
+            */
         end;   -- end body
 
         APKG_XLSREP.FLUSH_ROWCELLS();
@@ -115,4 +132,3 @@ begin
         zp_exception(0,'Формирование пустого отчёта невозможно!');
     end if;
 end;
-​
