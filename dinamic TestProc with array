@@ -9,7 +9,9 @@ as
   nItemRow     pls_integer := 0;
   nEXPORTSIGN  number;
   nCOUNTIN     integer;
-  type arrayNAME is varray(1) of varchar2(100);
+  type arrayNAME is varray(34) of integer;
+  array arrayNAME := arrayNAME();
+  a number := 1;
 begin
 begin
     APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
@@ -81,7 +83,13 @@ begin
             select RN from Z_ORGREG where VERSION = 435195 order by RN
         )
         loop
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.RN, sCELLTYPE => 'String');
+            array(a) := rec.RN;
+            a := a+1;
+            --APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.RN, sCELLTYPE => 'String');
+        end loop;
+
+        for i in 1..nCOUNTIN loop
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => array(i), sCELLTYPE => 'String');
         end loop;
 
         -- Первый столбец с названием строки
