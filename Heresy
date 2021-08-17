@@ -1,18 +1,30 @@
 create or replace procedure DV_DINAMIC_TESTPROC
 (
   pFILE        out BLOB
+  --pJURPERS     number :=,
+  --pVERSION     number
 )
 as
   bPrint       boolean := false;
-  nCountCol    pls_integer:= 45;
-  sTITLE       varchar2(2000);
-  nItemRow     pls_integer := 0;
-  nEXPORTSIGN  number;
   nCOUNTIN     integer;
-  type RN_t IS TABLE OF Z_ORGREG.RN%TYPE;
-  type NAME_t IS TABLE OF Z_ORGREG.NAME%TYPE;
-  RNs RN_t;
-  NAMEs NAME_t;
+  --Объявление коллекции
+  --Коллекция с кратким наименованием
+  TYPE t_tab1 IS RECORD(
+   RN number,
+   CODE varchar2(100),
+   PRN number
+ );
+ TYPE t_tab_arr1 IS TABLE OF t_tab1;
+ regcode T_TAB_ARR1;
+
+ --Коллекция с типами
+ TYPE t_tab2 IS RECORD(
+  RN number,
+  CODE varchar2(100)
+);
+TYPE t_tab_arr2 IS TABLE OF t_tab2;
+typecode T_TAB_ARR2;
+
 begin
 begin
     APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
@@ -72,30 +84,43 @@ begin
         APKG_XLSREP.ADD_NAMED_RANGE(sRANGE => 'R2:R4');
         APKG_XLSREP.OPEN_TABLE();
 
-        select COUNT(RN) into nCOUNTIN from Z_ORGREG where JUR_PERS = 1351099;
-        nCOUNTIN := nCOUNTIN + 1;
-
-        select RN, NAME bulk collect into RNs, NAMEs
+        -- Заполнение первой коллекции
+        select RN, CODE, PRN BULK COLLECT
+        into regcode
         from Z_ORGREG
-        where JUR_PERS = 1351099;
+        where JUR_PERS = 1351099
+        order by CODE;
+
+        --Заполнение второй коллекции с типами
+        SELECT RN, CODE BULK COLLECT
+        INTO typecode
+        FROM Z_ORGROUP
+        where JUR_PERS = 1351099
+        ORDER BY CODE;
 
         APKG_XLSREP.ADD_COLUMN(nWIDTH => 80, nCOUNT => nCOUNTIN);
-        APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+        APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
         APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'ID Учреждения', sCELLTYPE => 'String');
 
-        for I in RNs.FIRST..RNs.LAST
+        for I in regcode.FIRST..regcode.LAST
         loop
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => RNs(I), sCELLTYPE => 'String');
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => regcode(I).CODE, sCELLTYPE => 'String');
+            bPrint := true;
         end loop;
 
-        -- Первый столбец с названием строки
-        APKG_XLSREP.ADD_ROW();
-        APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => 'Название Учреждения', sCELLTYPE => 'String');
-
-        for I in NAMEs.FIRST..NAMEs.LAST
+        for I IN typecode.FIRST..typecode.LAST
         loop
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => NAMEs(I), sCELLTYPE => 'String');
+            APKG_XLSREP.ADD_ROW();
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => typecode(I).CODE, sCELLTYPE => 'String');
             bPrint := true;
+            for A IN regcode.FIRST..regcode.LAST
+            loop
+                if (typecode(I).RN = regcode(A).PRN) then
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => '1', sCELLTYPE => 'String');
+                else
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => NULL, sCELLTYPE => 'String');
+                end if;
+            end loop;
         end loop;
 
         end;   -- end body

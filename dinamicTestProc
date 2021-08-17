@@ -9,7 +9,6 @@ as
   nItemRow     pls_integer := 0;
   nEXPORTSIGN  number;
   nCOUNTIN     integer;
-  type arrayNAME is varray(1) of varchar2(100);
 begin
 begin
     APKG_XLSREP.OPEN_REPORT(nTYPE => 1);

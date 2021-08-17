@@ -303,3 +303,29 @@ BEGIN
   DBMS_OUTPUT.PUT_LINE(NAMEs(I));
   END LOOP;
 END;
+
+ DECLARE
+     TYPE list_of_names_t IS TABLE OF VARCHAR2 (100);
+
+     happyfamily   list_of_names_t := list_of_names_t ();
+     children      list_of_names_t := list_of_names_t ();
+     parents       list_of_names_t := list_of_names_t ();
+  BEGIN
+     happyfamily.EXTEND (4);
+     happyfamily (1) := ‘Veva’;
+     happyfamily (2) := ‘Chris’;
+     happyfamily (3) := ‘Eli’;
+     happyfamily (4) := ‘Steven’;
+
+     children.EXTEND;
+     children (children.LAST) := ‘Chris’;
+     children.EXTEND;
+     children (children.LAST) := ‘Eli’;
+
+     parents := happyfamily MULTISET EXCEPT children;
+
+     FOR l_row IN 1 .. parents.COUNT
+     LOOP
+        DBMS_OUTPUT.put_line (parents (l_row));
+     END LOOP;
+  END;
