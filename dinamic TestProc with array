@@ -9,9 +9,8 @@ as
   nItemRow     pls_integer := 0;
   nEXPORTSIGN  number;
   nCOUNTIN     integer;
-  type arrayNAME is varray(34) of integer;
-  array arrayNAME := arrayNAME();
-  a number := 1;
+  type RN_t IS TABLE OF Z_ORGREG.RN%TYPE;
+  RNs RN_t;
 begin
 begin
     APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
@@ -71,26 +70,21 @@ begin
         APKG_XLSREP.ADD_NAMED_RANGE(sRANGE => 'R2:R4');
         APKG_XLSREP.OPEN_TABLE();
 
-        select COUNT(RN) into nCOUNTIN from Z_ORGREG where VERSION = 435195;
+        select COUNT(RN) into nCOUNTIN from Z_ORGREG where JUR_PERS = 1351099;
         nCOUNTIN := nCOUNTIN + 1;
 
         APKG_XLSREP.ADD_COLUMN(nWIDTH => 80, nCOUNT => nCOUNTIN);
         APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
         APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'ID Учреждения', sCELLTYPE => 'String');
 
+        select RN
+
         for rec in
         (
-            select RN from Z_ORGREG where VERSION = 435195 order by RN
+            select RN from Z_ORGREG where JUR_PERS = 1351099 order by RN
         )
         loop
-            array(a) := rec.RN;
-            a := a+1;
-            --APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.RN, sCELLTYPE => 'String');
-        end loop;
-
-        nCOUNTIN := nCOUNTIN - 1;
-        for i in 1..nCOUNTIN loop
-            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => array(i), sCELLTYPE => 'String');
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => rec.RN, sCELLTYPE => 'String');
         end loop;
 
         -- Первый столбец с названием строки
@@ -98,7 +92,7 @@ begin
         APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => 'Название Учреждения', sCELLTYPE => 'String');
         for row in
         (
-            select NAME from Z_ORGREG where VERSION = 435195 order by RN
+            select NAME from Z_ORGREG where JUR_PERS = 1351099 order by RN
         )
         loop
             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => row.NAME, sCELLTYPE => 'String');
@@ -111,7 +105,7 @@ begin
         APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => 'Название города', sCELLTYPE => 'String');
         for row in
         (
-            select j.NAME as NAMEJ from Z_ORGREG o, Z_JURPERS j where o.VERSION = 435195 and o.JUR_PERS = j.RN order by o.RN
+            select j.NAME as NAMEJ from Z_ORGREG o, Z_JURPERS j where o.JUR_PERS = 1351099 and o.JUR_PERS = j.RN order by o.RN
         )
         loop
             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => row.NAMEJ, sCELLTYPE => 'String');

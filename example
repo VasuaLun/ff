@@ -269,3 +269,37 @@ select DV_ORGREG.NAME as NAME,
     END LOOP;
    htp.p('</table>');
   end;
+
+-- Пример с массивом для "selecta"
+  declare
+  type arrayNAME is varray(34) of integer;
+  array arrayNAME := arrayNAME();
+  begin
+  end;
+
+  set serveroutput on size unlimited;
+  DECLARE
+     TYPE  XX_VAR_TYPE IS VARRAY(100)  OF  NUMBER  ;
+     l_array  XX_VAR_TYPE :=  XX_VAR_TYPE(100,200,300,400,500);
+    BEGIN
+     l_array.TRIM(3);
+     FOR I IN 1..l_array.COUNT
+     LOOP
+     DBMS_OUTPUT.PUT_LINE(l_array(I));
+     END LOOP;
+   END;
+
+-- Проба работы с ассоциацивным массивом данных
+DECLARE
+   TYPE ID_t IS TABLE OF DV_ORGREG.ID%TYPE;
+   TYPE NAME_t IS TABLE OF DV_ORGREG.NAME%TYPE;
+   IDs ID_t;
+   NAMEs NAME_t;
+BEGIN
+   SELECT ID, NAME BULK COLLECT INTO IDs, NAMEs
+      FROM DV_ORGREG;
+  FOR I IN 1..IDs.COUNT
+  LOOP
+  DBMS_OUTPUT.PUT_LINE(NAMEs(I));
+  END LOOP;
+END;
