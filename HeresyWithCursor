@@ -26,7 +26,7 @@ AS
               ----------------------------------------------Начало стилей--------------------------------
               APKG_XLSREP.ADD_STYLE(sSTYLE              => 'title',
                                     sHALIGNMENT         => 'Center',
-                                    nFONTSIZE           => 12,
+                                    nFONTSIZE           => 10,
                                     nFONTBOLD           => 1,
                                     nWRAPTEXT           => 1);
 
@@ -91,7 +91,7 @@ AS
 
               APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => Code_Col.COUNT);
               APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
-              APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Наименование учреждений', sCELLTYPE => 'String');
+              APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Наименование/тип', sCELLTYPE => 'String');
 
               FOR I IN Code_Col.FIRST..Code_Col.COUNT
               LOOP
@@ -106,8 +106,10 @@ AS
 
                   FOR K IN Code_Col.FIRST..Code_Col.COUNT
                   LOOP
-                      IF (Type_col(J).RN = Code_Col(K).PRN) THEN APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => '1', sCELLTYPE => 'String');
-                      ELSE APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => '0', sCELLTYPE => 'String');
+                      IF (Type_col(J).RN = Code_Col(K).PRN) THEN
+                          APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str',  sCELLDATA => '1', sCELLTYPE => 'String');
+                      ELSE
+                          APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str',  sCELLDATA => '0', sCELLTYPE => 'String');
                       END IF;
                   END LOOP;
               END LOOP;

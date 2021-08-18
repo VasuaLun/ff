@@ -339,5 +339,13 @@ declare
  TYPE t_tab_arr1 IS TABLE OF t_tab1;
  regcode T_TAB_ARR1;
 begin
-    
+    select RN, CODE, PRN BULK COLLECT
+    into regcode
+    from Z_ORGREG
+    where JUR_PERS = 1351099
+    order by CODE;
+    FOR l_row IN 1 .. parents.COUNT
+    LOOP
+       DBMS_OUTPUT.put_line (parents (l_row));
+    END LOOP;
 end;

@@ -1,8 +1,8 @@
 create or replace procedure DV_DINAMIC_TESTPROC
 (
-  pFILE        out BLOB
-  --pJURPERS     number :=,
-  --pVERSION     number
+    pFILE        out BLOB,
+    pJURPERS     number,
+    pVERSION     number
 )
 as
   bPrint       boolean := false;
@@ -10,12 +10,12 @@ as
   --Объявление коллекции
   --Коллекция с кратким наименованием
   TYPE t_tab1 IS RECORD(
-   RN number,
-   CODE varchar2(100),
-   PRN number
- );
- TYPE t_tab_arr1 IS TABLE OF t_tab1;
- regcode T_TAB_ARR1;
+     RN number,
+     CODE varchar2(100),
+     PRN number
+  );
+  TYPE t_tab_arr1 IS TABLE OF t_tab1;
+  regcode t_tab_arr1;
 
  --Коллекция с типами
  TYPE t_tab2 IS RECORD(
@@ -23,7 +23,7 @@ as
   CODE varchar2(100)
 );
 TYPE t_tab_arr2 IS TABLE OF t_tab2;
-typecode T_TAB_ARR2;
+typecode t_tab_arr2;
 
 begin
 begin
@@ -88,18 +88,18 @@ begin
         select RN, CODE, PRN BULK COLLECT
         into regcode
         from Z_ORGREG
-        where JUR_PERS = 1351099
+        where JUR_PERS = pJURPERS and VERSION = pVERSION
         order by CODE;
 
         --Заполнение второй коллекции с типами
         SELECT RN, CODE BULK COLLECT
         INTO typecode
         FROM Z_ORGROUP
-        where JUR_PERS = 1351099
+        where JUR_PERS = pJURPERS and VERSION = pVERSION
         ORDER BY CODE;
 
-        APKG_XLSREP.ADD_COLUMN(nWIDTH => 80, nCOUNT => nCOUNTIN);
-        APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => nCOUNTIN);
+        APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
         APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'ID Учреждения', sCELLTYPE => 'String');
 
         for I in regcode.FIRST..regcode.LAST
