@@ -79,9 +79,8 @@ begin
 
     begin  -- body
 
-        APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0, nHSTATICCELLS => 1,  nVSTATICCELLS => 1);
+        APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0);
         APKG_XLSREP.ADD_RUNTITLE( sHEADERRIGTH => '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;R&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014Подготовлено в ЭС РАМЗЭС');
-        APKG_XLSREP.ADD_NAMED_RANGE(sRANGE => 'R2:R4');
         APKG_XLSREP.OPEN_TABLE();
 
         -- Заполнение первой коллекции
@@ -100,7 +99,7 @@ begin
 
         APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => nCOUNTIN);
         APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
-        APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head', sCELLDATA => 'ID Учреждения', sCELLTYPE => 'String');
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'title', sCELLDATA => 'ID Учреждения', sCELLTYPE => 'String');
 
         for I in regcode.FIRST..regcode.LAST
         loop
@@ -110,15 +109,15 @@ begin
 
         for I IN typecode.FIRST..typecode.LAST
         loop
-            APKG_XLSREP.ADD_ROW();
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => typecode(I).CODE, sCELLTYPE => 'String');
             bPrint := true;
-            for A IN regcode.FIRST..regcode.LAST
+            for A IN regcode.FIRST..regcode.COUNT
             loop
                 if (typecode(I).RN = regcode(A).PRN) then
                     APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => '1', sCELLTYPE => 'String');
                 else
-                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => NULL, sCELLTYPE => 'String');
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => '0', sCELLTYPE => 'String');
                 end if;
             end loop;
         end loop;

@@ -47,6 +47,8 @@ AS
                                     nBORDERBOTTOMWEIGHT => 1,
                                     nBORDERLEFTWEIGHT   => 1,
                                     nBORDERRIGHTWEIGHT  => 1,
+                                    sBACKCOLOR          => '#37c782',
+                                    sFONTCOLOR          => '#1d1d1d',
                                     sHALIGNMENT         => 'Center');
 
               APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_left_str',
@@ -76,10 +78,10 @@ AS
 
 
               --Заполнение коллекции кратким наименованием
-              SELECT RN, CODE, PRN BULK COLLECT
-              INTO Code_Col
-              FROM Z_ORGREG
-              WHERE JUR_PERS = pJURPERS AND VERSION = pVERSION
+              select RN, CODE, PRN BULK COLLECT
+              into Code_Col
+              from Z_ORGREG
+              where JUR_PERS = pJURPERS and VERSION = pVERSION
               ORDER BY CODE;
 
               --Заполнение коллекции типом организации
@@ -102,14 +104,14 @@ AS
               FOR J IN Type_col.FIRST..Type_col.COUNT
               LOOP
                   APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
-                  APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => Type_col(J).CODE, sCELLTYPE => 'String');
+                  APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str',  sCELLDATA => Type_col(J).CODE, sCELLTYPE => 'String');
 
                   FOR K IN Code_Col.FIRST..Code_Col.COUNT
                   LOOP
                       IF (Type_col(J).RN = Code_Col(K).PRN) THEN
                           APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str',  sCELLDATA => '1', sCELLTYPE => 'String');
                       ELSE
-                          APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str',  sCELLDATA => '0', sCELLTYPE => 'String');
+                          APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str',  sCELLDATA => NULL, sCELLTYPE => 'String');
                       END IF;
                   END LOOP;
               END LOOP;
@@ -130,5 +132,3 @@ AS
          raise;
       end;
   end;
-
-​
