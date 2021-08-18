@@ -329,3 +329,15 @@ END;
         DBMS_OUTPUT.put_line (parents (l_row));
      END LOOP;
   END;
+
+declare
+ TYPE t_tab1 IS RECORD(
+    RN number,
+    CODE varchar2(100),
+    PRN number
+ );
+ TYPE t_tab_arr1 IS TABLE OF t_tab1;
+ regcode T_TAB_ARR1;
+begin
+    
+end;

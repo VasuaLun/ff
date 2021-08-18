@@ -1,0 +1,132 @@
+create or replace procedure DV_DINAMIC_TESTPROC
+(
+  pFILE        out BLOB,
+  pJURPERS     number,
+  pVERSION     number
+)
+AS
+  bPrint      boolean := false;
+  sTitle      varchar2(2000);
+
+    --Коллекция и курсор от учреждений
+    cursor curcode is select RN, CODE, PRN from Z_ORGREG;
+    TYPE CodeSet_t IS TABLE OF curcode%ROWTYPE;
+    Code_Col CodeSet_t;
+
+
+    --Коллекция и курсор от типов
+    CURSOR cutype IS SELECT RN, CODE FROM Z_ORGROUP;
+    TYPE OrgSet_t IS TABLE OF cutype%ROWTYPE;
+    Type_col OrgSet_t;
+
+  Begin
+      begin
+          APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
+          begin  -- styles
+              ----------------------------------------------Начало стилей--------------------------------
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'title',
+                                    sHALIGNMENT         => 'Center',
+                                    nFONTSIZE           => 12,
+                                    nFONTBOLD           => 1,
+                                    nWRAPTEXT           => 1);
+
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_head',
+                                    sHALIGNMENT         => 'Center',
+                                    nBORDERTOPWEIGHT    => 1,
+                                    nBORDERBOTTOMWEIGHT => 1,
+                                    nBORDERLEFTWEIGHT   => 1,
+                                    nBORDERRIGHTWEIGHT  => 1,
+                                    nWRAPTEXT           => 1,
+                                    sBACKCOLOR          => '#cfdef0',
+                                    sFONTCOLOR          => '#1d1d1d',
+                                    sPATTERN            => 'Solid');
+
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_center_str',
+                                    nWRAPTEXT           => 1,
+                                    nBORDERTOPWEIGHT    => 1,
+                                    nBORDERBOTTOMWEIGHT => 1,
+                                    nBORDERLEFTWEIGHT   => 1,
+                                    nBORDERRIGHTWEIGHT  => 1,
+                                    sHALIGNMENT         => 'Center');
+
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_left_str',
+                                    nWRAPTEXT           => 1,
+                                    nBORDERTOPWEIGHT    => 1,
+                                    nBORDERBOTTOMWEIGHT => 1,
+                                    nBORDERLEFTWEIGHT   => 1,
+                                    nBORDERRIGHTWEIGHT  => 1,
+                                    sHALIGNMENT         => 'Left');
+
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_right_num',
+                                    sHALIGNMENT         => 'Right',
+                                    nWRAPTEXT           => 1,
+                                    nBORDERBOTTOMWEIGHT => 1,
+                                    nBORDERLEFTWEIGHT   => 1,
+                                    nBORDERRIGHTWEIGHT  => 1,
+                                    sNUMBERFORMAT       => '#,##0',
+                                    sINDENT             => 1);
+
+              ----------------------------------------------Конец стилей--------------------------------
+          end;   -- end styles
+
+          begin  -- body
+              APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0);
+              APKG_XLSREP.ADD_RUNTITLE( sHEADERRIGTH => '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;R&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014Подготовлено в ЭС РАМЗЭС');
+              APKG_XLSREP.OPEN_TABLE();
+
+
+              --Заполнение коллекции кратким наименованием
+              SELECT RN, CODE, PRN BULK COLLECT
+              INTO Code_Col
+              FROM Z_ORGREG
+              WHERE JUR_PERS = pJURPERS AND VERSION = pVERSION
+              ORDER BY CODE;
+
+              --Заполнение коллекции типом организации
+              select RN, CODE BULK COLLECT
+              into Type_col
+              from Z_ORGROUP
+              where JUR_PERS = pJURPERS and VERSION = pVERSION
+              ORDER BY CODE;
+
+              APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => Code_Col.COUNT);
+              APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+              APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Наименование учреждений', sCELLTYPE => 'String');
+
+              FOR I IN Code_Col.FIRST..Code_Col.COUNT
+              LOOP
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => Code_Col(I).CODE, sCELLTYPE => 'String');
+              END LOOP;
+
+
+              FOR J IN Type_col.FIRST..Type_col.COUNT
+              LOOP
+                  APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                  APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => Type_col(J).CODE, sCELLTYPE => 'String');
+
+                  FOR K IN Code_Col.FIRST..Code_Col.COUNT
+                  LOOP
+                      IF (Type_col(J).RN = Code_Col(K).PRN) THEN APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => '1', sCELLTYPE => 'String');
+                      ELSE APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => '0', sCELLTYPE => 'String');
+                      END IF;
+                  END LOOP;
+              END LOOP;
+
+          --Закрытие курсоров
+
+          end;   -- end body
+
+          APKG_XLSREP.FLUSH_ROWCELLS();
+
+          APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+          APKG_XLSREP.CLOSE_REPORT();
+          pFILE := APKG_XLSREP.GET_BLOB;
+
+      exception when others then
+          APKG_XLSREP.CLOSE_REPORT();
+          APKG_XLSREP.FREE_BLOB;
+         raise;
+      end;
+  end;
+
+​
