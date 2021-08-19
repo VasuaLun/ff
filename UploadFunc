@@ -1,0 +1,153 @@
+create or replace procedure UDO_P_BASE_NORM
+(
+  nIDENT         number,
+  nRN_ORG        number,
+  nJURPERS       number,
+  nUSER          number,
+  nLOG           number,
+  nRESULT        out number,
+  sRESULT_MSG    out varchar2
+)
+as
+  pJURPERS       number(17):= v('P1_JURPERS');--210725023;
+  pVERSION       number(17):= v('P1_VERSION') ;--321190246;
+  nROWCNT        pls_integer;
+  pORGRN         number;
+  nADDEDCOUNT    number;
+
+
+  nERROR         pls_integer;
+  sERR_MSG       varchar2(4000);
+  sErrText       varchar2(4000);
+  sSERVCODE         varchar2(4000);
+  nCURPFHD       number;
+  nCURGZBLANK     number;
+  sSHORT_NAME    Z_ORGREG.SHORT_NAME%type;
+  nPFHDSTATUS    number;
+  nGZBLANKSTATUS number;
+  nPFHDRN        number;
+  nEXPORTSIGN    number;
+
+  nSERVCNT       number := null;
+  nSERVRN        number;
+  nLINKRN        number;
+  dDATE          date;
+  nNUMB          number;
+  nPREVINN       number := null;
+
+
+begin
+
+    if pVERSION is null then
+        ZP_EXCEPTION (0, 'Не задана версия.');
+    end if;
+
+    -- Бежим по буферной таблице
+    for rec in
+    (
+     select INN, KPP, NAME, CODE, ORGTYPE, USER_FIO, POST, EMAIL, PHONE
+       from DV_UDO_ORGREG
+      where IDENT = nIDENT
+      order by INN
+    )
+    loop
+
+     select count(*)
+      into nROWCNT
+      from (select *
+              from DV_UDO_ORGREG
+             where IDENT = nIDENT);
+
+
+             if rec.INN is null then
+                 sERR_MSG  := 'Отсутствует ИНН ';
+                 nERROR := nvl(nERROR,0) + 1;
+             end if;
+
+             if sERR_MSG is null then -- Не найдена организация
+                 begin
+                     select RN, SHORT_NAME
+                       into pORGRN, sSHORT_NAME
+                       from Z_ORGREG
+                      where version  = pVERSION
+                        and (INN      = TRIM(rec.INN) or OMS_CODE = TRIM(rec.INN))
+                        and CLOSED_SIGN  = 0;
+                 exception when others then
+                     sERR_MSG  := 'Не найдена организация по ИНН: ' || rec.INN;
+                     nERROR := nvl(nERROR,0) + 1;
+                     pORGRN := null;
+                     sSHORT_NAME := null;
+                 end;
+             end if;
+
+             if sERR_MSG is null then -- Не найдена организация
+                 begin
+                     select to_date(rec.FOUND_DATE, 'dd.mm.yyyy')
+                       into dDATE
+                       from dual;
+                 exception when others then
+                     sERR_MSG  := 'Некорректная дата: ' || rec.FOUND_DATE;
+                     nERROR := nvl(nERROR,0) + 1;
+                     dDATE := null;
+                 end;
+             end if;
+
+             if sERR_MSG is null and trim(rec.UNIQREGNUM) is null
+             and trim(rec.SERVCODE) is null
+             and trim(rec.SERVNAME) is null
+             then
+                 sERR_MSG  := 'Не задано УНРЗ, краткое и полное наименование услуги';
+                 nERROR := nvl(nERROR,0) + 1;
+             end if;
+
+             if sERR_MSG is null and to_number(nvl(trim(rec.ACCEPT_NORM), 0)) < 0  then
+                  sERR_MSG  := 'Базовый норматив не может быть отрицательным';
+                  nERROR := nvl(nERROR,0) + 1;
+             end if;
+
+             if sERR_MSG is null and to_number(nvl(trim(rec.CORRCOEF), 0)) < 0  then
+                 sERR_MSG  := 'Отраслевой коэффициент не может быть отрицательным';
+                 nERROR := nvl(nERROR,0) + 1;
+             end if;
+
+             if sERR_MSG is null and to_number(nvl(trim(rec.REGCOEFF), 0)) < 0  then
+                 sERR_MSG  := 'Территориальный коэффициент не может быть отрицательным';
+                 nERROR := nvl(nERROR,0) + 1;
+             end if;
+
+             if sERR_MSG is null and (to_number(nvl(trim(rec.ALIGCOEFF), 0)) < 0 or
+                                      to_number(nvl(trim(rec.ALIGCOEFF2), 0)) < 0 or
+                                      to_number(nvl(trim(rec.ALIGCOEFF3), 0)) < 0) then
+                 sERR_MSG  := 'Коэффициент выравнивания не может быть отрицательным';
+                 nERROR := nvl(nERROR,0) + 1;
+             end if;
+
+             if sERR_MSG is null and trim(rec.ACCEPT_NORM)    is null
+                and trim(rec.CORRCOEF) is null
+                and trim(rec.REGCOEFF)      is null
+                and trim(rec.ALIGCOEFF)   is null
+                then
+                 sERR_MSG  := 'Не задан ни один коэффициент/норматив';
+                 nERROR := nvl(nERROR,0) + 1;
+             end if;
+
+
+             if rec.INN!= nPREVINN or nPREVINN is null then
+                 if sERR_MSG is null then
+                     nCURGZBLANK := ZF_GET_REDACTION_LAST (pVERSION, pORGRN, 'GZBLANK');
+                     if nvl(nCURGZBLANK,0) = 0 then
+                         sERR_MSG  := 'Не найдена текущая редакция "Бланк ГЗ". Учреждение: ' || sSHORT_NAME;
+                         nERROR := nvl(nERROR,0) + 1;
+                     end if;
+                 end if;
+
+                 if sERR_MSG is null then
+                     nCURPFHD := ZF_GET_PFHDVERS_LAST (pVERSION, pORGRN);
+                     if nvl(nCURPFHD,0) = 0 then
+                         sERR_MSG  := 'Не найдена текущая редакция "ПФХД". Учреждение: ' || sSHORT_NAME;
+                         nERROR := nvl(nERROR,0) + 1;
+                     end if;
+                 end if;
+
+                 nPREVINN := rec.INN;
+             end if;
