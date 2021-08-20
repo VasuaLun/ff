@@ -349,3 +349,35 @@ begin
        DBMS_OUTPUT.put_line (parents (l_row));
     END LOOP;
 end;
+
+select distinct l.NAME as NAME,
+    l.NUM as NUM,
+    o.VERSION as VERSION
+                from Z_ORGREG o,
+                    Z_EXPALL ea,
+                    Z_EXPMAT em,
+                    Z_LOV l
+              where l.NUM=em.FOTYPE2
+                    and em.RN=ea.EXP_ARTICLE
+                    and ea.ORGRN=o.RN
+                    and o.VERSION = 138308075
+                    and l.PART = 'FOTYPE2'
+ order by NUM;
+
+ select o.CODE as code,
+     (SUM(ea.SERVSUM) + SUM(ea.MSUM)) as expsum,
+     l.NAME as name
+     from Z_LOV l
+     inner join Z_EXPMAT em on l.NUM = em.FOTYPE2
+     inner join Z_EXPALL ea on em.RN = ea.EXP_ARTICLE
+     inner join Z_ORGREG o  on ea.ORGRN = o.RN
+     where o.VERSION = 138308075
+           and l.PART = 'FOTYPE2'
+     group by name, code
+ order by o.RN;
+
+  SELECT ORGRN, SUM(SERVSUM) + SUM(MSUM), FOTYPE2 BULK COLLECT INTO C_EXPALL_ITEMS_SET
+FROM Z_EXPALL, Z_EXPMAT WHERE Z_EXPMAT.RN = Z_EXPALL.EXP_ARTICLE
+AND  Z_EXPMAT.VERSION = pVERSION AND Z_EXPMAT.JUR_PERS = pJURPERS
+GROUP BY Z_EXPALL.ORGRN,  Z_EXPMAT.FOTYPE2
+ORDER BY ORGRN;

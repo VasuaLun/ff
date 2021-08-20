@@ -7,16 +7,22 @@ create or replace procedure DV_DINAMIC_EKZ
 AS
   bPrint      boolean := false;
   sTitle      varchar2(2000);
+  uName       varchar2(1000) := '0';
+  uNUM        number := 0;
+  uSUMM       number := 0;
+
+  cursor curcode is select NUM, NAME from Z_LOV;
+  TYPE CodeSet_t IS TABLE OF curcode%ROWTYPE;
+  Code_Col CodeSet_t;
 
     --Коллекция и курсор от учреждений
-    cursor curcode is select RN, NAME from Z_LOV;
-    TYPE CodeSet_t IS TABLE OF curcode%ROWTYPE;
-    Code_Col CodeSet_t;
-
-    --Коллекция и курсор от типов
-    CURSOR cutype IS SELECT RN, CODE FROM Z_ORGROUP;
-    TYPE OrgSet_t IS TABLE OF cutype%ROWTYPE;
-    Type_col OrgSet_t;
+    TYPE t_tab1 IS RECORD(
+       CODE varchar2(1000),
+       NUM number,
+       SUMM number
+    );
+    TYPE t_tab_arr1 IS TABLE OF t_tab1;
+    regcode t_tab_arr1;
 
   Begin
       begin
@@ -48,7 +54,7 @@ AS
                                     nBORDERRIGHTWEIGHT  => 1,
                                     sBACKCOLOR          => '#37c782',
                                     sFONTCOLOR          => '#1d1d1d',
-                                    sHALIGNMENT         => 'Center');
+                                    sHALIGNMENT         => 'Left');
 
               APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_left_str',
                                     nWRAPTEXT           => 1,
@@ -77,27 +83,73 @@ AS
 
 
               --Заполнение коллекции кратким наименованием
-              select l.RN, l.NAME BULK COLLECT
-              into Code_Col
-              from Z_ORGREG o
-              inner join Z_EXPALL ea on o.RN = ea.ORGRN
-              inner join Z_EXPMAT em on 
-              where l.PART = 'FOTYPE2'
-              ORDER BY NAME;
+              select distinct l.NUM, l.NAME
+              BULK COLLECT into Code_Col
+              from Z_LOV l
+                inner join Z_EXPMAT em on l.ORDNUM = em.FOTYPE2
+                inner join Z_EXPALL ea on em.RN = ea.EXP_ARTICLE
+              where ea.VERSION = pVERSION
+                and l.PART = 'FOTYPE2'
+              order by l.NUM;
+
+              select o.CODE,
+              l.RNUM,
+                   (MSUM + SERVSUM)
+                 BULK COLLECT into regcode
+                 from Z_LOV l
+                 inner join Z_EXPMAT em on l.RNUM = em.FOTYPE2
+                 inner join Z_EXPALL ea on em.RN = ea.EXP_ARTICLE
+                 inner join Z_ORGREG o  on ea.ORGRN = o.RN
+                 where ea.VERSION = pVERSION
+                       and l.PART = 'FOTYPE2'
+                       and o.CLOSE_DATE is NULL
+              order by code, rnum;
 
               APKG_XLSREP.ADD_COLUMN(nWIDTH => 200, nCOUNT => 1);
               APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => Code_Col.COUNT);
+
               APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
               APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Наименование/тип', sCELLTYPE => 'String');
 
-              FOR I IN Code_Col.FIRST..Code_Col.COUNT
+              FOR J IN Code_Col.FIRST..Code_Col.COUNT
               LOOP
-                    APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => Code_Col(I).NAME, sCELLTYPE => 'String');
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => Code_Col(J).NAME, sCELLTYPE => 'String');
               END LOOP;
 
+              for I in regcode.FIRST..regcode.COUNT
+              loop
+                  -- Если новое название учрждения - добавлям строку
+                  if regcode(I).CODE != uName then
+                      APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  sCELLDATA => uSUMM, sCELLTYPE => 'Number');
+                      -- Обновление текущего учреждения
+                      uName := regcode(I).CODE;
+                      APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                      APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str',  sCELLDATA => regcode(I).CODE, sCELLTYPE => 'String');
+                      -- Обнуление текущего фин обеспечения
+                       uNUM := Code_Col(1).NUM;
+                       -- Обнуление текущей суммы затрат
+                       uSUMM := 0;
+                   end if;
 
-          --Закрытие курсоров
+                   -- Если
+                   if regcode(I).NUM = uNUM then
+                       uSUMM := uSUMM + regcode(I).SUMM;
+                   else
+                       APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  sCELLDATA => uSUMM, sCELLTYPE => 'Number');
+                       uSUMM := 0;
 
+                       for A in Code_Col.FIRST..Code_Col.COUNT
+                       loop
+                           if Code_Col(A).NUM < uNUM then
+                               uNUM := Code_Col(A).NUM;
+                           else
+                               APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  sCELLDATA => uSUMM, sCELLTYPE => 'Number');
+                           end if;
+                           if uNUM = regcode(I).NUM then EXIT;
+                       end loop;
+
+                  end if;
+              end loop;
           end;   -- end body
 
           APKG_XLSREP.FLUSH_ROWCELLS();

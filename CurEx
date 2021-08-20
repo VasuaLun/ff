@@ -1,0 +1,207 @@
+create or replace procedure DV_DINAMIC_EKZ
+(
+  pFILE        out BLOB,
+  pJURPERS     number,
+  pVERSION     number
+)
+AS
+  bPrint      boolean := false;
+  sTitle      varchar2(2000);
+
+    --Объявление коллекции
+    --Заполнение ФО
+    CURSOR C_FO2 IS select DISTINCT FOTYPE2, Z_LOV.NAME
+    from Z_EXPALL
+        INNER JOin Z_EXPMAT ON Z_EXPMAT.RN = Z_EXPALL.EXP_ARTICLE
+        INNER JOin Z_LOV ON Z_LOV.ORDNUM = Z_EXPMAT.FOTYPE2
+    where Z_EXPALL.JUR_PERS = pJURPERS
+        and Z_EXPALL.VERSION = pVERSION
+        and PART = 'FOTYPE2' and ROWNUM = 1;
+
+    TYPE C_FO2_TYPE IS TABLE OF C_FO2%ROWTYPE;
+    FO2_SET C_FO2_TYPE;
+
+    --Заполнение организации
+    CURSOR C_ORGRN IS select DISTINCT ORGRN, CODE
+    from Z_EXPALL
+        INNER JOin Z_ORGREG ON Z_ORGREG.RN = Z_EXPALL.ORGRN
+    where Z_EXPALL.JUR_PERS = pJURPERS
+        and Z_EXPALL.VERSION = pVERSION
+        and ROWNUM = 1;
+
+    TYPE C_ORGRN_TYPE IS TABLE OF C_ORGRN%ROWTYPE;
+    ORGRN_SET C_ORGRN_TYPE;
+
+    --Заполнение листа
+    CURSOR С_Z_EXPALL IS select ORGRN, (SUM(SERVSUM) + SUM(MSUM)) AS SUMM, FOTYPE2
+    from Z_EXPALL, Z_EXPMAT
+    where Z_EXPMAT.RN = Z_EXPALL.EXP_ARTICLE
+        and Z_EXPMAT.VERSION = pVERSION
+        and Z_EXPMAT.JUR_PERS = pJURPERS;
+
+    TYPE С_Z_EXPALL_TYPE IS TABLE OF С_Z_EXPALL%ROWTYPE;
+    Z_EXPALL_LIST С_Z_EXPALL_TYPE;
+
+    A number := 1;
+
+
+  Begin
+      begin
+          APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
+          begin  -- styles
+              ----------------------------------------------Начало стилей--------------------------------
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'title',
+                                    sHALIGNMENT         => 'Center',
+                                    nFONTSIZE           => 12,
+                                    nFONTBOLD           => 1,
+                                    nWRAPTEXT           => 1);
+
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_head',
+                                    sHALIGNMENT         => 'Center',
+                                    nBORDERTOPWEIGHT    => 1,
+                                    nBORDERBOTTOMWEIGHT => 1,
+                                    nBORDERLEFTWEIGHT   => 1,
+                                    nBORDERRIGHTWEIGHT  => 1,
+                                    nWRAPTEXT           => 1,
+                                    sBACKCOLOR          => '#cfdef0',
+                                    sFONTCOLOR          => '#1d1d1d',
+                                    sPATTERN            => 'Solid');
+
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_center_str',
+                                    nWRAPTEXT           => 1,
+                                    nBORDERTOPWEIGHT    => 1,
+                                    nBORDERBOTTOMWEIGHT => 1,
+                                    nBORDERLEFTWEIGHT   => 1,
+                                    nBORDERRIGHTWEIGHT  => 1,
+                                    sHALIGNMENT         => 'Center');
+
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_left_str',
+                                    nWRAPTEXT           => 1,
+                                    nBORDERTOPWEIGHT    => 1,
+                                    nBORDERBOTTOMWEIGHT => 1,
+                                    nBORDERLEFTWEIGHT   => 1,
+                                    nBORDERRIGHTWEIGHT  => 1,
+                                    sHALIGNMENT         => 'Left');
+
+              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_right_num',
+                                    sHALIGNMENT         => 'Right',
+                                    nWRAPTEXT           => 1,
+                                    nBORDERBOTTOMWEIGHT => 1,
+                                    nBORDERLEFTWEIGHT   => 1,
+                                    nBORDERRIGHTWEIGHT  => 1,
+                                    sNUMBERFORMAT       => '#,##0',
+                                    sINDENT             => 1);
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_body',
+                                        sHALIGNMENT         => 'Right',
+                                        nWRAPTEXT           => 1,
+                                        nBORDERBOTTOMWEIGHT => 1,
+                                        nBORDERLEFTWEIGHT   => 1,
+                                        nBORDERRIGHTWEIGHT  => 1,
+                                        sBACKCOLOR          => '#f8f8ff',
+                                        sNUMBERFORMAT       => '#,##0.00',
+                                        sINDENT             => 1);
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_row',
+                                        sHALIGNMENT         => 'left',
+                                        nBORDERTOPWEIGHT    => 1,
+                                        nBORDERBOTTOMWEIGHT => 1,
+                                        nBORDERLEFTWEIGHT   => 1,
+                                        nBORDERRIGHTWEIGHT  => 1,
+                                        nWRAPTEXT           => 1,
+                                        sBACKCOLOR          => '#45f667',
+                                        sFONTCOLOR          => '#1d1d1d',
+                                        sNUMBERFORMAT       => '#,##0',
+                                        sPATTERN            => 'Solid');
+
+              ----------------------------------------------Конец стилей--------------------------------
+          end;   -- end styles
+
+          begin  -- body
+              APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0);
+              APKG_XLSREP.ADD_RUNTITLE( sHEADERRIGTH => '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;R&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014Подготовлено в ЭС РАМЗЭС');
+              APKG_XLSREP.OPEN_TABLE();
+
+
+              --Заполнение ФО
+              select DISTINCT FOTYPE2, Z_LOV.NAME AS NAME BULK COLLECT INTO FO2_SET
+              from Z_EXPALL
+                INNER JOin Z_EXPMAT ON Z_EXPMAT.RN = Z_EXPALL.EXP_ARTICLE
+                INNER JOin Z_LOV ON Z_LOV.ORDNUM = Z_EXPMAT.FOTYPE2
+              where Z_EXPALL.JUR_PERS = pJURPERS
+                and Z_EXPALL.VERSION = pVERSION
+                and PART = 'FOTYPE2'
+              order by NAME;
+
+              --Заполнение организации
+              select DISTINCT ORGRN, CODE BULK COLLECT INTO ORGRN_SET
+              from Z_EXPALL
+                INNER JOin Z_ORGREG ON Z_ORGREG.RN = Z_EXPALL.ORGRN
+              where Z_EXPALL.JUR_PERS = pJURPERS
+                and Z_EXPALL.VERSION = pVERSION
+                and Z_ORGREG.CLOSE_DATE is null;
+
+              --Заполнение листа
+              select ORGRN, (SUM(SERVSUM) + SUM(MSUM)) AS SUMM, FOTYPE2 BULK COLLECT INTO Z_EXPALL_LIST
+              from Z_EXPALL, Z_EXPMAT, Z_ORGREG
+              where Z_EXPMAT.RN = Z_EXPALL.EXP_ARTICLE
+                and  Z_EXPMAT.VERSION = pVERSION
+                and Z_EXPMAT.JUR_PERS = pJURPERS
+                and Z_ORGREG.rn = Z_EXPALL.ORGRN
+                and Z_ORGREG.CLOSE_DATE is null
+              group by Z_EXPALL.ORGRN,  Z_EXPMAT.FOTYPE2
+              order by ORGRN, FOTYPE2;
+
+
+              APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
+              APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => FO2_SET.COUNT);
+              APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+              APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Учреждение / Финансовое обеспечение', sCELLTYPE => 'String');
+
+              for I in FO2_SET.FIRST..FO2_SET.COUNT
+              loop
+                  APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => FO2_SET(I).NAME, sCELLTYPE => 'String');
+              end loop;
+
+              for J in ORGRN_SET.FIRST..ORGRN_SET.COUNT
+              loop
+                  APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                  APKG_XLSREP.ADD_CELL(sSTYLE => 'table_row',  sCELLDATA => ORGRN_SET(J).CODE, sCELLTYPE => 'String');
+                  for Q in FO2_SET.FIRST..FO2_SET.COUNT
+                  loop
+                      for P in Z_EXPALL_LIST.FIRST..Z_EXPALL_LIST.COUNT
+                      loop
+                          if Z_EXPALL_LIST(P).ORGRN = ORGRN_SET(J).ORGRN and Z_EXPALL_LIST(P).FOTYPE2 = FO2_SET(Q).FOTYPE2 THEN
+                                APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => Z_EXPALL_LIST(P).SUMM, sCELLTYPE => 'Number');
+                                EXIT;
+                            else if Z_EXPALL_LIST(P).ORGRN = ORGRN_SET(J).ORGRN and Z_EXPALL_LIST(P).FOTYPE2 != FO2_SET(Q).FOTYPE2 then
+                                APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', NULL, sCELLTYPE => 'Number');
+                            end if;
+                          end if;
+                      --for A in
+                     -- else if Z_EXPALL_LIST(P).ORGRN = ORGRN_SET(J).ORGRN
+                          /*
+                          if Z_EXPALL_LIST(P).ORGRN = ORGRN_SET(J).ORGRN and Z_EXPALL_LIST(P).FOTYPE2 != FO2_SET(Q).FOTYPE2 THEN
+                                APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => 0, sCELLTYPE => 'Number');
+                                EXIT;
+                          end if;*/
+                      end loop;
+                  end loop;
+              end loop;
+          end;   -- end body
+
+          APKG_XLSREP.FLUSH_ROWCELLS();
+
+          APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+          APKG_XLSREP.CLOSE_REPORT();
+          pFILE := APKG_XLSREP.GET_BLOB;
+
+      exception when others then
+          APKG_XLSREP.CLOSE_REPORT();
+          APKG_XLSREP.FREE_BLOB;
+         raise;
+      end;
+  end;
+
+
+​
