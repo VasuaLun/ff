@@ -92,18 +92,19 @@ AS
                 and l.PART = 'FOTYPE2'
               order by l.NUM;
 
-              select o.CODE,
-              l.RNUM,
-                   (MSUM + SERVSUM)
-                 BULK COLLECT into regcode
-                 from Z_LOV l
-                 inner join Z_EXPMAT em on l.RNUM = em.FOTYPE2
-                 inner join Z_EXPALL ea on em.RN = ea.EXP_ARTICLE
-                 inner join Z_ORGREG o  on ea.ORGRN = o.RN
-                 where ea.VERSION = pVERSION
-                       and l.PART = 'FOTYPE2'
-                       and o.CLOSE_DATE is NULL
-              order by code, rnum;
+              select o.CODE as code,
+              l.NUM as num,
+              SUM(MSUM + SERVSUM)
+              BULK COLLECT into regcode
+              from Z_LOV l, Z_EXPMAT em, Z_EXPALL ea, Z_ORGREG o
+              where l.NUM = em.FOTYPE2
+                and em.RN = ea.EXP_ARTICLE
+                and ea.ORGRN = o.RN
+                and ea.VERSION = 344076908
+                and l.PART = 'FOTYPE2'
+                and o.CLOSE_DATE is NULL
+              group by o.code, l.NUM
+              order by o.code, l.NUM;
 
               APKG_XLSREP.ADD_COLUMN(nWIDTH => 200, nCOUNT => 1);
               APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => Code_Col.COUNT);
@@ -125,30 +126,16 @@ AS
                       uName := regcode(I).CODE;
                       APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
                       APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str',  sCELLDATA => regcode(I).CODE, sCELLTYPE => 'String');
-                      -- Обнуление текущего фин обеспечения
-                       uNUM := Code_Col(1).NUM;
-                       -- Обнуление текущей суммы затрат
-                       uSUMM := 0;
                    end if;
 
-                   -- Если
-                   if regcode(I).NUM = uNUM then
-                       uSUMM := uSUMM + regcode(I).SUMM;
-                   else
-                       APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  sCELLDATA => uSUMM, sCELLTYPE => 'Number');
-                       uSUMM := 0;
-
-                       for A in Code_Col.FIRST..Code_Col.COUNT
-                       loop
-                           if Code_Col(A).NUM < uNUM then
-                               uNUM := Code_Col(A).NUM;
-                           else
-                               APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  sCELLDATA => uSUMM, sCELLTYPE => 'Number');
-                           end if;
-                           if uNUM = regcode(I).NUM then EXIT;
-                       end loop;
-
-                  end if;
+                   for A in Code_Col.FIRST..Code_Col.COUNT
+                     loop
+                        if regcode(I).NUM = Code_Col(A).NUM then
+                            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  sCELLDATA => regcode(I).SUMM, sCELLTYPE => 'Number');
+                        else
+                            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  0, sCELLTYPE => 'Number');
+                        end if;
+                     end loop;
               end loop;
           end;   -- end body
 
