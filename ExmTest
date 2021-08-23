@@ -1,28 +1,45 @@
-create or replace procedure DV_DINAMIC_EKZ
+create or replace PROCEDURE DV_DINAMIC_EKZ
 (
   pFILE        out BLOB,
   pJURPERS     number,
-  pVERSION     number
+  pVERSION     number,
+  pFOTYPE2     varchar2,
+  pORGRN       number,
+  pDATEFROM    varchar2,
+  pDATETO      varchar2
 )
 AS
   bPrint      boolean := false;
   sTitle      varchar2(2000);
-  uName       varchar2(1000) := '0';
-  uNUM        number := 0;
-  uSUMM       number := 0;
+  MARKER      number; -- маркер заполненности типа финансового обеспечения
+  nFOTYPE2    number := CASE WHEN pFOTYPE2 = 'null' then null else pFOTYPE2 end;
+  nDATE_FROM       date := CASE WHEN pDATE_FROM = 'null' THEN null ELSE TO_DATE(pDATE_FROM,'dd/mm/yyyy') END;
+  nDATE_TO         date := CASE WHEN pDATE_TO = 'null' THEN null ELSE TO_DATE(pDATE_TO,'dd/mm/yyyy') END;
 
-  cursor curcode is select NUM, NAME from Z_LOV;
-  TYPE CodeSet_t IS TABLE OF curcode%ROWTYPE;
-  Code_Col CodeSet_t;
+    -- Объявление коллекции для хранения типов финансового обеспечения
+    type t_tab1 is record(
+      FOTYPE2 number,
+      NAME varchar2(1000)
+      );
+    type t_tab_arr1 is table of t_tab1;
+    FO2_SET t_tab_arr1;
 
-    --Коллекция и курсор от учреждений
-    TYPE t_tab1 IS RECORD(
-       CODE varchar2(1000),
-       NUM number,
-       SUMM number
-    );
-    TYPE t_tab_arr1 IS TABLE OF t_tab1;
-    regcode t_tab_arr1;
+    -- Объявление коллекции для хранения названий учреждений
+    type t_tab2 is RECORD(
+      ORGRN number,
+      CODE varchar2(1000)
+      );
+    type t_tab_arr2 is table of t_tab2;
+    ORGRN_SET t_tab_arr2;
+
+    type t_tab3 is RECORD(
+      ORGRN number,
+      SUMM number,
+      FOTYPE2 number
+      );
+    type t_tab_arr3 is table of t_tab3;
+    Z_EXPALL_LIST t_tab_arr3;
+
 
   Begin
       begin
@@ -31,7 +48,7 @@ AS
               ----------------------------------------------Начало стилей--------------------------------
               APKG_XLSREP.ADD_STYLE(sSTYLE              => 'title',
                                     sHALIGNMENT         => 'Center',
-                                    nFONTSIZE           => 10,
+                                    nFONTSIZE           => 12,
                                     nFONTBOLD           => 1,
                                     nWRAPTEXT           => 1);
 
@@ -52,9 +69,7 @@ AS
                                     nBORDERBOTTOMWEIGHT => 1,
                                     nBORDERLEFTWEIGHT   => 1,
                                     nBORDERRIGHTWEIGHT  => 1,
-                                    sBACKCOLOR          => '#37c782',
-                                    sFONTCOLOR          => '#1d1d1d',
-                                    sHALIGNMENT         => 'Left');
+                                    sHALIGNMENT         => 'Center');
 
               APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_left_str',
                                     nWRAPTEXT           => 1,
@@ -73,6 +88,28 @@ AS
                                     sNUMBERFORMAT       => '#,##0',
                                     sINDENT             => 1);
 
+            APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_body',
+                                        sHALIGNMENT         => 'Right',
+                                        nWRAPTEXT           => 1,
+                                        nBORDERBOTTOMWEIGHT => 1,
+                                        nBORDERLEFTWEIGHT   => 1,
+                                        nBORDERRIGHTWEIGHT  => 1,
+                                        sBACKCOLOR          => '#f8f8ff',
+                                        sNUMBERFORMAT       => '#,##0.00',
+                                        sINDENT             => 1);
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_row',
+                                        sHALIGNMENT         => 'left',
+                                        nBORDERTOPWEIGHT    => 1,
+                                        nBORDERBOTTOMWEIGHT => 1,
+                                        nBORDERLEFTWEIGHT   => 1,
+                                        nBORDERRIGHTWEIGHT  => 1,
+                                        nWRAPTEXT           => 1,
+                                        sBACKCOLOR          => '#adedbd',
+                                        sFONTCOLOR          => '#1d1d1d',
+                                        sNUMBERFORMAT       => '#,##0',
+                                        sPATTERN            => 'Solid');
+
               ----------------------------------------------Конец стилей--------------------------------
           end;   -- end styles
 
@@ -81,62 +118,111 @@ AS
               APKG_XLSREP.ADD_RUNTITLE( sHEADERRIGTH => '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;R&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014Подготовлено в ЭС РАМЗЭС');
               APKG_XLSREP.OPEN_TABLE();
 
+              nDATE := SUBSTR(pCLOSEDATE, 4, 2) || '/' || SUBSTR(pCLOSEDATE, 1, 2) || '/' || SUBSTR(pCLOSEDATE, 7, 4);
 
-              --Заполнение коллекции кратким наименованием
-              select distinct l.NUM, l.NAME
-              BULK COLLECT into Code_Col
-              from Z_LOV l
-                inner join Z_EXPMAT em on l.ORDNUM = em.FOTYPE2
-                inner join Z_EXPALL ea on em.RN = ea.EXP_ARTICLE
-              where ea.VERSION = pVERSION
-                and l.PART = 'FOTYPE2'
-              order by l.NUM;
+              --Заполнение типов финансового обеспечения
+              select DISTINCT em.FOTYPE2, l.NAME as NAME
+              BULK COLLECT
+              into FO2_SET
+              from Z_EXPALL ea
+              inner join Z_EXPMAT em ON em.RN = ea.EXP_ARTICLE
+              inner join Z_LOV l ON l.NUM = em.FOTYPE2
+              where ea.JUR_PERS = pJURPERS
+                and ea.VERSION = pVERSION
+                and PART = 'FOTYPE2'
+                and ((em.FOTYPE2 = nFOTYPE2) or (nFOTYPE2 is null))
+              order by em.FOTYPE2, l.NAME;
 
-              select o.CODE as code,
-              l.NUM as num,
-              SUM(MSUM + SERVSUM)
-              BULK COLLECT into regcode
-              from Z_LOV l, Z_EXPMAT em, Z_EXPALL ea, Z_ORGREG o
-              where l.NUM = em.FOTYPE2
-                and em.RN = ea.EXP_ARTICLE
-                and ea.ORGRN = o.RN
-                and ea.VERSION = 344076908
-                and l.PART = 'FOTYPE2'
-                and o.CLOSE_DATE is NULL
-              group by o.code, l.NUM
-              order by o.code, l.NUM;
+              if FO2_SET.exists(1) = FALSE then
+                --  zp_exception(0,'Формирование пустого отчёта невозможно!');
+                  APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
+                  APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                  APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Данного типа финансового обеспечения нет', sCELLTYPE => 'String');
+              else
 
-              APKG_XLSREP.ADD_COLUMN(nWIDTH => 200, nCOUNT => 1);
-              APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => Code_Col.COUNT);
+                  --Заполнение учреждений
+                  if (pORGRN != 0) then
+                      select DISTINCT ea.ORGRN, o.CODE
+                      BULK COLLECT into ORGRN_SET
+                      from Z_EXPALL ea
+                      inner join Z_ORGREG o
+                      ON o.RN = ea.ORGRN
+                      where ea.JUR_PERS = pJURPERS
+                        and ea.VERSION = pVERSION
+                        and ((o.CLOSE_DATE is null) or (o.CLOSE_DATE > nDATE));
 
-              APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
-              APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Наименование/тип', sCELLTYPE => 'String');
+                      --Заполнение данных по затратам
+                      select ea.ORGRN, (SUM(ea.SERVSUM) + SUM(ea.MSUM)) as SUMM, em.FOTYPE2
+                      BULK COLLECT into Z_EXPALL_LIST
+                      from Z_EXPALL ea, Z_EXPMAT em, Z_ORGREG o
+                      where em.RN = ea.EXP_ARTICLE
+                        and em.VERSION = pVERSION
+                        and em.JUR_PERS = pJURPERS
+                        and o.RN = ea.ORGRN
+                        and ((o.CLOSE_DATE is null) or (o.CLOSE_DATE > nDATE))
+                        and ((em.FOTYPE2 = nFOTYPE2) or (nFOTYPE2 is null))
+                      group by ea.ORGRN,  em.FOTYPE2
+                      order by em.FOTYPE2, ea.ORGRN;
+                  else
+                      select DISTINCT ea.ORGRN, o.CODE
+                      BULK COLLECT into ORGRN_SET
+                      from Z_EXPALL ea
+                      inner join Z_ORGREG o
+                      ON o.RN = ea.ORGRN
+                      where ea.JUR_PERS = pJURPERS
+                        and ea.VERSION = pVERSION
+                        and ((o.CLOSE_DATE is null) or (o.CLOSE_DATE > to_date(nDATE, 'MM/DD/YYYY')))
+                        and o.RN = pORGRN;
 
-              FOR J IN Code_Col.FIRST..Code_Col.COUNT
-              LOOP
-                    APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => Code_Col(J).NAME, sCELLTYPE => 'String');
-              END LOOP;
+                      --Заполнение данных по затратам
+                      select ea.ORGRN, (SUM(ea.SERVSUM) + SUM(ea.MSUM)) as SUMM, em.FOTYPE2
+                      BULK COLLECT into Z_EXPALL_LIST
+                      from Z_EXPALL ea, Z_EXPMAT em, Z_ORGREG o
+                      where em.RN = ea.EXP_ARTICLE
+                        and em.VERSION = pVERSION
+                        and em.JUR_PERS = pJURPERS
+                        and o.RN = ea.ORGRN
+                        and ((o.CLOSE_DATE is null) or (o.CLOSE_DATE > to_date(nDATE, 'MM/DD/YYYY')))
+                        and ((em.FOTYPE2 = nFOTYPE2) or (nFOTYPE2 is null))
+                        and o.RN = pORGRN
+                      group by ea.ORGRN,  em.FOTYPE2
+                      order by em.FOTYPE2, ea.ORGRN;
+                  end if;
 
-              for I in regcode.FIRST..regcode.COUNT
-              loop
-                  -- Если новое название учрждения - добавлям строку
-                  if regcode(I).CODE != uName then
-                      APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  sCELLDATA => uSUMM, sCELLTYPE => 'Number');
-                      -- Обновление текущего учреждения
-                      uName := regcode(I).CODE;
-                      APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
-                      APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str',  sCELLDATA => regcode(I).CODE, sCELLTYPE => 'String');
-                   end if;
+                  APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
+                  APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => FO2_SET.COUNT);
+                  APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                  APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Затраты на ' || nDATE, sCELLTYPE => 'String');
 
-                   for A in Code_Col.FIRST..Code_Col.COUNT
-                     loop
-                        if regcode(I).NUM = Code_Col(A).NUM then
-                            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  sCELLDATA => regcode(I).SUMM, sCELLTYPE => 'Number');
-                        else
-                            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num',  0, sCELLTYPE => 'Number');
-                        end if;
-                     end loop;
-              end loop;
+                  -- Вывод шапки с видами финансового обеспечения
+                  for FORTYPENUM in FO2_SET.FIRST..FO2_SET.COUNT
+                  loop
+                      APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => FO2_SET(FORTYPENUM).NAME, sCELLTYPE => 'String');
+                  end loop;
+
+                  -- Отображение левого поля
+                  for ORG in ORGRN_SET.FIRST..ORGRN_SET.COUNT
+                  loop
+                      -- обнуление маркера при новогом учреждении
+                      MARKER := null;
+                      APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                      APKG_XLSREP.ADD_CELL(sSTYLE => 'table_row',  sCELLDATA => ORGRN_SET(ORG).CODE, sCELLTYPE => 'String');
+                      for FO2_TYPE in FO2_SET.FIRST..FO2_SET.COUNT
+                      loop
+                          MARKER := null;
+                          for EXPM in Z_EXPALL_LIST.FIRST..Z_EXPALL_LIST.COUNT
+                          loop
+                              if Z_EXPALL_LIST(EXPM).ORGRN = ORGRN_SET(ORG).ORGRN and Z_EXPALL_LIST(EXPM).FOTYPE2 = FO2_SET(FO2_TYPE).FOTYPE2 THEN
+                                  APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => Z_EXPALL_LIST(EXPM).SUMM, sCELLTYPE => 'Number');
+                                  MARKER := 1;
+                              end if;
+                          end loop;
+                          if nvl(MARKER,0) = 0 then
+                              APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => 0, sCELLTYPE => 'Number');
+                          end if;
+                      end loop;
+                  end loop; -- end loop обработки данных
+              end if; -- end if наличия данных
           end;   -- end body
 
           APKG_XLSREP.FLUSH_ROWCELLS();
