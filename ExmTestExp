@@ -4,7 +4,7 @@ create or replace PROCEDURE DV_DINAMIC_EKZ
   pJURPERS     number,
   pVERSION     number,
   pFOTYPE2     varchar2,
-  pORGRN       number,
+  pORGRN       varchar2,
   pDATEFROM    varchar2,
   pDATETO      varchar2
 )
@@ -13,8 +13,9 @@ AS
   sTitle      varchar2(2000);
   MARKER      number; -- маркер заполненности типа финансового обеспечения
   nFOTYPE2    number := CASE WHEN pFOTYPE2 = 'null' then null else pFOTYPE2 end;
-  nDATE_FROM       varchar2(200) := to_char(to_date(pDATEFROM,'dd/mm/yyyy'), 'mm/dd/yyyy');
-  nDATE_TO         varchar2(200) := to_char(to_date(pDATETO,'dd/mm/yyyy'), 'mm/dd/yyyy');
+  nDATE_FROM  DATE := CASE WHEN pDATEFROM = 'null' then null else to_date(pDATEFROM,'dd/mm/yyyy') end;
+  nDATE_TO    DATE := CASE WHEN pDATETO = 'null' then null else to_date(pDATETO,'dd/mm/yyyy') end;
+  nORGN       number := CASE WHEN pORGRN = 'null' then null else pORGRN end;
 
     -- Объявление коллекции для хранения типов финансового обеспечения
     type t_tab1 is record(
@@ -27,7 +28,8 @@ AS
     -- Объявление коллекции для хранения названий учреждений
     type t_tab2 is RECORD(
       ORGRN number,
-      CODE varchar2(1000)
+      CODE varchar2(1000),
+      CLOSED date
       );
     type t_tab_arr2 is table of t_tab2;
     ORGRN_SET t_tab_arr2;
@@ -41,173 +43,183 @@ AS
     Z_EXPALL_LIST t_tab_arr3;
 
 
-  Begin
-      begin
-          APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
-          begin  -- styles
-              ----------------------------------------------Начало стилей--------------------------------
-              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'title',
-                                    sHALIGNMENT         => 'Center',
-                                    nFONTSIZE           => 12,
-                                    nFONTBOLD           => 1,
-                                    nWRAPTEXT           => 1);
 
-              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_head',
-                                    sHALIGNMENT         => 'Center',
-                                    nBORDERTOPWEIGHT    => 1,
-                                    nBORDERBOTTOMWEIGHT => 1,
-                                    nBORDERLEFTWEIGHT   => 1,
-                                    nBORDERRIGHTWEIGHT  => 1,
-                                    nWRAPTEXT           => 1,
-                                    sBACKCOLOR          => '#cfdef0',
-                                    sFONTCOLOR          => '#1d1d1d',
-                                    sPATTERN            => 'Solid');
+begin
+    APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
+    begin  -- styles
+        --zp_exception(0, 'ТУТ2');
+        ----------------------------------------------Начало стилей--------------------------------
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'title',
+                              sHALIGNMENT         => 'Center',
+                              nFONTSIZE           => 12,
+                              nFONTBOLD           => 1,
+                              nWRAPTEXT           => 1);
 
-              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_center_str',
-                                    nWRAPTEXT           => 1,
-                                    nBORDERTOPWEIGHT    => 1,
-                                    nBORDERBOTTOMWEIGHT => 1,
-                                    nBORDERLEFTWEIGHT   => 1,
-                                    nBORDERRIGHTWEIGHT  => 1,
-                                    sHALIGNMENT         => 'Center');
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_head',
+                              sHALIGNMENT         => 'Center',
+                              nBORDERTOPWEIGHT    => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              nWRAPTEXT           => 1,
+                              sBACKCOLOR          => '#cfdef0',
+                              sFONTCOLOR          => '#1d1d1d',
+                              sPATTERN            => 'Solid');
 
-              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_left_str',
-                                    nWRAPTEXT           => 1,
-                                    nBORDERTOPWEIGHT    => 1,
-                                    nBORDERBOTTOMWEIGHT => 1,
-                                    nBORDERLEFTWEIGHT   => 1,
-                                    nBORDERRIGHTWEIGHT  => 1,
-                                    sHALIGNMENT         => 'Left');
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_center_str',
+                              nWRAPTEXT           => 1,
+                              nBORDERTOPWEIGHT    => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              sHALIGNMENT         => 'Center');
 
-              APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_right_num',
-                                    sHALIGNMENT         => 'Right',
-                                    nWRAPTEXT           => 1,
-                                    nBORDERBOTTOMWEIGHT => 1,
-                                    nBORDERLEFTWEIGHT   => 1,
-                                    nBORDERRIGHTWEIGHT  => 1,
-                                    sNUMBERFORMAT       => '#,##0',
-                                    sINDENT             => 1);
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_left_str',
+                              nWRAPTEXT           => 1,
+                              nBORDERTOPWEIGHT    => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              sHALIGNMENT         => 'Left');
 
-            APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_body',
-                                        sHALIGNMENT         => 'Right',
-                                        nWRAPTEXT           => 1,
-                                        nBORDERBOTTOMWEIGHT => 1,
-                                        nBORDERLEFTWEIGHT   => 1,
-                                        nBORDERRIGHTWEIGHT  => 1,
-                                        sBACKCOLOR          => '#f8f8ff',
-                                        sNUMBERFORMAT       => '#,##0.00',
-                                        sINDENT             => 1);
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'border_right_num',
+                              sHALIGNMENT         => 'Right',
+                              nWRAPTEXT           => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              sNUMBERFORMAT       => '#,##0',
+                              sINDENT             => 1);
 
-            APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_row',
-                                        sHALIGNMENT         => 'left',
-                                        nBORDERTOPWEIGHT    => 1,
-                                        nBORDERBOTTOMWEIGHT => 1,
-                                        nBORDERLEFTWEIGHT   => 1,
-                                        nBORDERRIGHTWEIGHT  => 1,
-                                        nWRAPTEXT           => 1,
-                                        sBACKCOLOR          => '#adedbd',
-                                        sFONTCOLOR          => '#1d1d1d',
-                                        sNUMBERFORMAT       => '#,##0',
-                                        sPATTERN            => 'Solid');
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_body',
+                              sHALIGNMENT         => 'Right',
+                              nWRAPTEXT           => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              sBACKCOLOR          => '#f8f8ff',
+                              sNUMBERFORMAT       => '#,##0.00',
+                              sINDENT             => 1);
+
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_body_date',
+                              sHALIGNMENT         => 'Center',
+                              nWRAPTEXT           => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              sBACKCOLOR          => '#f29f90',
+                              sINDENT             => 1);
+
+        APKG_XLSREP.ADD_STYLE(sSTYLE              => 'table_row',
+                              sHALIGNMENT         => 'left',
+                              nBORDERTOPWEIGHT    => 1,
+                              nBORDERBOTTOMWEIGHT => 1,
+                              nBORDERLEFTWEIGHT   => 1,
+                              nBORDERRIGHTWEIGHT  => 1,
+                              nWRAPTEXT           => 1,
+                              sBACKCOLOR          => '#adedbd',
+                              sFONTCOLOR          => '#1d1d1d',
+                              sNUMBERFORMAT       => '#,##0',
+                              sPATTERN            => 'Solid');
 
               ----------------------------------------------Конец стилей--------------------------------
-          end;   -- end styles
+    end;   -- end styles
 
-          begin  -- body
-              APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0);
-              APKG_XLSREP.ADD_RUNTITLE( sHEADERRIGTH => '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;R&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014Подготовлено в ЭС РАМЗЭС');
-              APKG_XLSREP.OPEN_TABLE();
+    begin  -- body
+        APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0);
+        APKG_XLSREP.ADD_RUNTITLE( sHEADERRIGTH => '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;R&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014Подготовлено в ЭС РАМЗЭС');
+        APKG_XLSREP.OPEN_TABLE();
 
-              --nDATE := SUBSTR(pCLOSEDATE, 4, 2) || '/' || SUBSTR(pCLOSEDATE, 1, 2) || '/' || SUBSTR(pCLOSEDATE, 7, 4);
+        --Заполнение типов финансового обеспечения
+        select DISTINCT em.FOTYPE2, l.NAME as NAME
+        BULK COLLECT
+        into FO2_SET
+        from Z_EXPALL ea
+            inner join Z_EXPMAT em ON em.RN = ea.EXP_ARTICLE
+            inner join Z_LOV l ON l.NUM = em.FOTYPE2
+        where ea.JUR_PERS = pJURPERS
+            and ea.VERSION = pVERSION
+            and PART = 'FOTYPE2'
+            and ((em.FOTYPE2 = nFOTYPE2) or (nFOTYPE2 is null))
+        order by em.FOTYPE2, l.NAME;
 
-              --Заполнение типов финансового обеспечения
-              select DISTINCT em.FOTYPE2, l.NAME as NAME
-              BULK COLLECT
-              into FO2_SET
-              from Z_EXPALL ea
-              inner join Z_EXPMAT em ON em.RN = ea.EXP_ARTICLE
-              inner join Z_LOV l ON l.NUM = em.FOTYPE2
-              where ea.JUR_PERS = pJURPERS
-                and ea.VERSION = pVERSION
-                and PART = 'FOTYPE2'
-                and ((em.FOTYPE2 = nFOTYPE2) or (nFOTYPE2 is null))
-              order by em.FOTYPE2, l.NAME;
+        --Заполнение учреждений
+        select DISTINCT ea.ORGRN, o.CODE, o.CLOSE_DATE
+        BULK COLLECT into ORGRN_SET
+        from Z_EXPALL ea
+        inner join Z_ORGREG o
+        ON o.RN = ea.ORGRN
+        where ea.JUR_PERS = pJURPERS
+            and ea.VERSION = pVERSION
+            and ((nORGN is null) OR (o.RN = nORGN))
+            and (o.CLOSE_DATE between nDATE_FROM and nDATE_TO);
 
-              if FO2_SET.exists(1) = FALSE then
-                --  zp_exception(0,'Формирование пустого отчёта невозможно!');
-                  APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
-                  APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
-                  APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Данного типа финансового обеспечения нет', sCELLTYPE => 'String');
-              else
+        --Заполнение данных по затратам
+        select ea.ORGRN, (SUM(ea.SERVSUM) + SUM(ea.MSUM)) as SUMM, em.FOTYPE2
+        BULK COLLECT into Z_EXPALL_LIST
+        from Z_EXPALL ea, Z_EXPMAT em, Z_ORGREG o
+        where em.RN = ea.EXP_ARTICLE
+            and em.VERSION = pVERSION
+            and em.JUR_PERS = pJURPERS
+            and o.RN = ea.ORGRN
+            and (o.CLOSE_DATE between nDATE_FROM and nDATE_TO)
+            and ((em.FOTYPE2 = nFOTYPE2) or (nFOTYPE2 is null))
+            and ((nORGN is null) OR (ea.ORGRN = nORGN))
+        group by ea.ORGRN,  em.FOTYPE2
+        order by em.FOTYPE2, ea.ORGRN;
 
-                  --Заполнение учреждений
-                  select DISTINCT ea.ORGRN, o.CODE
-                  BULK COLLECT into ORGRN_SET
-                  from Z_EXPALL ea
-                  inner join Z_ORGREG o
-                  ON o.RN = ea.ORGRN
-                  where ea.JUR_PERS = pJURPERS
-                    and ea.VERSION = pVERSION
-                    and (o.CLOSE_DATE between nDATE_FROM and nDATE_TO);
+        -- Проверка на наличие данных
+        if Z_EXPALL_LIST.exists(1) = FALSE then
+          zp_exception(0, 'Невозможна печать пустого файла');
+        end if;
 
-                      --Заполнение данных по затратам
-                  select ea.ORGRN, (SUM(ea.SERVSUM) + SUM(ea.MSUM)) as SUMM, em.FOTYPE2
-                  BULK COLLECT into Z_EXPALL_LIST
-                  from Z_EXPALL ea, Z_EXPMAT em, Z_ORGREG o
-                  where em.RN = ea.EXP_ARTICLE
-                    and em.VERSION = pVERSION
-                    and em.JUR_PERS = pJURPERS
-                    and o.RN = ea.ORGRN
-                    and (o.CLOSE_DATE between nDATE_FROM and nDATE_TO)
-                    and ((em.FOTYPE2 = nFOTYPE2) or (nFOTYPE2 is null))
-                  group by ea.ORGRN,  em.FOTYPE2
-                  order by em.FOTYPE2, ea.ORGRN;
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => FO2_SET.COUNT);
+        APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
+        APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Затраты c ' || nDATE_FROM || ' по ' || nDATE_TO, sCELLTYPE => 'String');
 
-                  APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
-                  APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => FO2_SET.COUNT);
-                  APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
-                  APKG_XLSREP.ADD_CELL(sSTYLE => 'title',  sCELLDATA => 'Затраты c ' || nDATE_FROM || ' по ' || nDATE_TO, sCELLTYPE => 'String');
+        -- Вывод шапки с видами финансового обеспечения
+        for FORTYPENUM in FO2_SET.FIRST..FO2_SET.COUNT
+        loop
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => FO2_SET(FORTYPENUM).NAME, sCELLTYPE => 'String');
+        end loop;
 
-                  -- Вывод шапки с видами финансового обеспечения
-                  for FORTYPENUM in FO2_SET.FIRST..FO2_SET.COUNT
-                  loop
-                      APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => FO2_SET(FORTYPENUM).NAME, sCELLTYPE => 'String');
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'table_head',  sCELLDATA => 'Дата закрытия', sCELLTYPE => 'String');
+
+        -- Отображение левого поля
+        for ORG in ORGRN_SET.FIRST..ORGRN_SET.COUNT
+        loop
+            -- обнуление маркера при новогом учреждении
+            MARKER := null;
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'table_row',  sCELLDATA => ORGRN_SET(ORG).CODE, sCELLTYPE => 'String');
+            for FO2_TYPE in FO2_SET.FIRST..FO2_SET.COUNT
+            loop
+                MARKER := null;
+                for EXPM in Z_EXPALL_LIST.FIRST..Z_EXPALL_LIST.COUNT
+                loop
+                    if Z_EXPALL_LIST(EXPM).ORGRN = ORGRN_SET(ORG).ORGRN and Z_EXPALL_LIST(EXPM).FOTYPE2 = FO2_SET(FO2_TYPE).FOTYPE2 THEN
+                        APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => Z_EXPALL_LIST(EXPM).SUMM, sCELLTYPE => 'Number');
+                        MARKER := 1;
+                    end if;
+                end loop;
+                    if nvl(MARKER,0) = 0 then
+                        APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => 0, sCELLTYPE => 'Number');
+                    end if;
                   end loop;
+                if ORGRN_SET(ORG).CLOSED is not null then
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body_date', sCELLDATA => ORGRN_SET(ORG).CLOSED, sCELLTYPE => 'String');
+                else
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => 'Учреждение открыто', sCELLTYPE => 'String');
+                end if;
+        end loop; -- end loop обработки данных
+    end;   -- end body
 
-                  -- Отображение левого поля
-                  for ORG in ORGRN_SET.FIRST..ORGRN_SET.COUNT
-                  loop
-                      -- обнуление маркера при новогом учреждении
-                      MARKER := null;
-                      APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
-                      APKG_XLSREP.ADD_CELL(sSTYLE => 'table_row',  sCELLDATA => ORGRN_SET(ORG).CODE, sCELLTYPE => 'String');
-                      for FO2_TYPE in FO2_SET.FIRST..FO2_SET.COUNT
-                      loop
-                          MARKER := null;
-                          for EXPM in Z_EXPALL_LIST.FIRST..Z_EXPALL_LIST.COUNT
-                          loop
-                              if Z_EXPALL_LIST(EXPM).ORGRN = ORGRN_SET(ORG).ORGRN and Z_EXPALL_LIST(EXPM).FOTYPE2 = FO2_SET(FO2_TYPE).FOTYPE2 THEN
-                                  APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => Z_EXPALL_LIST(EXPM).SUMM, sCELLTYPE => 'Number');
-                                  MARKER := 1;
-                              end if;
-                          end loop;
-                          if nvl(MARKER,0) = 0 then
-                              APKG_XLSREP.ADD_CELL(sSTYLE => 'table_body', sCELLDATA => 0, sCELLTYPE => 'Number');
-                          end if;
-                      end loop;
-                  end loop; -- end loop обработки данных
-              end if; -- end if наличия данных
-          end;   -- end body
+    APKG_XLSREP.FLUSH_ROWCELLS();
 
-          APKG_XLSREP.FLUSH_ROWCELLS();
+    APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+    APKG_XLSREP.CLOSE_REPORT();
+    pFILE := APKG_XLSREP.GET_BLOB;
 
-          APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
-          APKG_XLSREP.CLOSE_REPORT();
-          pFILE := APKG_XLSREP.GET_BLOB;
-
-      exception when others then
-          APKG_XLSREP.CLOSE_REPORT();
-          APKG_XLSREP.FREE_BLOB;
-         raise;
-      end;
-  end;
+end;
