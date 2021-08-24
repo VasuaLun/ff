@@ -148,7 +148,7 @@ AS
                   ON o.RN = ea.ORGRN
                   where ea.JUR_PERS = pJURPERS
                     and ea.VERSION = pVERSION
-                    and ((o.CLOSE_DATE is null) or (o.CLOSE_DATE between nDATE_FROM and nDATE_TO));
+                    and (o.CLOSE_DATE between nDATE_FROM and nDATE_TO);
 
                       --Заполнение данных по затратам
                   select ea.ORGRN, (SUM(ea.SERVSUM) + SUM(ea.MSUM)) as SUMM, em.FOTYPE2
@@ -158,7 +158,7 @@ AS
                     and em.VERSION = pVERSION
                     and em.JUR_PERS = pJURPERS
                     and o.RN = ea.ORGRN
-                    and ((o.CLOSE_DATE is null) or (o.CLOSE_DATE between nDATE_FROM and nDATE_TO))
+                    and (o.CLOSE_DATE between nDATE_FROM and nDATE_TO)
                     and ((em.FOTYPE2 = nFOTYPE2) or (nFOTYPE2 is null))
                   group by ea.ORGRN,  em.FOTYPE2
                   order by em.FOTYPE2, ea.ORGRN;
