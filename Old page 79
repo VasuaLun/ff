@@ -1,0 +1,323 @@
+declare
+	n 			number(17) := 0;
+	nCount  	number(17);
+	nBUDG_LEVEL number(17);
+	nREGIONAME  Z_JURPERS.REGIONAME%type;
+	nBUDGLEVEL  Z_JURPERS.BUDG_LEVEL%type;
+	nDEMO_SIGN  Z_JURPERS.DEMO_SIGN%type;
+	sLight      varchar2(100);
+	nUSERS      Z_USERS.RN%type;
+	nVERSDET    pls_integer;
+	nCHEF_DEP_SIGN number;
+	nORGFL	 number := null;
+	nORGFL_0 number := null;
+begin
+	htp.p('
+	<style>
+	#tooltip{background:#FFFFFF;border:1px solid #666666;color:#333333;font:menu;margin:10px;padding:3px 5px;position:absolute;visibility:hidden}
+	.link_code{color:#0000ff; text-decoration: none;}
+	.version-header	{
+			padding:5px;
+
+			background-color: #e8e8e8;
+
+			background-size: 100%;
+			background-image: -webkit-gradient(linear,50% 0,50% 100%,color-stop(0%,#f8f8f8),color-stop(100%,#e8e8e8));
+			background-image: -webkit-linear-gradient(#f8f8f8,#e8e8e8);
+			background-image: -moz-linear-gradient(#f8f8f8,#e8e8e8);
+			background-image: linear-gradient(#f8f8f8,#e8e8e8);
+			border-bottom: 1px solid #ddd;
+			border-right: 1px solid #ddd;
+			text-align: left;
+			text-shadow: 0 1px 0 rgba(255,255,255,0.65);
+			font-size:14px;
+
+
+		}
+	.version-list {}
+	.version-list table {width:100%}
+	.version-list > table > thead > tr > th.th {padding:4px 4px; box-shadow:none; color:rgb(100,100,100);}
+	.th {background-color: #e8e8e8;
+
+			background-size: 100%;
+			background-image: -webkit-gradient(linear,50% 0,50% 100%,color-stop(0%,#f8f8f8),color-stop(100%,#e8e8e8));
+			background-image: -webkit-linear-gradient(#f8f8f8,#e8e8e8);
+			background-image: -moz-linear-gradient(#f8f8f8,#e8e8e8);
+			background-image: linear-gradient(#f8f8f8,#e8e8e8);
+			border-bottom: 1px solid #ddd;
+			border-right: 1px solid #ddd;
+			text-align: left;
+			text-shadow: 0 1px 0 rgba(255,255,255,0.65);}
+	.c {padding:4px 10px; border-bottom: 1px solid #ccc;}
+	.th1 {text-align:left; width:100%} .c1 {width:100%}
+	.th2 {width:110px; text-align:center;} .c2 {width:110px; text-align:center;}
+	.th3 {width:50px; text-align:center;} .c3 {width:50px; text-align:center;}
+	.th4 {width:70px; text-align:center;} .c4 {width:70px; text-align:center;}
+	.th6 {width:16px; text-align:center;} .c6 {width:16px; text-align:center;}
+	.th5 {width:70px; text-align:center;} .c5 {width:70px; text-align:center;}
+
+	.region {border-bottom:1px solid #ccc; margin-bottom:5px}
+
+	.sub_regions{display:none;margin-bottom:15px}
+	.up {
+		background: url(/i/themes/theme_21/images/up_arrow.png) no-repeat left center;
+		cursor:pointer;
+		width:15px;height:15px;
+
+	}
+	.down {
+		background: url(/i/themes/theme_21/images/down_arrow.png) no-repeat left center;
+		cursor:pointer;
+		width:15px; height:15px;
+	}
+
+	.light td {background:#fffF69;}
+	</style>
+
+		');
+	htp.p('<script>
+		  function runScript(e) {
+		if (e.keyCode == 13) {
+		   $("#P79_SEARCH").val($("#search").val());
+		   apex.submit({showWait:true});
+		}
+	}
+		  $(document).ready(function(){  $("#search").val($("#P79_SEARCH").val()); });
+		  </script>');
+	htp.p('<div style="width:960px; margin:auto;">');
+
+	htp.p('<div class="aSubTabs">
+		<ul>
+			<li ');
+	if :P79_DEMO = 0 then htp.p('class="active"'); end if;
+	htp.p('><a href="/apex/f?p='||:APP_ID||':79:'||:APP_SESSION||'::::P79_DEMO:0"><span>Версия (Плановый период)</span></a></li>
+			<li ');
+	if :P79_DEMO = 1 then htp.p('class="active"'); end if;
+	htp.p('><a href="/apex/f?p='||:APP_ID||':79:'||:APP_SESSION||'::::P79_DEMO:1"><span>Демо данные</span></a></li>
+
+			<li style="float:right;border:none;"><input type="search" id="search" placeholder="Найти" onkeypress="return runScript(event)"/></li>
+
+
+		</ul>
+
+	</div>');
+	htp.p('');
+
+	htp.p('<div style="text-align:center"><img src="/i/map/img/Russia.png" width="450" height="285" usemap="#rf" border="0"/></div>');
+
+	select Count (*)
+	  into nCount
+	  from Z_GRBSLIST G, Z_JURPERS J, Z_LOV L
+	 where G.JURPERS = J.RN
+	   and G.PRN in (select RN from Z_USERS where LOGIN = v('APP_USER'))
+	   and G.EDITPRIV = L.NUM and L.PART = 'PRIVTYPE';
+
+	begin
+		select RN into nUSERS from Z_USERS where LOGIN = v('APP_USER');
+	exception when others then
+		nUSERS := null;
+	end;
+	if nCount = 0 then
+		select BUDG_LEVEL into nBUDG_LEVEL from Z_JURPERS where RN = :P1_JURPERS;
+	else
+		begin
+			select distinct BUDG_LEVEL
+			  into nBUDG_LEVEL
+			  from Z_GRBSLIST G, Z_JURPERS J, Z_LOV L
+			 where G.JURPERS = J.RN
+			   and G.PRN in (select RN from Z_USERS where LOGIN = v('APP_USER'))
+			   and G.EDITPRIV = L.NUM and L.PART = 'PRIVTYPE';
+		exception when OTHERS then
+			nBUDG_LEVEL := null;
+		end;
+	end if;
+
+    htp.p('P1_JURPERS - ' || :P1_JURPERS ||'; ');
+    htp.p('P79_DEMO - ' || :P79_DEMO||'; ');
+    htp.p('APP_USER - ' || :APP_USER||'; ');
+    htp.p('P1_ORGRN - ' || :P1_ORGRN||'; ');
+
+	for bl in
+	(
+     select (select L.NAME
+               from Z_LOV L
+              where L.PART = 'BUDGLEVEL'
+                and L.NUM = J.BUDG_LEVEL) BUDG_LEVEL_NAME, J.BUDG_LEVEL
+	   from Z_JURPERS J, Z_VERSIONS V
+	  where V.JUR_PERS = J.RN
+        and ((:P79_SEARCH is null) or (Upper(J.NAME) like '%' || UPPER(:P79_SEARCH) || '%'))
+		and ((nBUDG_LEVEL is null) or (J.BUDG_LEVEL = nBUDG_LEVEL))
+	  group by J.BUDG_LEVEL
+	  order by J.BUDG_LEVEL desc
+    )
+	loop
+	   -- Уровень "государственный, муниципальный ....."
+	    htp.p('<div style="text-align:center;"><h3>'||bl.BUDG_LEVEL_NAME||'</h3></div>');
+
+		begin
+			select J.REGIONAME, J.BUDG_LEVEL, J.DEMO_SIGN
+              into nREGIONAME, nBUDGLEVEL, nDEMO_SIGN
+              from Z_JURPERS J, Z_VERSIONS V
+             where J.RN = :P1_JURPERS
+               and V.RN = :P1_VERSION
+               and V.JUR_PERS = J.RN;
+		exception when Others then
+			nREGIONAME := null;
+			nBUDGLEVEL := null;
+			nDEMO_SIGN := null;
+		end;
+
+		for rg in
+        (
+         select j.REGIONAME, J.BUDG_LEVEL, J.DEMO_SIGN,
+
+                 (select COUNT(*)
+                  from Z_JURPERS J2
+                 where J2.REGIONAME = J.REGIONAME
+                   and ((ZF_USER_JURPERS(:APP_USER, J2.RN, 0) = 1) or (J2.RN = :P1_JURPERS))
+                   and ((DEMO_SIGN is null and :P79_DEMO = 0) or (DEMO_SIGN = 1 and :P79_DEMO = 1))
+                   and ((:P79_SEARCH is null) or (Upper(J2.NAME) like '%' || UPPER(:P79_SEARCH) || '%'))
+                   and J2.DELETE_SIGN is null
+                   and EXISTS (select RN from Z_VERSIONS where JUR_PERS = J2.RN)
+               ) nCOUNTJUR
+
+           from  Z_JURPERS J, Z_VERSIONS V
+          where BUDG_LEVEL=bl.BUDG_LEVEL
+            and V.JUR_PERS = J.RN
+			and ((ZF_USER_JURPERS(:APP_USER, J.RN, 0) = 1) or (J.RN = :P1_JURPERS))
+			and ((ZF_VERSION_ORGRN(:P1_ORGRN, V.RN) is not null) or (:P1_ORGRN is null))
+			and ((DEMO_SIGN is null and :P79_DEMO = 0) or (DEMO_SIGN = 1 and :P79_DEMO = 1))
+			and DELETE_SIGN is null
+			and ARC_SIGN is null
+			and ((:P79_SEARCH is null) or (Upper(J.NAME) like '%' || UPPER(:P79_SEARCH) || '%'))
+			and ((VISIBLE_SIGN is not null) or (:P1_ORGRN is null)) group by J.REGIONAME, J.BUDG_LEVEL, J.DEMO_SIGN order by J.REGIONAME ASC
+        )
+		loop
+			n:=n+1;
+			-- Регион
+			htp.p('<div class="region" id="region'||n||'" onclick="$(''#sub_regions'||n||''').slideToggle(''slow'');" style="cursor:pointer">
+					<h3 style="margin-bottom: 4px; margin-top:0px;float: left;">'||nvl(rg.REGIONAME,'->')|| case when ZGET_ROLE = 0 then ' - '|| rg.nCOUNTJUR end || '</h3>
+					<div style="float:right;cursor:pointer;"><div class="down" onclick="$(this).toggleClass(''up'')"></div></div>
+					<div style="clear:both"></div>
+				    </div>
+			        <div class="sub_regions" id="sub_regions'||n||'" style = "'|| case when ((rg.REGIONAME is null and nREGIONAME is null) or (rg.REGIONAME = nREGIONAME and rg.REGIONAME is not null and nREGIONAME is not null))
+			                                                                         and (rg.BUDG_LEVEL = nBUDGLEVEL)
+																					 and ((rg.DEMO_SIGN is null and nDEMO_SIGN is null) or (rg.DEMO_SIGN = nDEMO_SIGN)) then 'display: block;' end ||'">');
+
+			for grbs in
+            (
+             select j.rn, j.name, (select L.NAME
+                                     from Z_LOV L
+                                    where L.PART= 'PRIVTYPE'
+                                      and NUM = ZF_USER_JURPERS_PRIV( :APP_USER, J.rn )) sEDITPRIV
+			  from Z_JURPERS J
+			 where J.BUDG_LEVEL=bl.BUDG_LEVEL
+			   and ((rg.REGIONAME is null and J.REGIONAME is null) or (rg.REGIONAME is not null and J.REGIONAME is not null and J.REGIONAME=rg.REGIONAME))
+			   and ((ZF_USER_JURPERS(:APP_USER, J.RN, 0) = 1) or (J.RN = :P1_JURPERS))
+			   and ((DEMO_SIGN is null and :P79_DEMO = 0) or (DEMO_SIGN = 1 and :P79_DEMO = 1))
+			   and ((:P79_SEARCH is null) or (Upper(J.NAME) like '%' || UPPER(:P79_SEARCH) || '%'))
+			   and J.DELETE_SIGN is null
+               and EXISTS (select RN from Z_VERSIONS where JUR_PERS = J.RN)
+			 order by J.BUDG_LEVEL desc, J.REGIONAME, J.name desc
+            )
+			loop
+				select COUNT(*)
+                  into nVERSDET
+                  from Z_VERSIONS_DETAIL VD
+                 where JUR_PERS = grbs.RN
+                   and USERS = nUSERS;
+
+                -- Имя ГРБС
+                htp.p('<div style="background:white; border:1px solid #e1e1e1;margin-bottom:5px;">
+                        <div class="version-header" style="">'||grbs.name||'</div>
+                        <div class="version-list">
+                        <table cellpadding="0" cellspacing="0">
+                        <thead>
+                        <tr>
+                        <th class="th th1">Версия</th>
+                        <th class="th th2">Статус</th>
+                        <th class="th th3">План</th>
+                        <th class="th th4">Признак</th>
+                        <th class="th th6"></th>
+                        <th class="th th5">Доступ</th>
+
+                        </tr>
+                        </thead>
+                        <tbody>');
+
+				for ver in
+                (
+                 select V.RN VERSION, V.NAME VERSNAME, V.REP_PERIOD, V.CUR_PERIOD, V.NEXT_PERIOD, V.PLAN1, V.PLAN2,V.NOTES,
+						ZF_STR_DEFSIGN(V.RN, nUSERS) DEFAULT_SIGN,
+						ZF_VERSION_ORGRN(:P1_ORGRN, V.RN) nORGRN_NEW,
+						Z_GETSTATUS3(STATUS) sSTATUS,
+						(:P1_CROSSRN) nCROSSRN
+			   	  from Z_VERSIONS V
+				 where V.JUR_PERS = grbs.rn
+				   and ((ZF_VERSION_ORGRN(:P1_ORGRN, V.RN) is not null) or (:P1_ORGRN is null))
+				   and V.ARC_SIGN is null
+				   and ((V.VISIBLE_SIGN is not null) or (:P1_ORGRN is null))
+                   and nvl(V.APP_PFHD,0) = 0
+				   and ((RN in (select VERSION from Z_VERSIONS_DETAIL where JUR_PERS = grbs.RN and USERS = nUSERS) and nVERSDET > 0) or (nVERSDET = 0))
+				 order by V.NEXT_PERIOD
+                )
+				loop
+					if ver.VERSION = :P1_VERSION then
+					    sLight := 'style ="background:rgba(15, 220, 31, 0.39);"';
+					else
+						sLight := 'style =""';
+					end if;
+
+					select CHEF_DEP_SIGN into nCHEF_DEP_SIGN from z_users where login = :APP_USER;
+
+					-- филиал
+					if nCHEF_DEP_SIGN is not null then
+						begin
+							select RN into nORGFL from z_orgfl where VERSION = ver.VERSION and orgrn = ver.nORGRN_NEW and upper(ulogin) = Upper(:APP_USER);
+						exception when OTHERS then
+							nORGFL := -1;
+							--sORGFL := nORGRN||' # '||:APP_USER;
+						end;
+					else
+						begin
+						select RN into nORGFL_0 from Z_ORGFL where ORGRN = ver.nORGRN_NEW and CODE = 'ОСНОВНОЙ';
+						exception when OTHERS then
+							nORGFL_0 := null;
+						end;
+					end if;
+
+                    htp.p('<tr '||CASE WHEN ver.DEFAULT_SIGN is not null then 'class="light"' end||'>
+										<td class="c c1" '|| sLight ||'><div class="c1"><a href="f?p=&APP_ID.:1:&SESSION.::&DEBUG.:1,7:P1_JURPERS,P1_VERSION,P1_ORGRN,P1_CROSSRN,P1_ORGFL,P0_FILIAL:'||grbs.rn||','||ver.VERSION||','||ver.nORGRN_NEW||','||ver.nCROSSRN||','||nORGFL||','||nORGFL_0||'" class="link_code">'||ver.VERSNAME||'</a></div></td>
+										<td class="c c2" '|| sLight ||'><div class="c2">'||ver.sSTATUS||'</div></td>
+										<td class="c c3" '|| sLight ||'><div class="c3">'||ver.NEXT_PERIOD||'</div></td>
+										<td class="c c4" '|| sLight ||'>
+											<div class="c4" >'||CASE WHEN ver.DEFAULT_SIGN is not null then 'Основная' end||' </div>
+									  </td>
+									  <td class="c c5" '|| sLight ||'>
+												<div>
+													<img src="/i/info.png" style="width:16px; cursor:pointer;" title="'||SUBSTR(ver.NOTES,0,12)||'..." onclick="$(''#ver_info'||ver.VERSION||''').dialog({
+                                            		  modal: true,
+                                            		  title: ''Описание версии'',
+                                            		  buttons: [{
+                                            			text: ''Ок'',
+                                            			''class'': ''btn'',
+                                            			click: function() {
+                                            			  $( this ).dialog( ''close'')
+                                            			}
+                                            		  }]
+                                            		});"/></div>
+														<div id="ver_info'||ver.VERSION||'" style="display:none;" >'||ver.NOTES||'</div>
+
+											</div>
+										</td>
+										<td class="c c5" '|| sLight ||'><div class="c5">'||grbs.sEDITPRIV||'</div></td>
+										</tr>');
+				end loop;
+				htp.p('</tbody></table></div></div>');
+			end loop;
+			htp.p('</div>');
+		end loop;
+	end loop;
+	-- div container 960px
+	htp.p('</div>');
+end;
