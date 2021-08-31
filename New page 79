@@ -11,6 +11,8 @@ declare
 	nCHEF_DEP_SIGN number;
 	nORGFL	 number := null;
 	nORGFL_0 number := null;
+	nVERSION   number := null;
+	nGRBS    number := null;
 begin
 	htp.p('
 	<style>
@@ -323,8 +325,55 @@ begin
 		end loop;
 	end loop;
 	else
-	for rec 
 		htp.p('Hello world');
+	for rec in
+	(
+		select RN, CODE
+		from Z_DEPFIN D
+		order by CODE
+	)
+	loop
+	htp.p('<div style="background:white; border:1px solid #e1e1e1;margin-bottom:5px;">
+			<div class="version-header" style="">'||rec.CODE||'</div>
+			<div class="version-list">
+			<table cellpadding="0" cellspacing="0">
+			<thead>
+			<tr>
+			<th class="th th1">Версия</th>
+			<th class="th th2">Статус</th>
+			<th class="th th4">Признак</th>
+			</tr>
+			</thead>
+			<tbody>');
+		for ver in
+		(
+			select V.RN as RN,
+			V.CODE as CODE,
+			V.DEFULT_SIGN as DEFULT_SIGN,
+			V.SHOW_SIGN as SHOW_SIGN
+			from Z_DEPFIN_VERS V
+			where V.DEPFIN_RN = rec.RN
+			order by V.CODE
+		)
+		loop
+			if ver.RN = :P1_DEPFIN_VERSION then
+				sLight := 'style ="background:rgba(15, 220, 31, 0.39);"';
+			else
+				sLight := 'style =""';
+			end if;
+
+			select JURPERS_RN into nGRBS from Z_DEPFIN_GRBS where DEPFIN_RN = rec.RN and rownum = 1 order by RN;
+
+			select RN into nVERSION from Z_VERSIONS where JUR_PERS = 279178944 and NAME = 2021;
+
+			htp.p('<tr '||CASE WHEN ver.DEFULT_SIGN is not null then 'class="light"' end||'>
+								<td class="c c1" '|| sLight ||'><div class="c1"><a href="f?p=&APP_ID.:1:&SESSION.::&DEBUG.:1,7:P1_DEPFIN,P1_DEPFIN_VERSION,P1_JURPERS,P1_VERSION:'||rec.RN||','||ver.RN||','||nGRBS||','||nVERSION||'" class="link_code">'||ver.CODE||'</a></div></td>
+						<td class="c c2" '|| sLight ||'><div class="c2">'||ver.DEFULT_SIGN||'</div></td>
+						<td class="c c4" '|| sLight ||'><div class="c3">'||ver.SHOW_SIGN||'</div></td>
+				  </tr>');
+		end loop;
+		htp.p('</tbody></table></div></div>');
+	end loop;
 	end if;
 	-- div container 960px
 	htp.p('</div>');
