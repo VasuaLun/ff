@@ -1,0 +1,422 @@
+--101; 2; Z_ORGREG
+declare
+ pDEPFIN       number        := :P1_DEPFIN;
+ pDEPFINVER    number        := :P1_DEPFIN_VERSION;
+
+ -----------------------------------------------
+ sORGTYPE      varchar2(4000);
+ sORGNAME      varchar2(4000);
+ sDISTRICT     varchar2(4000);
+ sORGKIND      varchar2(4000);
+ sSERVCOUNT    varchar2(4000);
+
+ sSUPPORT      varchar2(4000);
+ sPINORG       varchar2(4000);
+ sLOGINUSER    varchar2(4000);
+
+ sSUBSNP       varchar2(4000);
+ sGUARLETTER   varchar2(4000);
+ sSUBSPRIL     varchar2(4000);
+ sSUBSEFFCON   varchar2(4000);
+
+ -----------------------------------------------
+ nCOUNTROWS    number;
+ nSERVTYPE1    number;
+ nSERVTYPE2    number;
+ nSERVTYPE3    number;
+ nSERVTYPE4    number;
+ nSERVTYPE5    number;
+ sNEW_ORGGROUP varchar2(300) := ' ';
+ sNEW_JURPERS  varchar2(300) := ' ';
+ dLAST_LOGIN	date;
+ SLAST_LOGIN   varchar2(300);
+ nUSER_ACTIVE	number;
+ sUSER_ACTIVE	varchar2(300);
+begin
+
+    -- Инициализация
+    ----------------------------------------------------
+
+    ----------------------------------------------------
+
+    apex_javascript.add_library (
+    p_name                  => 'jquery.inputmask.bundle',
+    p_directory             => '/i/');
+
+    htp.p(
+    '<style>
+        ::-webkit-scrollbar {
+          width: 17px;
+        }
+
+        /* Track */
+        ::-webkit-scrollbar-track {
+          -webkit-box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
+          -webkit-border-radius: 12px;
+          border-radius: 12px;
+        }
+
+        /* Handle */
+        ::-webkit-scrollbar-thumb {
+          -webkit-border-radius: 10px;
+          border-radius: 12px; border-left: 2px solid #eee; border-right: 2px solid #eee;
+          background: #dbe8f8;
+          -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+
+        }
+        ::-webkit-scrollbar-thumb:window-inactive {
+          background: rgba(255,0,0,0.4);
+        }
+         .report_standard tbody tr:hover td {
+             background-color: #dbe8f8 !important; color: #000;
+                  cursor: pointer; font-weight:bolder;
+            }
+        .report_standard  thead > tr {width: 100%; }
+        .report_standard  tbody > tr {width: 100%; display: block}
+        .report_standard > tbody {
+            display: block; height: 300px; overflow-x: hidden;  overflow-y: scroll;
+          }
+
+        .sub_td {padding:0;margin:0; border:none;}
+
+        .sub_region {
+          width:100%;
+        }
+        .sub_region  {
+
+        }
+
+        .report_standard thead {
+          display: block; width:100%
+        }
+        .report_standard{
+          border: 1px solid grey;
+        }
+
+        .report_standard th, td{
+          text-align:left;
+          vertical-align: middle;
+        }
+        .report_standard th{
+          text-align:center;
+          line-height: 1.5em;
+          vertical-align: middle;
+        }
+        .report_standard th {
+          color:#222;
+          font: bold 12px "Helvetica Neue",Helvetica,Arial,sans-serif;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+          padding: 5px 4px;
+           /* background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 50% #e1e1e1 repeat-x;*/
+          background: #e0e0e0;
+          border-bottom: 1px solid #9fa0a0;
+          border-left:1px solid #9fa0a0;
+        }
+        .report_standard td{
+          padding: 5px 4px;
+          border-bottom: 1px solid #9fa0a0;
+          border-left:1px solid #9fa0a0;
+          background-color: #f2f2f2;
+        }
+
+
+        .th1{width: 30px;text-align:center; border-left: 0px !important}    .c1 {width: 30px; word-wrap: break-word; text-align:center; border-left: 0px !important}
+		.th2{width: 100%;text-align:center;}   .c2 {width: 100%; word-wrap: break-word; text-align:left;}
+		.th3{width: 120px;text-align:center;}   .c3 {width: 120px; word-wrap: break-word; text-align:center;}
+        .th4{width: 120px;text-align:center;}   .c4 {width: 120px; word-wrap: break-word; text-align:center;}
+        .th5{width: 120px;text-align:center;}  .c5 {width: 120px; word-wrap: break-word; text-align:center;}
+		.th51{width: 50px;text-align:center;}  .c51 {width: 50px; word-wrap: break-word; text-align:center;}
+		.th52{width: 65px;text-align:center;}  .c52 {width: 65px; word-wrap: break-word; text-align:center;}
+        .th6{width: 30px;text-align:center;}   .c6 {width: 30px; word-wrap: break-word; text-align:center;}
+        .th7{width: 30px;text-align:center;}   .c7 {width: 30px; word-wrap: break-word; text-align:center;}
+        .th8{width: 30px;text-align:center;}   .c8 {width: 30px; word-wrap: break-word; text-align:center;}
+        .th9{width: 80px;text-align:center;}   .c9 {width: 80px; word-wrap: break-word; text-align:center;}
+		.th10{width: 80px;text-align:center;}  .c10 {width: 80px; word-wrap: break-word; text-align:center;}
+		.th11{width: 80px;text-align:center;}  .c11 {width: 80px; word-wrap: break-word; text-align:center;}
+		.th12{width: 80px;text-align:center;}  .c12 {width: 80px; word-wrap: break-word; text-align:center;}
+
+        .pagination {text-align: right;
+          border-left: 1px solid grey;
+          border-right: 1px solid grey;
+          border-bottom: 1px solid grey;
+          margin: 0px;
+
+          padding: 5px;
+          background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 100% #e1e1e1 repeat-x;cursor:move;
+        }
+        .pagination li {display: inline; margin-left:5px; font-size: 12px; padding: 2px; cursor:default; }
+        .selected_row{padding: 4px 4px;
+          border-bottom: 1px solid #9fa0a0;
+          background-color: #FAFF82;
+        }
+    </style>');
+
+
+    htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
+    <thead>
+        <tr>
+         <th class="header th1"><div class="th1">Тип</div></th>
+         <th class="header th2" ><div class="th2">Учреждение</div></th>
+		 <th class="header th3" ><div class="th3">Округ</div></th>
+         <th class="header th4" ><div class="th4">Вид</div></th>
+         <th class="header th5" ><div class="th5">Б/П/Р/И/ОМС</div></th>
+
+         <th class="header"><div style="width:8px"></div></th>
+        </tr>
+      </thead>
+    <tbody id="fullall" >');
+
+
+
+	for rec in
+	(
+      select D.RN DEPRN, D.CODE DEPCODE, J.RN JURRN, J.NAME JURCODE, nvl(O.SHORT_NAME,O.CODE) ORGNAME, substr(L.NAME,1,1) ORGTYPE, DIS.CODE DISTRICT, OK.CODE ORGKIND, FL.RN MAIN_FL, GR.CODE ORGROUP, O.VERSION VERS, O.RN  ORGRN
+        from Z_DEPFIN D, Z_DEPFIN_GRBS G, Z_JURPERS J, Z_ORGREG O, Z_DEPFIN_VERS_GRBS GRV, Z_LOV L, Z_DISTRICT DIS, Z_ORGKIND OK, Z_ORGFL FL, Z_ORGROUP GR
+      where (D.RN = pDEPFIN or pDEPFIN is NULL)
+        and (J.RN = :P2001_GRBS or :P2001_GRBS is NULL)
+        and (GR.RN = :P2001_ORGROUP or :P2001_ORGROUP is NULL)
+        and G.DEPFIN_RN = D.RN
+        and G.JURPERS_RN = J.RN
+        and O.JUR_PERS = J.RN
+        and O.VERSION = GRV.GRBS_VERSION
+        and O.ORGTYPE = L.NUM (+)
+        and L.PART (+) = 'ORGTYPE'
+        and O.DISTRICT = DIS.RN(+)
+        and O.ORGKIND = OK.RN (+)
+        and O.RN = FL.ORGRN and FL.CODE = 'ОСНОВНОЙ'
+        and O.PRN = GR.RN(+)
+        order by D.CODE, J.NAME, GR.CODE, O.ORDERNUMB, nvl(O.SHORT_NAME,O.CODE)
+	 -- select O.A_ORGRN, O.RN ORGRN, substr(L.NAME,1,1) ORGTYPE, nvl(O.SHORT_NAME,O.CODE) ORGNAME, D.CODE DISTRICT, OK.CODE ORGKIND, FL.RN MAIN_FL, G.CODE ORGROUP
+	 --   from Z_ORGREG O, Z_LOV L, Z_DISTRICT D, Z_ORGKIND OK, Z_ORGFL FL,  Z_ORGROUP G
+	 --  where O.ORGTYPE = L.NUM (+)
+		-- and L.PART (+) = 'ORGTYPE'
+		-- and O.DISTRICT = D.RN(+)
+		-- and O.ORGKIND = OK.RN (+)
+	 --    and O.JUR_PERS = pJURPERS
+	 --    and O.VERSION  = pVERSION
+		-- and O.CLOSED_SIGN = 0
+		-- and (O.FAKE_SIGN is null or nUSER_SUPPORT = 1)
+		-- and O.RN = FL.ORGRN and FL.CODE = 'ОСНОВНОЙ'
+		-- and O.PRN = G.RN(+)
+		-- and O.RN = nvl(pORGRN, O.RN) --and rownum<15
+		-- and nvl(O.PRN, 0) = nvl(:P2_ORGROUP, nvl(O.PRN, 0))
+		-- and O.ORGTYPE = nvl(:P2_ORGTYPE, O.ORGTYPE)
+		-- and nvl(O.ORGKIND, 0) = nvl(:P2_ORGKIND, nvl(O.ORGKIND, 0))
+		-- and nvl(O.REGION, 0) = nvl(:P2_RFREGIONS, nvl(O.REGION, 0))
+		-- and nvl(O.DISTRICT, 0) = nvl(:P2_DISTRICT, nvl(O.DISTRICT, 0))
+		-- and nvl(O.ORGMARK, 0) = nvl(:P2_ORGMARK, nvl(O.ORGMARK, 0))
+		-- and nvl(O.ORGPROFILE, 0) = nvl(:P2_ORGPROFILE, nvl(O.ORGPROFILE, 0))
+		-- and ((Upper(O.OMS_CODE) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.INN) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.NUMB) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.AGRNUMB) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.EXTERNALID) like '%'||Upper(:P2_SEARCH)||'%'))
+	)
+	loop
+
+		nSERVTYPE1 := 0;
+		nSERVTYPE2 := 0;
+		nSERVTYPE3 := 0;
+		nSERVTYPE4 := 0;
+		nSERVTYPE5 := 0;
+		for QSERVTYPE in
+		(
+		 select S.WORKSERV_SIGN
+		   from Z_SERVLINKS L, Z_SERVREG S
+		  where L.SERVRN   = S.RN
+			and L.JUR_PERS = rec.JURRN
+			and L.VERSION  = rec.VERS
+			and L.ORGRN    = rec.ORGRN
+		)
+		loop
+			if QSERVTYPE.WORKSERV_SIGN = 1 then
+				nSERVTYPE1 := nSERVTYPE1 + 1;
+			elsif QSERVTYPE.WORKSERV_SIGN = 2 then
+				nSERVTYPE2 := nSERVTYPE2 + 1;
+			elsif QSERVTYPE.WORKSERV_SIGN = 3 then
+				nSERVTYPE3 := nSERVTYPE3 + 1;
+			elsif QSERVTYPE.WORKSERV_SIGN = 4 then
+				nSERVTYPE4 := nSERVTYPE4 + 1;
+			elsif QSERVTYPE.WORKSERV_SIGN = 5 then
+				nSERVTYPE5 := nSERVTYPE5 + 1;
+			end if;
+		end loop;
+
+        if sNEW_JURPERS = ' ' or sNEW_JURPERS != rec.JURCODE then
+            htp.p('<tr><td style="display: block;text-align:center;"><span style="font-weight: 800;color:#800000;font-size:18">'||rec.JURCODE||'</span></td></tr>');
+            sNEW_JURPERS := rec.JURCODE;
+        end if;
+
+		if sNEW_ORGGROUP = ' ' or sNEW_ORGGROUP != rec.ORGROUP then
+		 	htp.p('<tr><td style="display: block;"><span style="font-weight: bold;color:#800000">'||rec.ORGROUP||'</span></td></tr>');
+			sNEW_ORGGROUP := rec.ORGROUP;
+		end if;
+
+		nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
+
+		sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.ORGTYPE||'</span></div></td>';
+
+		sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
+		sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
+		sORGKIND    := '<td class="c4"><div class="c4">'||rec.ORGKIND||'</></div></td>';
+
+
+		sSERVCOUNT  := '<td class="c5"><div class="c5"><a href="f?p=101:6:'||v('APP_SESSION')||'::NO::P6_ORGRN:'||rec.ORGRN||'"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="openLoader();">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></a></div></td>';
+
+
+		htp.p('
+			<tr>
+				'||sORGTYPE||'
+				'||sORGNAME||'
+				'||sDISTRICT||'
+				'||sORGKIND||'
+				'||sSERVCOUNT||'
+			</tr>');
+	end loop;
+
+
+    htp.p('</tbody></table></div>');
+    htp.p('<ul class="pagination" style="margin:0px">');
+    htp.p('<li style="float:right;">Всего записей: <b>'||nCOUNTROWS||'</b></li>');
+    htp.p('<li style="float:left; display: none;" id="loading_scroll"><img src="/i/378.GIF" style="width: 130px"/> </li>');
+    htp.p('<li style="float:left; " id="save_shtat"></li>');
+    htp.p('<li style="clear:both"></li></ul>');
+    htp.p(
+    '<script>
+
+        $(function(){
+          table_body=$("#fullall");
+
+
+          if (window.screen.height<=1024) {
+          table_body.height("260px");
+          $(".report_standard").css("width","100%");
+          } else {
+          table_body.height("700px");
+          $(".report_standard").css("width","100%");
+          }
+            $(".pagination").mousedown(startDrag);
+
+
+            function startDrag(e){
+                staticOffset = table_body.height() - e.pageY;
+                table_body.css("opacity", 0.25);
+                $(document).mousemove(performDrag).mouseup(endDrag);
+                return false;
+              }
+
+              function performDrag(e){
+                table_body.height(Math.max(150, staticOffset + e.pageY) + "px");
+                return false;
+              }
+
+              function endDrag(e){
+                $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
+                table_body.css("opacity", 1);
+              }
+        });
+
+        function save_data(rn, val, field, obj) {
+          apex.server.process("save_data", {
+                  x01: rn,
+                  x02: val,
+                  x03: field
+              }, {
+                  // refreshObject: "#tablediv",
+                 // loadingIndicator: "#save_data",
+                  success: function(data) {
+                     if (data.status === ''good'') {
+                          $(obj).css(''border-bottom'', ''1px solid green'');
+                      } else {
+                          $(obj).css(''border-bottom'', ''1px solid red'');
+                      }
+                  }
+              });
+        }
+
+           $(document).ready(function() {
+        $(".myCell").on("mouseover", function() {
+            $(this).closest("td").addClass("highlight");
+            $(this).closest("th").addClass("highlight");
+            $(this).closest("table").find(".myCell:nth-child(" + ($(this).index() + 1) + ")").addClass("highlight");
+        });
+        $(".myCell").on("mouseout", function() {
+            $(this).closest("td").removeClass("highlight");
+            $(this).closest("th").removeClass("highlight");
+            $(this).closest("table").find(".myCell:nth-child(" + ($(this).index() + 1) + ")").removeClass("highlight");
+        });
+        });
+
+        $(document).ready(function(){
+        var index = 1;
+        var tabindex = 1;
+           $(".decimal").inputmask({alias: "decimal",
+            groupSeparator: " ",
+            autoGroup: true,
+          allowPlus: false,
+          allowMinus: true,
+          max: 99999999999.99,
+          digits : 2,
+          radixPoint:",",
+          digitsOptional: false
+         });
+
+          $("input .decimal").each(function () {
+            $(this).attr("tabindex", index);
+            index++;});
+          $(".decimal").on("click", function() {
+              tabindex = $(this).attr("tabindex")
+            })
+            $(".decimal").on("keyup", function(e) {
+              if (e.keyCode === 40) {
+                tabindex++;
+                $(".decimal[tabindex=" + tabindex + "]").focus()
+                $(".decimal[tabindex=" + tabindex + "]").select()
+              }
+              if (e.keyCode == 38) {
+                tabindex--;
+                $(".decimal[tabindex=" + tabindex + "]").focus()
+                $(".decimal[tabindex=" + tabindex + "]").select()
+              }
+            })
+           });
+
+		function selecter(obj,rownum)
+		{
+		$("#fix").find("tr").removeClass("selected");
+		$("#fix").find("tr[row="+rownum+"]").addClass("selected");
+		$("#fix tr").removeClass("selected");
+		$(obj).parent("div").parent("td").parent("tr").addClass("selected");
+		}
+
+        function ShowDialog2(id, orgrn, rtype) {
+		$.ajax({
+			url: "wwv_flow.show",
+			type: "POST",
+			data: {
+				p_request: "APPLICATION_PROCESS=dialog_" + id,
+				p_flow_id: $("#pFlowId").val(),
+				p_flow_step_id: $("#pFlowStepId").val(),
+				p_instance: $("#pInstance").val(),
+				x01: orgrn,
+                x02: rtype
+
+			},
+			success: function(data) {
+
+				$("#" + id).html(data);
+				$("#" + id).dialog({
+					modal: true,
+					closeText: "Закрыть",
+					width: 600,
+					height: 400,
+					maxWidth: 600,
+					maxHeight: 400,
+					position: "center",
+					buttons: {
+						''Закрыть'': function() {
+							$(this).dialog("close");
+						}
+					}
+				});
+		}
+		});
+		}
+    </script>');
+end;
