@@ -1,4 +1,4 @@
---101; 2; Z_ORGREG
+--101; 2001; Z_JURPERS, Z_ORGREG
 declare
  pDEPFIN       number        := :P1_DEPFIN;
  pDEPFINVER    number        := :P1_DEPFIN_VERSION;
@@ -185,28 +185,8 @@ begin
         and O.ORGKIND = OK.RN (+)
         and O.RN = FL.ORGRN and FL.CODE = 'ОСНОВНОЙ'
         and O.PRN = GR.RN(+)
+        and ((Upper(O.OMS_CODE) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2001_SEARCH)||'%'))
         order by D.CODE, J.NAME, GR.CODE, O.ORDERNUMB, nvl(O.SHORT_NAME,O.CODE)
-	 -- select O.A_ORGRN, O.RN ORGRN, substr(L.NAME,1,1) ORGTYPE, nvl(O.SHORT_NAME,O.CODE) ORGNAME, D.CODE DISTRICT, OK.CODE ORGKIND, FL.RN MAIN_FL, G.CODE ORGROUP
-	 --   from Z_ORGREG O, Z_LOV L, Z_DISTRICT D, Z_ORGKIND OK, Z_ORGFL FL,  Z_ORGROUP G
-	 --  where O.ORGTYPE = L.NUM (+)
-		-- and L.PART (+) = 'ORGTYPE'
-		-- and O.DISTRICT = D.RN(+)
-		-- and O.ORGKIND = OK.RN (+)
-	 --    and O.JUR_PERS = pJURPERS
-	 --    and O.VERSION  = pVERSION
-		-- and O.CLOSED_SIGN = 0
-		-- and (O.FAKE_SIGN is null or nUSER_SUPPORT = 1)
-		-- and O.RN = FL.ORGRN and FL.CODE = 'ОСНОВНОЙ'
-		-- and O.PRN = G.RN(+)
-		-- and O.RN = nvl(pORGRN, O.RN) --and rownum<15
-		-- and nvl(O.PRN, 0) = nvl(:P2_ORGROUP, nvl(O.PRN, 0))
-		-- and O.ORGTYPE = nvl(:P2_ORGTYPE, O.ORGTYPE)
-		-- and nvl(O.ORGKIND, 0) = nvl(:P2_ORGKIND, nvl(O.ORGKIND, 0))
-		-- and nvl(O.REGION, 0) = nvl(:P2_RFREGIONS, nvl(O.REGION, 0))
-		-- and nvl(O.DISTRICT, 0) = nvl(:P2_DISTRICT, nvl(O.DISTRICT, 0))
-		-- and nvl(O.ORGMARK, 0) = nvl(:P2_ORGMARK, nvl(O.ORGMARK, 0))
-		-- and nvl(O.ORGPROFILE, 0) = nvl(:P2_ORGPROFILE, nvl(O.ORGPROFILE, 0))
-		-- and ((Upper(O.OMS_CODE) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.INN) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.NUMB) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.AGRNUMB) like '%'||Upper(:P2_SEARCH)||'%') or (Upper(O.EXTERNALID) like '%'||Upper(:P2_SEARCH)||'%'))
 	)
 	loop
 

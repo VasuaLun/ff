@@ -331,8 +331,9 @@ begin
 		htp.p('Hello world');
 	for rec in
 	(
-		select RN, CODE
-		from Z_DEPFIN D
+		select distinct D.RN, D.CODE
+		from Z_DEPFIN D, Z_USERS U
+		where (U.DEPFIN = D.RN and U.RN = nUSERS) or (ZGET_ROLE = 0)
 		order by CODE
 	)
 	loop
