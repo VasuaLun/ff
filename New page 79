@@ -365,9 +365,19 @@ begin
 				sLight := 'style =""';
 			end if;
 
-			select JURPERS_RN into nGRBS from Z_DEPFIN_GRBS where DEPFIN_RN = rec.RN and rownum = 1 order by RN;
+			begin
+				select JURPERS_RN into nGRBS from Z_DEPFIN_GRBS where DEPFIN_RN = rec.RN and rownum = 1 order by RN;
+				exception
+  				when NO_DATA_FOUND then
+				nGRBS := NULL;
+			end;
 
-			select RN into nVERSION from Z_VERSIONS where JUR_PERS = 279178944 and NAME = 2021;
+			begin
+				select GRBS_VERSION into nVERSION from Z_DEPFIN_VERS_GRBS where DEPFIN_VERS_RN = ver.RN and rownum = 1 order by RN;
+				exception
+					when NO_DATA_FOUND then
+					nVERSION := NULL;
+			end;
 
 			htp.p('<tr '||CASE WHEN ver.DEFULT_SIGN != 0 then 'class="light"' end||'>
 								<td class="c c7" '|| sLight ||'><div class="c7"><a href="f?p=&APP_ID.:1:&SESSION.::&DEBUG.:1,7:P1_DEPFIN,P1_DEPFIN_VERSION,P1_JURPERS,P1_VERSION:'||rec.RN||','||ver.RN||','||nGRBS||','||nVERSION||'" class="link_code">'||ver.CODE||'</a></div></td>

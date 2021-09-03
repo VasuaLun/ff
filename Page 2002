@@ -1,359 +1,400 @@
--- App 101
--- Page 490
+--101; 2001; Z_JURPERS, Z_ORGREG
 declare
-  p_jurpers     number := :P1_JURPERS;
-  p_version     number := :P1_VERSION;
-  p_orgrn       number := nvl(:P7_ORGFILTER,:P1_ORGRN);
+ pDEPFIN       number        := :P1_DEPFIN;
+ pDEPFINVER    number        := :P1_DEPFIN_VERSION;
 
-  count_rows    number(17) := 0;
-  sExpSign varchar2(400 char);
-  l_archive_row varchar2(400 char);
-  sREP_BTN		varchar2(250);
-  nUSEROLE		number(17);
-  sINCOME		varchar2(250);
-  nCOUNT		number(17);
-  nCOUNT2		number(17);
-  sESIGN1		varchar2(250);
-  sESIGN2		varchar2(250);
-  nESIGN_RN			number(17);
-  sESIGN_PERSNAME	varchar2(250);
-  sESIGN_POSITION	varchar2(250);
-  dESIGN_SIGN_DATE	TIMESTAMP (6);
-  sLINK_STATUS		varchar2(500) := null;
-  sNOTE1			varchar2(100) := null;
-  sNOTE2			varchar2(100) := null;
+ -----------------------------------------------
+ sORGTYPE      varchar2(4000);
+ sORGNAME      varchar2(4000);
+ sDISTRICT     varchar2(4000);
+ sORGKIND      varchar2(4000);
+ sSERVCOUNT    varchar2(4000);
+
+ sSUPPORT      varchar2(4000);
+ sPINORG       varchar2(4000);
+ sLOGINUSER    varchar2(4000);
+
+ sSUBSNP       varchar2(4000);
+ sGUARLETTER   varchar2(4000);
+ sSUBSPRIL     varchar2(4000);
+ sSUBSEFFCON   varchar2(4000);
+
+ -----------------------------------------------
+ nCOUNTROWS    number;
+ nSERVTYPE1    number;
+ nSERVTYPE2    number;
+ nSERVTYPE3    number;
+ nSERVTYPE4    number;
+ nSERVTYPE5    number;
+ sNEW_ORGGROUP varchar2(300) := ' ';
+ sNEW_JURPERS  varchar2(300) := ' ';
+ dLAST_LOGIN	date;
+ SLAST_LOGIN   varchar2(300);
+ nUSER_ACTIVE	number;
+ sUSER_ACTIVE	varchar2(300);
 begin
-  htp.p('<style>
-.panel .panel-content { padding:0px !important; }
-::-webkit-scrollbar {
-      width: 17px;
-    }
 
-    /* Track */
-    ::-webkit-scrollbar-track {
-      -webkit-box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
-      -webkit-border-radius: 12px;
-      border-radius: 12px;
-    }
+    -- Инициализация
+    ----------------------------------------------------
 
-    /* Handle */
-    ::-webkit-scrollbar-thumb {
-      -webkit-border-radius: 10px;
-      border-radius: 12px; border-left: 2px solid #eee; border-right: 2px solid #eee;
-      background: #dbe8f8;
-      -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+    ----------------------------------------------------
 
-    }
-    ::-webkit-scrollbar-thumb:window-inactive {
-      background: rgba(255,0,0,0.4);
-    }
+    apex_javascript.add_library (
+    p_name                  => 'jquery.inputmask.bundle',
+    p_directory             => '/i/');
 
+    htp.p(
+    '<style>
+        ::-webkit-scrollbar {
+          width: 17px;
+        }
 
-    .panel .panel-content {padding:0px !important;}
-  ::-webkit-scrollbar {
-      width: 17px;
-    }
+        /* Track */
+        ::-webkit-scrollbar-track {
+          -webkit-box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
+          -webkit-border-radius: 12px;
+          border-radius: 12px;
+        }
 
-    /* Track */
-    ::-webkit-scrollbar-track {
-      -webkit-box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
-      -webkit-border-radius: 12px;
-      border-radius: 12px;
-    }
+        /* Handle */
+        ::-webkit-scrollbar-thumb {
+          -webkit-border-radius: 10px;
+          border-radius: 12px; border-left: 2px solid #eee; border-right: 2px solid #eee;
+          background: #dbe8f8;
+          -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
 
-    /* Handle */
-    ::-webkit-scrollbar-thumb {
-      -webkit-border-radius: 10px;
-      border-radius: 12px; border-left: 2px solid #eee; border-right: 2px solid #eee;
-      background: #dbe8f8;
-      -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+        }
+        ::-webkit-scrollbar-thumb:window-inactive {
+          background: rgba(255,0,0,0.4);
+        }
+         .report_standard tbody tr:hover td {
+             background-color: #dbe8f8 !important; color: #000;
+                  cursor: pointer; font-weight:bolder;
+            }
+        .report_standard  thead > tr {width: 100%; }
+        .report_standard  tbody > tr {width: 100%; display: block}
+        .report_standard > tbody {
+            display: block; height: 300px; overflow-x: hidden;  overflow-y: scroll;
+          }
 
-    }
-    ::-webkit-scrollbar-thumb:window-inactive {
-      background: rgba(255,0,0,0.4);
-    }
-      .report_standard tbody tr:hover td {
-        background-color: #dbe8f8; color: #000;
-        cursor: pointer; font-weight:bolder;
-      }
-    .report_standard  thead > tr {width: 100%; }
-    .report_standard  tbody > tr {width: 100%; display: block}
-    .report_standard > tbody {
-        display: block; height: 300px; overflow-x: hidden;  overflow-y: scroll;
-      }
+        .sub_td {padding:0;margin:0; border:none;}
 
-    .sub_td {padding:0;margin:0; border:none;}
+        .sub_region {
+          width:100%;
+        }
+        .sub_region  {
 
-    .sub_region {
-      width:100%;
-    }
-    .sub_region  {
+        }
 
-    }
+        .report_standard thead {
+          display: block; width:100%
+        }
+        .report_standard{
+          border: 1px solid grey;
+        }
 
-    .report_standard thead {
-      display: block; width:100%
-    }
-    .report_standard{
-      border: 1px solid grey;
-    }
-
-    .report_standard th, td{
-      text-align:left;
-    }
-    .report_standard th{
-      text-align:center;
-      line-height: 1.5em;
-      vertical-align: middle;
-    }
-    .report_standard th {
-      color:#222;
-      font: bold 12px "Helvetica Neue",Helvetica,Arial,sans-serif;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-      padding: 4px 4px;
-       /* background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 50% #e1e1e1 repeat-x;*/
-      background: #e0e0e0;
-      border-bottom: 1px solid #9fa0a0;
-      border-left:1px solid #9fa0a0;
-    }
-    .report_standard td{
-      padding: 4px 4px;
-      border-bottom: 1px solid #9fa0a0;
-      border-left:1px solid #9fa0a0;
-      background-color: #f2f2f2;
-    }
-
-    .in_txt {width:70px; border: 1px solid #ccc;text-align:right;}
-    .in_txt2 {width:100%; border: 1px solid #ccc;text-align:right;}
-
-    .link_code {font-weight: bold; color:#0000ff;}
-    .row { margin-bottom: 5px;}
-
-    .th0{width: auto;text-align:center;}     .c0 {width: auto; word-wrap: break-word; text-align:center;}
-    .th1{width: 20px;text-align:center;}     .c1 {width: 20px; word-wrap: break-word; text-align:center;}
-    .th2{width: 65px; text-align:center;}   .c2 {width: 65px; word-wrap: break-word;text-align:center;}
-    .th3{width: 100%;text-align:center;}     .c3 {width: 100%; word-wrap: break-word; text-align:left;}
-    .th4{width: 160px;text-align:center;}    .c4 {width: 160px; word-wrap: break-word; text-align:left;}
-    .th5{width: 100px;text-align:center;}    .c5 {width: 100px; word-wrap: break-word; text-align:center;}
-	.th60{width: 55px;text-align:center;}     .c60 {width: 55px; word-wrap: break-word; text-align:center;}
-    .th6{width: 150px;text-align:center;}     .c6 {width: 150px; word-wrap: break-word; text-align:left;}
-    .th7{width: 120px;text-align:center;}    .c7 {width: 120px; word-wrap: break-word; text-align:right;}
-	.th70{width: 90px;text-align:center;}    .c70 {width: 90px; word-wrap: break-word; text-align:center;}
-	.th71{width: 220px;text-align:center;}    .c71 {width: 220px; word-wrap: break-word; text-align:left;}
-	.th72{width: 220px;text-align:center;}    .c72 {width: 220px; word-wrap: break-word; text-align:left;}
-	.th8{width: 50px;text-align:center;}    .c8 {width: 50px; word-wrap: break-word; text-align:right;}
-    .th99{width: 45px;text-align:center;}    .c99 {width: 45px; word-wrap: break-word; text-align:right;}
+        .report_standard th, td{
+          text-align:left;
+          vertical-align: middle;
+        }
+        .report_standard th{
+          text-align:center;
+          line-height: 1.5em;
+          vertical-align: middle;
+        }
+        .report_standard th {
+          color:#222;
+          font: bold 12px "Helvetica Neue",Helvetica,Arial,sans-serif;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+          padding: 5px 4px;
+           /* background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 50% #e1e1e1 repeat-x;*/
+          background: #e0e0e0;
+          border-bottom: 1px solid #9fa0a0;
+          border-left:1px solid #9fa0a0;
+        }
+        .report_standard td{
+          padding: 5px 4px;
+          border-bottom: 1px solid #9fa0a0;
+          border-left:1px solid #9fa0a0;
+          background-color: #f2f2f2;
+        }
 
 
-    .pagination {text-align: right;
-      border-top: 1px solid grey;
-      border-bottom: 1px solid grey;
-      margin: 0px;
+        .th1{width: 30px;text-align:center; border-left: 0px !important}    .c1 {width: 30px; word-wrap: break-word; text-align:center; border-left: 0px !important}
+		.th2{width: 100%;text-align:center;}   .c2 {width: 100%; word-wrap: break-word; text-align:center;}
+		.th3{width: 120px;text-align:center;}   .c3 {width: 120px; word-wrap: break-word; text-align:center;}
+        .th4{width: 120px;text-align:center;}   .c4 {width: 120px; word-wrap: break-word; text-align:center;}
+        .th5{width: 200px;text-align:center;}  .c5 {width: 200px; word-wrap: break-word; text-align:center;}
+        .th6{width: 150px;text-align:center;}   .c6 {width: 150px; word-wrap: break-word; text-align:center;}
+        .th7{width: 150px;text-align:center;}   .c7 {width: 150px; word-wrap: break-word; text-align:center;}
+        .th8{width: 400px;text-align:center;}   .c8 {width: 400px; word-wrap: break-word; text-align:center;}
 
-      padding: 5px;
-      background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 100% #e1e1e1 repeat-x;cursor:move;
-    }
-    .pagination li {display: inline; margin-left:5px; font-size: 12px; padding: 2px; cursor:default; }
-    .selected_row{padding: 4px 4px;
-      border-bottom: 1px solid #9fa0a0;
-      background-color: #FAFF82;
-    }
- .group {
-    font-weight: bold;
-    background-color: #dddbf8 !important;
-}
-  </style>');
+        .pagination {text-align: right;
+          border-left: 1px solid grey;
+          border-right: 1px solid grey;
+          border-bottom: 1px solid grey;
+          margin: 0px;
 
-  htp.p('
-  <div id="report"></div>
-  <div id="tablediv" class="tablediv"><table border="0" id="fix" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%; border:0px" >
+          padding: 5px;
+          background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 100% #e1e1e1 repeat-x;cursor:move;
+        }
+        .pagination li {display: inline; margin-left:5px; font-size: 12px; padding: 2px; cursor:default; }
+        .selected_row{padding: 4px 4px;
+          border-bottom: 1px solid #9fa0a0;
+          background-color: #FAFF82;
+        }
+    </style>');
+
+
+    htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
     <thead>
         <tr>
-         <th class="header th1 myCell" style="border-left:0px"><div class="th1">№ п/п</div></th>
-         <th class="header th2" ><div class="th2">Дата</div></th>
-         <th class="header th3" ><div class="th3">Комментарий учреждения</div></th>
-         <th class="header th4" ><div class="th4">Комментарий учредителя</div></th>
-		 <th class="header th60" ><div class="th60">Журнал затрат</div></th>
-		 <th class="header th60" ><div class="th60">Журнал доходов</div></th>
-         <th class="header th5" ><div class="th5">Статус редакции ПФХД</div></th>
-		 <th class="header th5" ><div class="th5">Статус Сведений о ЦС</div></th>
-		 <th class="header th70" ><div class="th70"></div></th>
-         <th class="header th6" ><div class="th6">Файл отчета</div></th>
-		 <th class="header th71" ><div class="th71">ЭЦП Учреждения</div></th>
-		 <th class="header th72" ><div class="th72">ЭЦП Учредителя</div></th>
-         <th class="header" ><div style="width:12px"></div></th>
-         <th class="header th8" ><div class="th8"></div></th>
-         <th class="header" ><div style="width:8px"></div></th>
+         <th class="header th1"><div class="th1">Тип</div></th>
+         <th class="header th2" ><div class="th2">ГРБС, учреждение</div></th>
+		 <th class="header th3" ><div class="th3">Текущая редакция</div></th>
+         <th class="header th4" ><div class="th4">Дата редакции</div></th>
+         <th class="header th5" ><div class="th5">Статус редакции</div></th>
+         <th class="header th6" ><div class="th5">ЭЦП Учреждения</div></th>
+         <th class="header th7" ><div class="th5">ЭЦП Учредителя</div></th>
+         <th class="header th8" ><div class="th5">Отчет</div></th>
+
+         <th class="header"><div style="width:8px"></div></th>
         </tr>
-
       </thead>
-    <tbody id="fullall">
-  ');
+    <tbody id="fullall" >');
 
-	for vers in
+
+
+	for rec in
 	(
-	   select t.*,s.EXP_PLAN nSTATUS,
-	          decode(s.EXP_PLAN,
-	          	0, '<span style="font-weight: bold;color:red">Формирование</span>',
-	          	1, '<span style="font-weight: bold;color:purple">Согласование</span>',
-				2, '<span style="font-weight: bold;color:purple">На проверке</span>',
-				3, '<span style="font-weight: bold;color:red">На доработке</span>',
-				4, '<span style="font-weight: bold;color:green">Проверен</span>',
-	          	5, '<span style="font-weight: bold;color:green">Утвержден</span>'
-	          ) sStatus
-	     from Z_PFHD_VERSIONS t, Z_STATUS S
-	    where t.version = p_version
-	      and t.orgrn = p_orgrn
-		  and s.period = t.RN
-		  and s.VERSION = t.VERSION
-	     order by NUMB
-  	)LOOP
-		--RPT_FILENAME
-		--select L.NAME from Z_STATUS S, Z_LOV L where L.PART = 'PVHDSTATUS' and L.NUM = S.EXP_PLAN and S.PERIOD =:P491_RN and S.VERSION = :P1_VERSION
+      select D.RN DEPRN, D.CODE DEPCODE, J.RN JURRN, J.NAME JURCODE, nvl(O.SHORT_NAME,O.CODE) ORGNAME, substr(L.NAME,1,1) ORGTYPE, DIS.CODE DISTRICT, OK.CODE ORGKIND, FL.RN MAIN_FL, GR.CODE ORGROUP, O.VERSION VERS, O.RN  ORGRN
+        from Z_DEPFIN D, Z_DEPFIN_GRBS G, Z_JURPERS J, Z_ORGREG O, Z_DEPFIN_VERS_GRBS GRV, Z_LOV L, Z_DISTRICT DIS, Z_ORGKIND OK, Z_ORGFL FL, Z_ORGROUP GR
+      where (D.RN = pDEPFIN or pDEPFIN is NULL)
+        and (J.RN = :P2001_GRBS or :P2001_GRBS is NULL)
+        and (GR.RN = :P2001_ORGROUP or :P2001_ORGROUP is NULL)
+        and G.DEPFIN_RN = D.RN
+        and G.JURPERS_RN = J.RN
+        and O.JUR_PERS = J.RN
 
-		l_archive_row := '';
+        and O.VERSION = GRV.GRBS_VERSION
+        and O.ORGTYPE = L.NUM (+)
+        and L.PART (+) = 'ORGTYPE'
+        and O.DISTRICT = DIS.RN(+)
+        and O.ORGKIND = OK.RN (+)
+        and O.RN = FL.ORGRN and FL.CODE = 'ОСНОВНОЙ'
+        and O.PRN = GR.RN(+)
+        and ((Upper(O.OMS_CODE) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2001_SEARCH)||'%'))
+        order by D.CODE, J.NAME, GR.CODE, O.ORDERNUMB, nvl(O.SHORT_NAME,O.CODE)
+	)
+	loop
 
-		count_rows := count_rows + 1;
-		--ShowReport(''ZP_REP_PFHD_VERSIONS'', ''Заглушка_отчет'', ''APXWS'');
-
-		if vers.EXPORT_SIGN is not null then
-			sExpSign := '<img style="width:12px" src="/i/icon_validation.gif" title="Экспортирован в ГИС РЭБ">';
-		else
-			sExpSign := '';
-		end if;
-
-		if vers.nSTATUS in (0,3) then
-			l_archive_row :='';
-		end if;
-
-		if (vers.nSTATUS = 5) and (vers.ARC_SIGN is null) then
-
-			select ROLE into nUSEROLE from Z_USERS where Upper(LOGIN) = Upper(:APP_USER);
-
-			if nUSEROLE in (0,1) then -- Админ
-				l_archive_row := '<a href="f?p=101:490:'||:APP_SESSION||':rArchive:NO::P490_ARC_RN:'||vers.RN||'" class = "link_code">В Архив</a>';
-			else
-				l_archive_row :='';
+		nSERVTYPE1 := 0;
+		nSERVTYPE2 := 0;
+		nSERVTYPE3 := 0;
+		nSERVTYPE4 := 0;
+		nSERVTYPE5 := 0;
+		for QSERVTYPE in
+		(
+		 select S.WORKSERV_SIGN
+		   from Z_SERVLINKS L, Z_SERVREG S
+		  where L.SERVRN   = S.RN
+			and L.JUR_PERS = rec.JURRN
+			and L.VERSION  = rec.VERS
+			and L.ORGRN    = rec.ORGRN
+		)
+		loop
+			if QSERVTYPE.WORKSERV_SIGN = 1 then
+				nSERVTYPE1 := nSERVTYPE1 + 1;
+			elsif QSERVTYPE.WORKSERV_SIGN = 2 then
+				nSERVTYPE2 := nSERVTYPE2 + 1;
+			elsif QSERVTYPE.WORKSERV_SIGN = 3 then
+				nSERVTYPE3 := nSERVTYPE3 + 1;
+			elsif QSERVTYPE.WORKSERV_SIGN = 4 then
+				nSERVTYPE4 := nSERVTYPE4 + 1;
+			elsif QSERVTYPE.WORKSERV_SIGN = 5 then
+				nSERVTYPE5 := nSERVTYPE5 + 1;
 			end if;
+		end loop;
 
-		elsif vers.ARC_SIGN is not null then
-			l_archive_row := 'в архиве '||'<a href="f?p=101:490:'||:APP_SESSION||':rArchiveFrom:NO::P490_ARC_RN:'||vers.RN||'" class = "link_code">вернуть</a>';
+        if sNEW_JURPERS = ' ' or sNEW_JURPERS != rec.JURCODE then
+            htp.p('<tr><td style="display: block;text-align:center;"><span style="font-weight: 800;color:#800000;font-size:18">'||rec.JURCODE||'</span></td></tr>');
+            sNEW_JURPERS := rec.JURCODE;
+        end if;
+
+		if sNEW_ORGGROUP = ' ' or sNEW_ORGGROUP != rec.ORGROUP then
+		 	htp.p('<tr><td style="display: block;"><span style="font-weight: bold;color:#800000">'||rec.ORGROUP||'</span></td></tr>');
+			sNEW_ORGGROUP := rec.ORGROUP;
 		end if;
 
-		if vers.nSTATUS = 4 and ZGET_ROLE in (0,1) and ZF_USER_CAN_APPROVE(:APP_USER, 'PFHD') /*and (ZF_USER_ACCEPT_EDIT (:APP_USER) or ZF_GET_DEMO_SIGN() = 1)*/ then -- Проверен 4
-			sREP_BTN := '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':490:'||:APP_SESSION||':DOWNLOAD_REP:::P490_REP_RN:'||vers.RN)||'" class = "link_code" onclick="openLoader();">Утвердить</a>';
-		elsif vers.nSTATUS in (3,5) then
+		nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
 
-			if nvl(vers.ERR_SIGN,0) != 1 then -- без ошибок или с предупреждениями
-				sREP_BTN := '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':490:'||:APP_SESSION||':rDownload:::P490_DNLD_RN:'||vers.RN)||'" title="Скачать файл отчета">'||vers.RPT_FILENAME||' </a>';
-			else
-				sREP_BTN :=  '<span style="color:red">Ошибки при формировании отчета <br>'||vers.RPT_FILENAME||'</span>';
-			end if;
-		else
-			sREP_BTN := '';
-		end if;
+		sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.ORGTYPE||'</span></div></td>';
+
+		sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
+		sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
+		sORGKIND    := '<td class="c4"><div class="c4">'||rec.ORGKIND||'</></div></td>';
 
 
-		select count(*) into nCOUNT from  Z_BUDGDETAIL_HISTORY where PFHD_VERSION_RN = vers.RN;
-		select count(*) into nCOUNT2 from  Z_VBDETAIL_HISTORY where PFHD_VERSION_RN = vers.RN;
-
-		-- Журнал изм. доходов
-		if nCOUNT + nCOUNT2 >0 then
-			sINCOME := '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':489:'||:APP_SESSION||'::::P489_PFHD_VERS,P489_PAGEBACK:'||vers.RN||',490')||'" title="Перейти в журнал изменений доходов"><img width="25" height ="25" src="/i/menu/chart_bar_32.gif"/></a>';
-		else
-			sINCOME := '';
-		end if;
+		sSERVCOUNT  := '<td class="c5"><div class="c5"><a href="f?p=101:6:'||v('APP_SESSION')||'::NO::P6_ORGRN:'||rec.ORGRN||'"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="openLoader();">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></a></div></td>';
 
 
-		begin
-			select decode(s.EXP_PLAN,
-					0, '<span style="font-weight: bold;text-decoration: underline;color:red">Формирование</span>',
-					1, '<span style="font-weight: bold;text-decoration: underline;color:purple">Согласование</span>',
-					2, '<span style="font-weight: bold;text-decoration: underline;color:purple">На проверке</span>',
-					3, '<span style="font-weight: bold;text-decoration: underline;color:red">На доработке</span>',
-					4, '<span style="font-weight: bold;text-decoration: underline;color:green">Проверен</span>',
-					5, '<span style="font-weight: bold;text-decoration: underline;color:green">Утвержден</span>'
-				  ) into sLINK_STATUS
-			 from Z_REP_REESTR t, Z_STATUS S
-			where s.period = t.RN
-			  and t.REPTYPE = 'INFOCS'
-			  and t.PFHD_RN = vers.RN;
-		exception when NO_DATA_FOUND then
-			sLINK_STATUS := null;
-			when TOO_MANY_ROWS then
-				zp_exception(0,'>>Несколько статусов');
-		end;
+		htp.p('
+			<tr>
+				'||sORGTYPE||'
+				'||sORGNAME||'
+				<!--'||sDISTRICT||'
+				'||sORGKIND||'
+				'||sSERVCOUNT||'-->
+			</tr>');
+	end loop;
 
 
-		if sLINK_STATUS is not null then
-		-- Статус связанного ЭД (Сведения о ЦС21)
-			sLINK_STATUS := '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':498:'||:APP_SESSION||':::498:P498_FROM_PAGE,P498_TYPE:'||'490,INFOCS')||'" title="Перейти в редакции сведений о ЦС (21)">'||sLINK_STATUS||'</a>';
-		end if;
+    htp.p('</tbody></table></div>');
+    htp.p('<ul class="pagination" style="margin:0px">');
+    htp.p('<li style="float:right;">Всего записей: <b>'||nCOUNTROWS||'</b></li>');
+    htp.p('<li style="float:left; display: none;" id="loading_scroll"><img src="/i/378.GIF" style="width: 130px"/> </li>');
+    htp.p('<li style="float:left; " id="save_shtat"></li>');
+    htp.p('<li style="clear:both"></li></ul>');
+    htp.p(
+    '<script>
+
+        $(function(){
+          table_body=$("#fullall");
 
 
-		begin
-			select RN, PERSNAME, POSITION, SIGN_DATE into nESIGN_RN, sESIGN_PERSNAME, sESIGN_POSITION, dESIGN_SIGN_DATE from Z_ESIGN where DOC_RN = vers.RN and PART = 'PFHD' and USEROLE = 'ORG';
-		exception when OTHERS then
-			nESIGN_RN := null;
-		end;
-		if nESIGN_RN is not null then
-			sESIGN1 := '<span style="color:green">Подписан. Заверен ЭП.<br>'||nvl(sESIGN_POSITION,'')||'<br>'||nvl(sESIGN_PERSNAME,'')||'<br>'||to_char(dESIGN_SIGN_DATE,'DD.MM.YY HH24:MI')||'</span>';
-		else
-			sESIGN1 := '<span style="font-weight: bold;color:red">не подписан</span>';
-		end if;
-
-		begin
-			select RN, PERSNAME, POSITION, SIGN_DATE into nESIGN_RN, sESIGN_PERSNAME, sESIGN_POSITION, dESIGN_SIGN_DATE from Z_ESIGN where DOC_RN = vers.RN and PART = 'PFHD' and USEROLE = 'GRBS';
-		exception when OTHERS then
-			nESIGN_RN := null;
-		end;
-		if nESIGN_RN is not null then
-			sESIGN2 := '<span style="color:green">Подписан. Заверен ЭП.<br>'||nvl(sESIGN_POSITION,'')||'<br>'||nvl(sESIGN_PERSNAME,'')||'<br>'||to_char(dESIGN_SIGN_DATE,'DD.MM.YY HH24:MI')||'</span>';
-		else
-			sESIGN2 := '<span style="font-weight: bold;color:red">не подписан</span>';
-		end if;
-
-		if length(vers.NOTES) > 100 then
-			sNOTE1 := substr(vers.NOTES,0,97)||'...';
-		else
-			sNOTE1 := vers.NOTES;
-		end if;
-
-		if length(vers.GRBS_NOTES) > 100 then
-			sNOTE2 := substr(vers.GRBS_NOTES,0,97)||'...';
-		else
-			sNOTE2 := vers.GRBS_NOTES;
-		end if;
+          if (window.screen.height<=1024) {
+          table_body.height("260px");
+          $(".report_standard").css("width","100%");
+          } else {
+          table_body.height("700px");
+          $(".report_standard").css("width","100%");
+          }
+            $(".pagination").mousedown(startDrag);
 
 
+            function startDrag(e){
+                staticOffset = table_body.height() - e.pageY;
+                table_body.css("opacity", 0.25);
+                $(document).mousemove(performDrag).mouseup(endDrag);
+                return false;
+              }
 
-		htp.p('<tr>
-				<td class="c1 " style="border-left:none"><div class="c1"><a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':491:'||:APP_SESSION||'::::P491_RN:'||vers.RN)||'" class = "link_code">'||vers.NUMB||case when vers.ARC_SIGN is not null then 'apx' end||'</a></div></td>
-				<td class="c2 "><div class="c2"><a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':491:'||:APP_SESSION||'::::P491_RN:'||vers.RN)||'" class = "link_code">'||to_char(vers.VERS_DATE,'dd.mm.yyyy')||'</a></div></td>
-				<td class="c3 "><div class="c3" title="'||vers.NOTES||'">'||sNOTE1||'</div></td>
-				<td class="c4 "><div class="c4" title="'||vers.GRBS_NOTES||'">'||sNOTE2||'</div></td>
-				<td class="c60 "><div class="c60">'||'<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':429:'||:APP_SESSION||'::::P429_PFHD_VERS,P429_PAGEBACK:'||vers.RN||',490')||'" title="Перейти в журнал изменений затрат"><img width="25" height ="25" src="/i/menu/chart_line_32.gif"/></a>'||'</div></td>
-				<td class="c60 "><div class="c60">'||sINCOME||'</div></td>
-				<td class="c5 "><div class="c5">'||vers.sStatus||'</div></td>
-				<td class="c5 "><div class="c5">'||sLINK_STATUS||'</div></td>
-				<td class="c70 "><div class="c70">'||case when vers.RPT_FILENAME is not null then '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':490:'||:APP_SESSION||':rDownload:::P490_DNLD_RN:'||vers.RN)||'"  title="Скачать файл отчета"><img width="25" height ="25" src="/i/ico/xls.gif"/></a>' end||
-				' '||case when vers.ADD_FILENAME is not null then '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':490:'||:APP_SESSION||':rDownloadAdd:::P490_DNLD_RN:'||vers.RN)||'" title="Скачать доп.файл"><img width="25" height ="25" src="/i/img/attachment_48x48.png"/></a>
-				   ' else '' end || ' ' ||
-					case when vers.XML_FILENAME is not null then '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':490:'||:APP_SESSION||':rDownloadXML:::P490_DNLD_RN:'||vers.RN)||'" title="Скачать выгрузку в ГИС РЭБ"><img width="25" height ="25" src="/i/ico/noxls.png"/></a>
-				  ' else '' end	||'</div></td>
-				<td class="c6 "><div class="c6">'||sREP_BTN||'</div></td>
-				<td class="c71 "><div class="c71">'||sESIGN1||'</div></td>
-				<td class="c72 "><div class="c72">'||sESIGN2||'</div></td>
-				<td class="c3 "><div style="width:12px">'||sExpSign||'</div></td>
-				<td class="c8 "><div class="c8">'||l_archive_row||'</div></td>
-				</tr>');
-    END LOOP;
+              function performDrag(e){
+                table_body.height(Math.max(150, staticOffset + e.pageY) + "px");
+                return false;
+              }
 
-  htp.p('</tbody></table></div>');
-  htp.p('<ul class="pagination" style="margin:0px">');
-  htp.p('<li style="float:right;">Всего записей: <b>'||count_rows||'</b></li>');
-  htp.p('<li style="float:left; display: none;" id="loading_scroll"><img src="/i/378.GIF" style="width: 130px"/> </li>');
-  htp.p('<li style="float:left; " id="save_shtat"></li>');
-  htp.p('<li style="clear:both"></li></ul>');
+              function endDrag(e){
+                $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
+                table_body.css("opacity", 1);
+              }
+        });
 
+        function save_data(rn, val, field, obj) {
+          apex.server.process("save_data", {
+                  x01: rn,
+                  x02: val,
+                  x03: field
+              }, {
+                  // refreshObject: "#tablediv",
+                 // loadingIndicator: "#save_data",
+                  success: function(data) {
+                     if (data.status === ''good'') {
+                          $(obj).css(''border-bottom'', ''1px solid green'');
+                      } else {
+                          $(obj).css(''border-bottom'', ''1px solid red'');
+                      }
+                  }
+              });
+        }
+
+           $(document).ready(function() {
+        $(".myCell").on("mouseover", function() {
+            $(this).closest("td").addClass("highlight");
+            $(this).closest("th").addClass("highlight");
+            $(this).closest("table").find(".myCell:nth-child(" + ($(this).index() + 1) + ")").addClass("highlight");
+        });
+        $(".myCell").on("mouseout", function() {
+            $(this).closest("td").removeClass("highlight");
+            $(this).closest("th").removeClass("highlight");
+            $(this).closest("table").find(".myCell:nth-child(" + ($(this).index() + 1) + ")").removeClass("highlight");
+        });
+        });
+
+        $(document).ready(function(){
+        var index = 1;
+        var tabindex = 1;
+           $(".decimal").inputmask({alias: "decimal",
+            groupSeparator: " ",
+            autoGroup: true,
+          allowPlus: false,
+          allowMinus: true,
+          max: 99999999999.99,
+          digits : 2,
+          radixPoint:",",
+          digitsOptional: false
+         });
+
+          $("input .decimal").each(function () {
+            $(this).attr("tabindex", index);
+            index++;});
+          $(".decimal").on("click", function() {
+              tabindex = $(this).attr("tabindex")
+            })
+            $(".decimal").on("keyup", function(e) {
+              if (e.keyCode === 40) {
+                tabindex++;
+                $(".decimal[tabindex=" + tabindex + "]").focus()
+                $(".decimal[tabindex=" + tabindex + "]").select()
+              }
+              if (e.keyCode == 38) {
+                tabindex--;
+                $(".decimal[tabindex=" + tabindex + "]").focus()
+                $(".decimal[tabindex=" + tabindex + "]").select()
+              }
+            })
+           });
+
+		function selecter(obj,rownum)
+		{
+		$("#fix").find("tr").removeClass("selected");
+		$("#fix").find("tr[row="+rownum+"]").addClass("selected");
+		$("#fix tr").removeClass("selected");
+		$(obj).parent("div").parent("td").parent("tr").addClass("selected");
+		}
+
+        function ShowDialog2(id, orgrn, rtype) {
+		$.ajax({
+			url: "wwv_flow.show",
+			type: "POST",
+			data: {
+				p_request: "APPLICATION_PROCESS=dialog_" + id,
+				p_flow_id: $("#pFlowId").val(),
+				p_flow_step_id: $("#pFlowStepId").val(),
+				p_instance: $("#pInstance").val(),
+				x01: orgrn,
+                x02: rtype
+
+			},
+			success: function(data) {
+
+				$("#" + id).html(data);
+				$("#" + id).dialog({
+					modal: true,
+					closeText: "Закрыть",
+					width: 600,
+					height: 400,
+					maxWidth: 600,
+					maxHeight: 400,
+					position: "center",
+					buttons: {
+						''Закрыть'': function() {
+							$(this).dialog("close");
+						}
+					}
+				});
+		}
+		});
+		}
+    </script>');
 end;
