@@ -1,4 +1,4 @@
---101; 2001; Z_JURPERS, Z_ORGREG
+--101; 2002; Z_JURPERS, Z_ORGREG
 declare
  pDEPFIN       number        := :P1_DEPFIN;
  pDEPFINVER    number        := :P1_DEPFIN_VERSION;
@@ -121,7 +121,7 @@ begin
 
 
         .th1{width: 30px;text-align:center; border-left: 0px !important}    .c1 {width: 30px; word-wrap: break-word; text-align:center; border-left: 0px !important}
-		.th2{width: 100%;text-align:center;}   .c2 {width: 100%; word-wrap: break-word; text-align:center;}
+		.th2{width: 100%;text-align:center;}   .c2 {width: 100%; word-wrap: break-word; text-align:l;}
 		.th3{width: 120px;text-align:center;}   .c3 {width: 120px; word-wrap: break-word; text-align:center;}
         .th4{width: 120px;text-align:center;}   .c4 {width: 120px; word-wrap: break-word; text-align:center;}
         .th5{width: 200px;text-align:center;}  .c5 {width: 200px; word-wrap: break-word; text-align:center;}
@@ -154,9 +154,9 @@ begin
 		 <th class="header th3" ><div class="th3">Текущая редакция</div></th>
          <th class="header th4" ><div class="th4">Дата редакции</div></th>
          <th class="header th5" ><div class="th5">Статус редакции</div></th>
-         <th class="header th6" ><div class="th5">ЭЦП Учреждения</div></th>
-         <th class="header th7" ><div class="th5">ЭЦП Учредителя</div></th>
-         <th class="header th8" ><div class="th5">Отчет</div></th>
+         <th class="header th6" ><div class="th6">ЭЦП Учреждения</div></th>
+         <th class="header th7" ><div class="th7">ЭЦП Учредителя</div></th>
+         <th class="header th8" ><div class="th8">Отчет</div></th>
 
          <th class="header"><div style="width:8px"></div></th>
         </tr>
@@ -242,6 +242,12 @@ begin
 			<tr>
 				'||sORGTYPE||'
 				'||sORGNAME||'
+                <td class="c3"><div class="c3">-</></div></td>
+                <td class="c4"><div class="c4">-</></div></td>
+                <td class="c5"><div class="c5">-</></div></td>
+                <td class="c6"><div class="c6">-</></div></td>
+                <td class="c7"><div class="c7">-</></div></td>
+                <td class="c8"><div class="c8">-</></div></td>
 				<!--'||sDISTRICT||'
 				'||sORGKIND||'
 				'||sSERVCOUNT||'-->
