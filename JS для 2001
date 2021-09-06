@@ -1,0 +1,13 @@
+var htmldb_delete_message='"DELETE_CONFIRM_MSG"';
+var l = (screen.width/2)-(820/2);
+var t = (screen.height/2)-(400/2);
+
+function modalWin2(rn, vers) {
+    if (window.showModalDialog) {
+        window.showModalDialog("f?p=&APP_ID.:2003:&SESSION.:POP:NO::P2003_DEPFIN_RN,P2003_VERSION_ORG:"+rn+"," +vers, "name","dialogWidth:920px;dialogHeight:700px;dialogTop:600px; dialogLeft:800px; center:yes; status:no");
+        console.log("1");
+    }
+    else {
+        window.open("f?p=&APP_ID.:2003:&SESSION.:POP:NO::P2003_DEPFIN_RN,P2003_VERSION_ORG:"+rn+"," +vers, "name","height=700,width=920,toolbar=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no,modal=yes,top="+t+",left="+l);
+    }
+}

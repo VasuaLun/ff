@@ -1,0 +1,428 @@
+-- Page 6
+declare
+  count_rows    number(17) := 0;
+  sTARGET_PAGE  varchar2(50);
+  nORGRN        number(17) := :P2003_DEPFIN_RN;   -- 81114221
+  nVERSION      number(17) := :P2003_VERSION_ORG; -- 81101547
+
+  sWS_SIGN  varchar2(50);
+  sKBK varchar2(100);
+  sp_npa number(17);
+  sp_ind number(17);
+  sp_inf number(17);
+  sp_con number(17);
+  sp_nrm number(17);
+  SERVREGNUM varchar2(500);
+  nLINK_RN      number(17);
+  nLINK_SERVKBK number(17);
+  nLINK_FICTIV_SERV number(17);
+  nLINK_MDISTR_SIGN number(17);
+
+  sQindCode varchar2(100);
+  sQindMeas varchar2(100);
+  sQindFlag varchar2(100);
+  sExpSum   varchar2(100);
+  nQIND_RN  number(17);
+begin
+  htp.p('<style>
+
+  ::-webkit-scrollbar {
+    width: 17px;
+  }
+
+    /* Track */
+    ::-webkit-scrollbar-track {
+      -webkit-box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
+      -webkit-border-radius: 12px;
+      border-radius: 12px;
+    }
+
+    /* Handle */
+    ::-webkit-scrollbar-thumb {
+      -webkit-border-radius: 10px;
+      border-radius: 12px; border-left: 2px solid #eee; border-right: 2px solid #eee;
+      background: #dbe8f8;
+      -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+
+    }
+    ::-webkit-scrollbar-thumb:window-inactive {
+      background: rgba(255,0,0,0.4);
+    }
+     .report_standard tbody tr:hover td {
+           background-color: #FFFAF0; color: #000;
+           cursor: pointer;
+        }
+    .report_standard  thead > tr {width: 100%; }
+    .report_standard  tbody > tr {width: 100%; display: block}
+    .report_standard > tbody {
+        display: block; height: 300px; overflow-x: hidden;  overflow-y: scroll;
+      }
+
+    .sub_td {padding:0;margin:0; border:none;}
+
+    .sub_region {
+      width:100%;
+    }
+    .sub_region  {
+
+    }
+
+    .report_standard thead {
+      display: block; width:100%
+    }
+    .report_standard{
+      border: 1px solid grey;
+    }
+
+    .report_standard th, td{
+      text-align:left;
+    }
+    .report_standard th{
+      text-align:center;
+    }
+    .report_standard th {
+      color:#222;
+      font: bold 12px/12px Arial, sans-serif;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+      padding: 4px 4px;
+       /* background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 50% #e1e1e1 repeat-x;*/
+      background: #e1e1e1;
+      border-bottom: 1px solid #9fa0a0;
+      border-left:1px solid #9fa0a0;
+    }
+    .report_standard td{
+      padding: 4px 4px;
+      border-bottom: 1px solid #9fa0a0;
+      background-color: #f2f2f2;
+    }
+
+    .in_txt {width:70px; border: 1px solid #ccc;text-align:right;}
+
+    .link_code { color:#0000ff;}
+    .row { margin-bottom: 5px;}
+
+
+    .th1{width: 20px;text-align:center;}     .c1 {width: 20px; word-wrap: break-word; text-align:center;}
+    .th111{width: 22px;text-align:center;}     .c111 {width: 22px; word-wrap: break-word; text-align:center;}
+    .th2{width: 180px; text-align:left;}     .c2 {width: 180px; word-wrap: break-word;text-align:left;}
+    .th3{width: 100%;text-align:left;}    .c3 {width: 100%; word-wrap: break-word; text-align:left;}
+    .th4{width: 200px;text-align:left;}    .c4 {width: 200px; word-wrap: break-word; text-align:left;}
+
+    .th5{width: 10px;text-align:left;}    .c5 {width: 10px; word-wrap: break-word; text-align:left;}
+    .th6{width: 10px;text-align:left;}    .c6 {width: 10px; word-wrap: break-word; text-align:left;}
+    .th7{width: 130px;text-align:left;}    .c7 {width: 130px; word-wrap: break-word; text-align:left;}
+    .th8{width: 60px;text-align:left;}    .c8 {width: 60px; word-wrap: break-word; text-align:left;}
+    .th9{width: 80px;text-align:left;}    .c9 {width: 80px; word-wrap: break-word; text-align:right;}
+    .th10{width: 100px;text-align:left;}   .c10 {width: 100px; word-wrap: break-word; text-align:right;}
+    .th11{width: 60px;text-align:left;}   .c11 {width: 60px; word-wrap: break-word; text-align:left;}
+    .th12{width: 70px;text-align:left;}   .c12 {width: 70px; word-wrap: break-word; text-align:left;}
+    .th13{width: 65px;text-align:left;}    .c13 {width: 65px; word-wrap: break-word; text-align:left;}
+
+    .th14{width: 77px;text-align:left;}    .c14 {width: 77px; word-wrap: break-word; text-align:left;}
+    .th15{width: 90px;text-align:left;}    .c15 {width: 90px; word-wrap: break-word; text-align:left;}
+    .th16{width: 90px;text-align:left;}    .c16 {width: 90px; word-wrap: break-word; text-align:left;}
+    .th17{width: 90px;text-align:left;}    .c17 {width: 90px; word-wrap: break-word; text-align:left;}
+    .th18{width: 50px;text-align:left;}    .c18 {width: 50px; word-wrap: break-word; text-align:left;}
+
+
+
+    .c7 a {
+      text-decoration: none;
+      font-size: 24px;
+      color: green;
+    }
+      .c8 a {
+      text-decoration: none;
+      font-size: 24px;
+      color: red;
+    }
+
+      .selected td {background-color:#C0FFC1;}
+
+    /*th.th4, th.th5, th.th6, th.th11 {border-right:1px solid #9fa0a0;}
+    td.c11, td.c4, td.c6 {border-right:1px solid #9fa0a0;}*/
+    .report_standard td.orange {background-color: #FFE8AD;}
+    .report_standard td.totals {background-color: #e1e1e1;}
+
+    .level1 td {background-color: #FFEEC3;}
+    .level2 td {background-color: /*#FFF4DA;*/ #f2f2f2;}
+    .level3 td {background-color: #f2f2f2;}
+
+    .pagination {text-align: right; border: 1px solid grey;
+      margin: 0px;
+      border-top: none;
+      padding: 5px;
+      /*background: rgb(213, 213, 213);*/
+      background: url(/i/themes/theme_17/images/sReportBG-Aqua.png) 0 50% #e1e1e1 repeat-x;cursor:move;
+    }
+    .pagination li {display: inline; margin-left:5px; font-size: 12px; padding: 2px; cursor:default; }
+    .selected_row{padding: 4px 4px;
+      border-bottom: 1px solid #9fa0a0;
+      background-color: #FAFF82;
+    }
+
+
+    .down.up {
+      background: url(/i/themes/theme_21/images/up_arrow.png) no-repeat left center;
+      cursor:pointer;
+      width:15px;height:15px;
+      float:left;
+
+    }
+    .down {
+      background: url(/i/themes/theme_21/images/down_arrow.png) no-repeat left center;
+      cursor:pointer;
+      width:15px; height:15px;
+      float:left;
+    }
+
+    .level1 {display:none;}
+    .level2 {display:none;}
+    .report_standard .col_milk_blue {background:#F4FFEC;font-weight:bold;}   .col_milk_blue input {background:#F4FFEC;; border-bottom: 1px solid gray}
+    .report_standard .col_milk_pink {background:#FDE9D9}   .col_milk_pink input {background:#FDE9D9; border-bottom: 1px solid gray}
+    .report_standard .col_milk_green {background:rgb(175, 255, 136);}  .col_milk_green input {background:rgb(175, 255, 136); border-bottom: 1px solid gray}
+    .report_standard .col_milk_yellow {background:#F9F2D0;} .col_milk_yellow input {background:#F9F2D0; border-bottom: 1px solid gray}
+    .report_standard .col_milk_white {background:#FFFFFF}  .col_milk_white input {background:#FFFFFF; border-bottom: 1px solid gray}
+
+.green {color:green;font-weight:bold;}
+.red{color:red;font-weight:bold;}
+    </style>
+
+
+  ');
+
+-- End
+/*
+         <th class="header th15"><div class="th15">Группа<br>услуг</div></th>
+         <th class="header th16"><div class="th16">Вид</div></th>
+         <th class="header th17"><div class="th17">Тип</div></th>
+         <th class="header th13"><div class="th13">Ед.изм.<br> пок. об.</div></th>
+*/
+
+  htp.p('<div><table border="0" id="fix" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%" id="">
+    <thead>
+        <tr>
+         <th class="header th2"><div class="th2">Реестр.№</div></th>
+         <th class="header th3"><div class="th3">Краткое наименование</div></th>
+         <th class="header th14"><div class="th14">Признак</div></th>
+         <th class="header th4"><div class="th4">Показатель объема</div></th>
+         <th class="header th9"><div class="th9">Значение<br>показателя</div></th>
+         <th class="header th10"><div class="th10">Затраты</div></th>
+         <th class="header th7"><div class="th7">КБК</div></th>
+
+         <th class="header"><div style="width:8px"></div></th>
+       </tr>
+
+
+      </thead>
+    <tbody id="fullall">
+  ');
+
+--<th class="header th18"><div class="th18">Ст. группа</div></th>
+--<th class="header th8" title="НПА/Показатели/порядок инф./порядок контроля/нормативы"><div class="th8">НПА/Пок/ПИ/ПК/Н</div></th>
+  for rec in
+  (
+    select ZGET_SERVREG_PRNIMG(S.NSERVPRN, S.NPARENT_SIGN) as PRN_IMG,
+           S.NSERVRN SERVRN,
+           S.NPARENT_SIGN PARENT_SIGN,
+           S.SUNIQREGNUM regnum,
+		   S.SUNIQREGNUM_FULL regnum_full,
+           S.SSERVCODE SERVCODE,
+           S.NSERVPRN PRN,
+           S.SWORKSERV_NAME sPriznak,
+           S.SSERVSIGN_CODE sServGroup,
+           S.SSERVKIND_NAME sServKind,
+           S.SSERVTYPE_NAME sServType,
+           S.SCOSTGROUP_NAME sServCost,
+           Z_GETSERVCOUNT_FAST(s.nSERVRN, nORGRN) nYplan3
+      from ZV_SERVREG S
+    where S.nVERSION    = nVERSION
+      and ((Upper(S.SREGNUM) like Upper(:P6_SEARCH)||'%')
+       or (Upper(S.SSERVCODE) like '%'||Upper(:P6_SEARCH)||'%'))
+      and (S.NSERVRN  in (select L.SERVRN from Z_SERVLINKS L where L.VERSION = nVERSION and L.ORGRN = nORGRN))
+    order by S.NORDERNUMB, lpad(REGNUM, 20, ' ')
+    )LOOP
+
+        begin
+            select L.RN,
+                   L.SERVKBK,
+                   L.FICTIV_SERV,
+                   L.MDISTR_SIGN
+              into nLINK_RN,
+                   nLINK_SERVKBK,
+                   nLINK_FICTIV_SERV,
+                   nLINK_MDISTR_SIGN
+              from Z_SERVLINKS L
+             where L.SERVRN = rec.SERVRN
+               and L.ORGRN = nORGRN
+               and L.VERSION = nVERSION;
+        exception
+            when OTHERS then null;
+        end;
+
+      begin
+
+        select count(*) into sp_npa from z_serv_org_npa where prn=nLINK_RN;
+        select count(*) into sp_ind from z_serv_org_ind where prn=nLINK_RN;
+        select count(*) into sp_inf from z_serv_org_inf where prn=nLINK_RN;
+        select count(*) into sp_con from z_serv_org_control where prn=nLINK_RN;
+        select count(*) into sp_nrm from z_serv_org_norm where prn=nLINK_RN;
+
+        begin
+            select K.sCODE
+              into sKBK
+              from ZV_KBKALL K
+             where K.nKBK_RN = nLINK_SERVKBK;
+        exception when others then sKBK := null;
+        end;
+
+
+        if  (rec.PRN is not null) and (rec.PARENT_SIGN is null) then
+            SERVREGNUM := '<span style="margin-left:20px; padding-left: 5px; border-left: black 1px dashed">'||rec.REGNUM||'</span>';
+        elsif (rec.PRN is not null) and (rec.PARENT_SIGN is not null) then
+            SERVREGNUM := '<span style="margin-left:10px; padding-left: 5px; border-left: black 1px dashed; font-weight:bold">'||rec.REGNUM||'</span>';
+        elsif (rec.PRN is null) and (rec.PARENT_SIGN is not null) then
+            SERVREGNUM := '<span style="font-weight: bold">'||nvl(rec.regnum_full, rec.REGNUM)||'</span>';
+        else SERVREGNUM :=  nvl(rec.regnum_full, rec.REGNUM);
+        end if;
+
+
+
+        --Ищем показатель объема и его ЕИ
+        begin
+        select I.SQINDCODE,SMEASURE_CODE, I.nQINDRN
+          into sQindCode, sQindMeas, nQIND_RN
+          from Z_SERVIND SI, ZV_QINDLIST I, Z_SERVREG S
+         where SI.QIND = I.NQINDRN and SI.PRN = S.RN
+           and SI.PRN = rec.SERVRN
+		   and I.NQINDSIGN = 2;
+        exception when others then
+			sQindCode := null;
+			sQindMeas := null;
+			nQIND_RN := null;
+        end;
+
+        --Ищем сумму затрат по услуге и учреждению
+        begin
+            select LTRIM(to_char(sum(nvl(servsum,0)),'999G999G999G999G999G990D00'),' ')
+              into sExpSum
+              from z_expall
+             where ORGRN = nORGRN
+               and servrn = rec.SERVRN;
+        exception when others then sExpSum:='<span class="red">----</span>';
+        end;
+
+        sWS_SIGN := null;
+
+        exception when others then null;
+      end;
+
+      htp.p('<tr>
+        <td class="c2" style="border-left:1px solid #ccc"><div class="c2">'||SERVREGNUM||'</div></td>
+        <td class="c3" style="border-left:1px solid #ccc"><div class="c3">'||rec.SERVCODE||'</div></td>
+        <td class="c14" style="border-left:1px solid #ccc"><div class="c14">'||rec.sPriznak||'</div></td>
+        <td class="c4" style="border-left:1px solid #ccc"><div class="c4">'||sQindCode||'</div></td>
+        <td class="c9" style="border-left:1px solid #ccc"><div class="c9">'||rec.nYplan3||'</div></td>
+        <td class="c10" style="border-left:1px solid #ccc"><div class="c10">'||nvl(sExpSum,'<span class="red">--------------------</span>')||'</div></td>
+        <td class="c7" style="border-left:1px solid #ccc"><div class="c7">'||sKBK||'</div>
+        </td>
+
+      </tr>');
+
+    count_rows := count_rows + 1;
+    nLINK_RN            := null;
+    nLINK_SERVKBK       := null;
+    nLINK_FICTIV_SERV   := null;
+    nLINK_MDISTR_SIGN   := null;
+  END LOOP;
+
+
+  htp.p('</tbody></table></div>');
+
+  htp.p('<ul class="pagination">');
+  htp.p('<li style="float:right;">Всего записей: <b>'||count_rows||'</b></li>');
+  htp.p('<li style="float:left; display: none;" id="loading_scroll"><img src="/i/378.GIF" style="width: 130px"/> </li>');
+  htp.p('<li style="float:left; " id="save_shtat"></li>');
+  htp.p('<li style="clear:both"></li></ul>');
+  htp.p('<script>
+    var checks=[];
+    function selectChek(value){
+
+      if (checks.indexOf(value)===-1) {
+      checks.push(value);
+      } else {
+      checks.splice(checks.indexOf(value),1);
+      }
+      console.log(checks);
+
+     $("#P6_RN_ARR").val(checks);
+    }
+    function selectAll(){
+    var elements = $("input.status");
+     for(i in elements) {
+      selectChek($(elements[i]).val());
+      if($(elements[i]).is(":checked")) {
+        $(elements[i]).prop("checked",false);
+        } else {
+        $(elements[i]).prop("checked",true);
+        }
+     }
+    }
+    function open_levels(obj) {
+      if ($(".level1, .level2").css("display")==="block") {
+        $(".level1, .level2").css("display","none");
+        $(".down.up").removeClass("up");
+      }
+      else {
+        $(".level1, .level2").css("display","block");
+        $(".down").addClass("up");
+      }
+    }
+
+
+    $(function(){
+      table_body=$("#fullall");
+      if (window.screen.height<=1024) {
+      table_body.height("400px");
+      $(".report_standard").css("width","100%");
+      } else {
+      table_body.height("600px");
+      $(".report_standard").css("width","100%");
+      }
+        $(".pagination").mousedown(startDrag);
+
+
+        function startDrag(e){
+            staticOffset = table_body.height() - e.pageY;
+            table_body.css("opacity", 0.25);
+            $(document).mousemove(performDrag).mouseup(endDrag);
+            return false;
+          }
+
+          function performDrag(e){
+            table_body.height(Math.max(32, staticOffset + e.pageY) + "px");
+            return false;
+          }
+
+          function endDrag(e){
+            $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
+            table_body.css("opacity", 1);
+          }
+
+
+    });
+
+    var el = document.getElementById("row_"+$v("P6_SELECT_ROW"));
+    if (el!==null){
+     el.scrollIntoView(true);
+      $(el).children().css("background-color","yellow");
+    }
+    /*$(el).parents(''.level1'').css(''display'',''block'');
+    $(el).parents(''.level2'').css(''display'',''block'');
+    $(el).parents(''.level3'').css(''display'',''block'');
+    }
+    */
+
+    </script>'
+  );
+end;

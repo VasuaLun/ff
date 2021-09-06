@@ -418,3 +418,32 @@ select  O.A_ORGRN, O.RN ORGRN, substr(L.NAME,1,1) ORGTYPE, nvl(O.SHORT_NAME,O.CO
    and O.ORGKIND = OK.RN (+)
    and O.RN = FL.ORGRN and FL.CODE = 'ОСНОВНОЙ'
    and O.PRN = GR.RN(+)
+
+-- Переход на страницу - окно
+   sADDEXP  := '<span class="btn btn-primary" style="float:right" onclick="location.href='''||APEX_UTIL.PREPARE_URL('javascript:modalWin();')||'''">Добавить статьи затрат</span>';
+
+   select ZGET_SERVREG_PRNIMG(S.NSERVPRN, S.NPARENT_SIGN) as PRN_IMG,
+          S.NSERVRN SERVRN,
+          S.NPARENT_SIGN PARENT_SIGN,
+          S.SUNIQREGNUM regnum,
+          S.SUNIQREGNUM_FULL regnum_full,
+          S.SSERVCODE SERVCODE,
+          S.NSERVPRN PRN,
+          S.SWORKSERV_NAME sPriznak,
+          S.SSERVSIGN_CODE sServGroup,
+          S.SSERVKIND_NAME sServKind,
+          S.SSERVTYPE_NAME sServType,
+          S.SCOSTGROUP_NAME sServCost,
+          Z_GETSERVCOUNT_FAST(s.nSERVRN, nORGRN) nYplan3
+     from ZV_SERVREG S
+   where S.nVERSION    = nVERSION
+     and ((Upper(S.SREGNUM) like Upper(:P6_SEARCH)||'%')
+      or (Upper(S.SSERVCODE) like '%'||Upper(:P6_SEARCH)||'%'))
+     and ((:P6_WORKSERV_SIGN is null) or(S.NWORKSERV = :P6_WORKSERV_SIGN))
+     and ((:P6_SERVSIGN is null) or (S.NSERVSIGN = :P6_SERVSIGN))
+     and ((:P6_SERVTYPE2 is null) or(S.NSERVTYPE = :P6_SERVTYPE2))
+     and ((:P6_SERVTYPE is null) or(S.NSERVKIND = :P6_SERVTYPE))
+     and ((:P6_COSTGROUP is null) or(S.NCOSTGROUP = :P6_COSTGROUP))
+     --and ((:P6_QINDFILT is null) or (Q.RN = :P6_QINDFILT))
+     and (S.NSERVRN  in (select L.SERVRN from Z_SERVLINKS L where L.VERSION = nVERSION and L.ORGRN = nORGRN))
+   order by S.NORDERNUMB, lpad(REGNUM, 20, ' ')

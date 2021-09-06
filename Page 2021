@@ -239,9 +239,7 @@ begin
 		sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
 		sORGKIND    := '<td class="c4"><div class="c4">'||rec.ORGKIND||'</></div></td>';
 
-
-		sSERVCOUNT  := '<td class="c5"><div class="c5"><a href="f?p=101:6:'||v('APP_SESSION')||'::NO::P6_ORGRN:'||rec.ORGRN||'"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="openLoader();">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></a></div></td>';
-
+		sSERVCOUNT  := '<td class="c5 "><div class="c5"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.ORGRN||','||rec.VERS||')">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></></div></td>';
 
 		htp.p('
 			<tr>
