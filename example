@@ -1,22 +1,8 @@
 -- Вставить несколько строк в таблицу
 insert all
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('ВайфайКул',    1 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('СпецВайфай',   1 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('ТонронМост',   1 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Тонрон',       1 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Роновкор',     2 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Ронов',        2 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Торонпит',     2 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Торон',        2 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Жизньком',     2 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Соцсетикрона', 2 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('КаналЛинк',    3 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Поисковиким',  3 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Сообщениямия', 3 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Риот',         3 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Алетта',       4 , 1)
-    into DV_ORGREG (NAME, CITY_ID, VERSION) values ('Мелания',      4 , 1)
-SELECT * FROM dual;
+    into DV_ORGREG (DEPFIN_VERS_RN, GRBS_VERSION, JUR_PERS) values (357976592, 315594486)
+    into DV_ORGREG (DEPFIN_VERS_RN, GRBS_VERSION, JUR_PERS) values (357976592, )
+select * from dual;
 
 -- Заполнить все NULL значения определенным
 update DV_ORGREG
@@ -447,3 +433,21 @@ select  O.A_ORGRN, O.RN ORGRN, substr(L.NAME,1,1) ORGTYPE, nvl(O.SHORT_NAME,O.CO
      --and ((:P6_QINDFILT is null) or (Q.RN = :P6_QINDFILT))
      and (S.NSERVRN  in (select L.SERVRN from Z_SERVLINKS L where L.VERSION = nVERSION and L.ORGRN = nORGRN))
    order by S.NORDERNUMB, lpad(REGNUM, 20, ' ')
+
+
+   SELECT
+   DF_V.RN RN,
+   DF_V.DEPFIN_RN,
+   DF_V.CODE,
+   (CASE DEFULT_SIGN WHEN 1 THEN 'Основная' ELSE '-' END) DEFAULT_SIGN,
+   (CASE SHOW_SIGN WHEN 1 THEN 'Показывать' ELSE 'Скрыть' END) SHOW_SIGN,
+   DF_V.NOTES,
+   (
+       SELECT COUNT(DISTINCT J.RN)
+       FROM Z_DEPFIN_VERS_GRBS DF_VG, Z_DEPFIN_VERS DF_V, Z_VERSIONS V, Z_DEPFIN_GRBS DF_G, Z_JURPERS J
+       WHERE DF_VG.DEPFIN_VERS_RN = DF_V.RN
+       AND DF_G.JURPERS_RN = V.JUR_PERS
+       AND J.RN = V.JUR_PERS
+       AND DF_V.DEPFIN_RN = :P2010_RN AND DF_V.RN = RN) nCOUNT
+   FROM Z_DEPFIN_VERS DF_V
+   WHERE :P2010_RN = DF_V.DEPFIN_RN

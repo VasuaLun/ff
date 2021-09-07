@@ -366,17 +366,13 @@ begin
 			end if;
 
 			begin
-				select JURPERS_RN into nGRBS from Z_DEPFIN_GRBS where DEPFIN_RN = rec.RN and rownum = 1 order by RN;
-				exception
-  				when NO_DATA_FOUND then
-				nGRBS := NULL;
-			end;
-
-			begin
-				select GRBS_VERSION into nVERSION from Z_DEPFIN_VERS_GRBS where DEPFIN_VERS_RN = ver.RN and rownum = 1 order by RN;
+				select GRV.GRBS_VERSION, GRB.JURPERS_RN into nVERSION, nGRBS
+				from Z_DEPFIN_GRBS GRB, Z_DEPFIN_VERS_GRBS GRV, Z_VERSIONS V
+				where GRV.GRBS_VERSION = V.RN and GRB.JURPERS_RN = V.JUR_PERS and GRB.DEPFIN_RN = rec.RN and rownum = 1;
 				exception
 					when NO_DATA_FOUND then
 					nVERSION := NULL;
+					nGRBS := NULL;
 			end;
 
 			htp.p('<tr '||CASE WHEN ver.DEFULT_SIGN != 0 then 'class="light"' end||'>

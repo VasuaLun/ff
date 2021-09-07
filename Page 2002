@@ -21,11 +21,6 @@ declare
 
  -----------------------------------------------
  nCOUNTROWS    number;
- nSERVTYPE1    number;
- nSERVTYPE2    number;
- nSERVTYPE3    number;
- nSERVTYPE4    number;
- nSERVTYPE5    number;
  sNEW_ORGGROUP varchar2(300) := ' ';
  sNEW_JURPERS  varchar2(300) := ' ';
  dLAST_LOGIN	date;
@@ -175,7 +170,6 @@ begin
         and G.DEPFIN_RN = D.RN
         and G.JURPERS_RN = J.RN
         and O.JUR_PERS = J.RN
-
         and O.VERSION = GRV.GRBS_VERSION
         and O.ORGTYPE = L.NUM (+)
         and L.PART (+) = 'ORGTYPE'
@@ -188,33 +182,6 @@ begin
 	)
 	loop
 
-		nSERVTYPE1 := 0;
-		nSERVTYPE2 := 0;
-		nSERVTYPE3 := 0;
-		nSERVTYPE4 := 0;
-		nSERVTYPE5 := 0;
-		for QSERVTYPE in
-		(
-		 select S.WORKSERV_SIGN
-		   from Z_SERVLINKS L, Z_SERVREG S
-		  where L.SERVRN   = S.RN
-			and L.JUR_PERS = rec.JURRN
-			and L.VERSION  = rec.VERS
-			and L.ORGRN    = rec.ORGRN
-		)
-		loop
-			if QSERVTYPE.WORKSERV_SIGN = 1 then
-				nSERVTYPE1 := nSERVTYPE1 + 1;
-			elsif QSERVTYPE.WORKSERV_SIGN = 2 then
-				nSERVTYPE2 := nSERVTYPE2 + 1;
-			elsif QSERVTYPE.WORKSERV_SIGN = 3 then
-				nSERVTYPE3 := nSERVTYPE3 + 1;
-			elsif QSERVTYPE.WORKSERV_SIGN = 4 then
-				nSERVTYPE4 := nSERVTYPE4 + 1;
-			elsif QSERVTYPE.WORKSERV_SIGN = 5 then
-				nSERVTYPE5 := nSERVTYPE5 + 1;
-			end if;
-		end loop;
 
         if sNEW_JURPERS = ' ' or sNEW_JURPERS != rec.JURCODE then
             htp.p('<tr><td style="display: block;text-align:center;"><span style="font-weight: 800;color:#800000;font-size:18">'||rec.JURCODE||'</span></td></tr>');
@@ -231,11 +198,11 @@ begin
 		sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.ORGTYPE||'</span></div></td>';
 
 		sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
-		sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
-		sORGKIND    := '<td class="c4"><div class="c4">'||rec.ORGKIND||'</></div></td>';
-
-
-		sSERVCOUNT  := '<td class="c5"><div class="c5"><a href="f?p=101:6:'||v('APP_SESSION')||'::NO::P6_ORGRN:'||rec.ORGRN||'"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="openLoader();">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></a></div></td>';
+		-- sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
+		-- sORGKIND    := '<td class="c4"><div class="c4">'||rec.ORGKIND||'</></div></td>';
+        --
+        --
+		-- sSERVCOUNT  := '<td class="c5"><div class="c5"><a href="f?p=101:6:'||v('APP_SESSION')||'::NO::P6_ORGRN:'||rec.ORGRN||'"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="openLoader();">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></a></div></td>';
 
 
 		htp.p('
@@ -248,9 +215,6 @@ begin
                 <td class="c6"><div class="c6">-</></div></td>
                 <td class="c7"><div class="c7">-</></div></td>
                 <td class="c8"><div class="c8">-</></div></td>
-				<!--'||sDISTRICT||'
-				'||sORGKIND||'
-				'||sSERVCOUNT||'-->
 			</tr>');
 	end loop;
 
