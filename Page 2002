@@ -9,6 +9,9 @@ declare
  sPFHNUMB      varchar2(4000);
  sVERDATA      varchar2(4000);
  sStatus       varchar2(4000);
+ sORGSIGN1     varchar2(4000);
+ sORGSIGN2     varchar2(4000);
+ sREP          varchar2(4000);
 
  sSUPPORT      varchar2(4000);
  sPINORG       varchar2(4000);
@@ -19,6 +22,13 @@ declare
  sSUBSPRIL     varchar2(4000);
  sSUBSEFFCON   varchar2(4000);
 
+ nESIGN_RN			number(17);
+ sESIGN1		    varchar2(250);
+ sESIGN2		    varchar2(250);
+ sESIGN_PERSNAME	varchar2(250);
+ sESIGN_POSITION	varchar2(250);
+ dESIGN_SIGN_DATE	TIMESTAMP (6);
+ sREP_BTN			varchar2(250);
  -----------------------------------------------
  nCOUNTROWS    number;
  sNEW_ORGGROUP varchar2(300) := ' ';
@@ -120,8 +130,8 @@ begin
 		.th3{width: 120px;text-align:center;}   .c3 {width: 120px; word-wrap: break-word; text-align:center;}
         .th4{width: 120px;text-align:center;}   .c4 {width: 120px; word-wrap: break-word; text-align:center;}
         .th5{width: 200px;text-align:center;}  .c5 {width: 200px; word-wrap: break-word; text-align:center;}
-        .th6{width: 150px;text-align:center;}   .c6 {width: 150px; word-wrap: break-word; text-align:center;}
-        .th7{width: 150px;text-align:center;}   .c7 {width: 150px; word-wrap: break-word; text-align:center;}
+        .th6{width: 150px;text-align:center;}   .c6 {width: 150px; word-wrap: break-word; text-align:left;}
+        .th7{width: 150px;text-align:center;}   .c7 {width: 150px; word-wrap: break-word; text-align:left;}
         .th8{width: 400px;text-align:center;}   .c8 {width: 400px; word-wrap: break-word; text-align:center;}
 
         .pagination {text-align: right;
@@ -175,14 +185,16 @@ begin
             O.RN  ORGRN,
             PV.NUMB PV_NUMB,
             PV.VERS_DATE PV_VERSDATE,
-            decode(s.EXP_PLAN,
+            decode(S.EXP_PLAN,
                     0, '<span style="color:red">Формирование</span>',
                     1, '<span style="color:purple">Согласование</span>',
                     2, '<span style="color:purple">На проверке</span>',
                     3, '<span style="color:red">На доработке</span>',
                     4, '<span style="color:green">Проверен</span>',
                     5, '<span style="color:green">Утвержден</span>'
-                  ) PV_Status
+                  ) PV_Status,
+            PV.RN PV_RN,
+            S.EXP_PLAN nSTATUS
         from Z_DEPFIN D,
             Z_DEPFIN_GRBS G,
             Z_JURPERS J,
@@ -231,7 +243,7 @@ begin
 
         -- Заполнение ЭЦП Учреждения
         begin
-            select RN, PERSNAME, POSITION, SIGN_DATE into nESIGN_RN, sESIGN_PERSNAME, sESIGN_POSITION, dESIGN_SIGN_DATE from Z_ESIGN where DOC_RN = r2.PV_RN and PART = 'PFHD' and USEROLE = 'ORG';
+            select RN, PERSNAME, POSITION, SIGN_DATE into nESIGN_RN, sESIGN_PERSNAME, sESIGN_POSITION, dESIGN_SIGN_DATE from Z_ESIGN where DOC_RN = rec.PV_RN and PART = 'PFHD' and USEROLE = 'ORG';
         exception when OTHERS then
             nESIGN_RN := null;
         end;
@@ -242,6 +254,25 @@ begin
             sESIGN1 := '<span style="font-weight: bold;color:red">не подписан</span>';
         end if;
 
+        -- Заполнение ЭЦП Учредителя
+        begin
+            select RN, PERSNAME, POSITION, SIGN_DATE into nESIGN_RN, sESIGN_PERSNAME, sESIGN_POSITION, dESIGN_SIGN_DATE from Z_ESIGN where DOC_RN = rec.PV_RN and PART = 'PFHD' and USEROLE = 'GRBS';
+        exception when OTHERS then
+            nESIGN_RN := null;
+        end;
+        if nESIGN_RN is not null then
+            sESIGN2 := '<span style="color:green">Подписан. Заверен ЭП.<br>'||nvl(sESIGN_POSITION,'')||'<br>'||nvl(sESIGN_PERSNAME,'')||'<br>'||to_char(dESIGN_SIGN_DATE,'DD.MM.YY HH24:MI')||'</span>';
+        else
+            sESIGN2 := '<span style="font-weight: bold;color:red">не подписан</span>';
+        end if;
+
+        -- Формирование ссылки на отчет
+        if (((rec.nSTATUS = 4) and (ZGET_ROLE in (0,1))) and ZF_USER_CAN_APPROVE(:APP_USER, 'PFHD') or (ZF_GET_DEMO_SIGN() = 1)) then -- Проверен 4
+            sREP_BTN := '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':493:'||:APP_SESSION||':rCREATE_REP:::P493_REP_RN:'||rec.PV_RN)||'" class = "link_code" onclick="openLoader();">Утвердить</a>';
+        else
+            sREP_BTN := '';
+        end if;
+
         -- Подсчет количества строк
 		nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
 
@@ -250,7 +281,10 @@ begin
 		sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
         sPFHNUMB    := '<td class="c3"><div class="c3">№ '||rec.PV_NUMB||'</></div></td>';
 		sVERDATA    := '<td class="c4"><div class="c4">'||rec.PV_VERSDATE||'</></div></td>';
-        sStatus    := '<td class="c5"><div class="c5">'||rec.PV_Status||'</></div></td>';
+        sStatus     := '<td class="c5"><div class="c5">'||rec.PV_Status||'</></div></td>';
+        sORGSIGN1   := '<td class="c6 " style="border-left:1px solid #ccc"><div class="c6">'||sESIGN1||'</div></td>';
+        sORGSIGN2   := '<td class="c7 " style="border-left:1px solid #ccc"><div class="c7">'||sESIGN2||'</div></td>';
+        sREP        := '<td class="c8 " style="border-left:1px solid #ccc"><div class="c8">'||sREP_BTN||'</div></td>';
 
 
 		htp.p('
@@ -260,9 +294,9 @@ begin
                 '||sPFHNUMB||'
                 '||sVERDATA||'
                 '||sStatus||'
-                <td class="c6"><div class="c6">-</></div></td>
-                <td class="c7"><div class="c7">-</></div></td>
-                <td class="c8"><div class="c8">-</></div></td>
+                '||sORGSIGN1||'
+                '||sORGSIGN2||'
+                '||sREP||'
 			</tr>');
 	end loop;
 
