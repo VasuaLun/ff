@@ -9,10 +9,11 @@ declare
 	nUSERS      Z_USERS.RN%type;
 	nVERSDET    pls_integer;
 	nCHEF_DEP_SIGN number;
-	nORGFL	 number := null;
-	nORGFL_0 number := null;
-	nVERSION   number := null;
-	nGRBS    number := null;
+	nORGFL	 	number := null;
+	nORGFL_0 	number := null;
+	nVERSION   	number := null;
+	nGRBS    	number := null;
+	nWARNING 	varchar2(2000);
 begin
 	htp.p('
 	<style>
@@ -77,6 +78,8 @@ begin
 	}
 
 	.light td {background:#fffF69;}
+
+	.red td {background:#db5856;}
 	</style>
 
 		');
@@ -359,6 +362,7 @@ begin
 			order by V.CODE
 		)
 		loop
+			nWARNING := '';
 			if ver.RN = :P1_DEPFIN_VERSION then
 				sLight := 'style ="background:rgba(15, 220, 31, 0.39);"';
 			else
@@ -375,10 +379,16 @@ begin
 					nGRBS := NULL;
 			end;
 
-			htp.p('<tr '||CASE WHEN ver.DEFULT_SIGN != 0 then 'class="light"' end||'>
+			if nVERSION is NULL then nWARNING := 'Нет привязанных версий ГРБС. '; end if;
+
+			if nGRBS is NULL then nWARNING := concat(nWARNING, 'Нет привязанных ГРБС.'); end if;
+
+			if (nGRBS is not NULL and nVERSION is not NULL) then nWARNING := ver.NOTE; end if;
+
+			htp.p('<tr '||case when (ver.DEFULT_SIGN != 0) and (nGRBS is not NULL or nVERSION is not NULL) then 'class="light"' when (nGRBS is NULL or nVERSION is NULL) then 'class="red"' end||'>
 								<td class="c c7" '|| sLight ||'><div class="c7"><a href="f?p=&APP_ID.:1:&SESSION.::&DEBUG.:1,7:P1_DEPFIN,P1_DEPFIN_VERSION,P1_JURPERS,P1_VERSION:'||rec.RN||','||ver.RN||','||nGRBS||','||nVERSION||'" class="link_code">'||ver.CODE||'</a></div></td>
-						<td class="c c8" '|| sLight ||'><div class="c8">'||ver.NOTE||'</div></td>
-						<td class="c c9" '|| sLight ||'><div class="c9">'||CASE WHEN ver.DEFULT_SIGN != 0 then 'ОСНОВНАЯ' end||'</div></td>
+						<td class="c c8" '|| sLight ||'><div class="c8">'|| nWARNING ||'</div></td>
+						<td class="c c9" '|| sLight ||'><div class="c9">'||case when ver.DEFULT_SIGN != 0 then 'ОСНОВНАЯ' end||'</div></td>
 				  </tr>');
 		end loop;
 		htp.p('</tbody></table></div></div>');
