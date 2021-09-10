@@ -1,0 +1,45 @@
+begin
+DECLARE
+   v_length       NUMBER;
+   bf             BFILE;
+   Lob_loc        BLOB;
+   v_mime         VARCHAR2 (255);
+   vexists        BOOLEAN;
+   vfile_length   NUMBER;
+   vblocksize     NUMBER;
+   filename       VARCHAR (255);
+   xname          NUMBER;
+begin
+   select ADD_XNAME, ADD_FILENAME, ADD_MIMETYPE
+     into xname, filename, v_mime
+     from Z_PFHD_VERSIONS
+    where RN = :P2002_DNLD_RN;
+
+
+   UTL_FILE.FGETATTR ('PFHD',
+                      xname,
+                      vexists,
+                      vfile_length,
+                      vblocksize);
+
+   if vexists then
+       -- собираем указатель для Lob_loc
+       DBMS_LOB.createtemporary (Lob_loc, TRUE, DBMS_LOB.SESSION);
+       bf := BFILENAME ('PFHD', xname);
+       -- открываем на чтение , зачитываем в Lob_loc локатор и закрываем
+       DBMS_LOB.FILEOPEN (bf, DBMS_LOB.file_readonly);
+       DBMS_LOB.LOADFROMFILE (Lob_loc, bf, DBMS_LOB.GETLENGTH (bf));
+       DBMS_LOB.FILECLOSE (bf);
+       -- оформление для аттача
+       OWA_UTIL.mime_header (NVL (v_mime, 'application/octet'), FALSE);
+       HTP.p ('Content-length: ' || v_length);
+       htp.p( 'Content-disposition: attachment; filename="' || UTL_URL.ESCAPE (filename, FALSE, 'UTF-8') || '";' );
+       OWA_UTIL.http_header_close;
+       -- собственно вызов файлброузера для закачки
+       WPG_DOCLOAD.download_file (Lob_loc);
+
+   else
+       zp_exception(0,'Файл не найден');
+   end if;
+end;
+end;

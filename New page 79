@@ -372,7 +372,8 @@ begin
 			begin
 				select GRV.GRBS_VERSION, GRB.JURPERS_RN into nVERSION, nGRBS
 				from Z_DEPFIN_GRBS GRB, Z_DEPFIN_VERS_GRBS GRV, Z_VERSIONS V
-				where GRV.GRBS_VERSION = V.RN and GRB.JURPERS_RN = V.JUR_PERS and GRB.DEPFIN_RN = rec.RN and rownum = 1;
+				where GRV.GRBS_VERSION = V.RN and GRB.JURPERS_RN = V.JUR_PERS and GRB.DEPFIN_RN = rec.RN and rownum = 1
+				order by GRB.JURPERS_RN desc;
 				exception
 					when NO_DATA_FOUND then
 					nVERSION := NULL;

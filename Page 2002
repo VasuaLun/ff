@@ -132,7 +132,7 @@ begin
         .th5{width: 200px;text-align:center;}  .c5 {width: 200px; word-wrap: break-word; text-align:center;}
         .th6{width: 150px;text-align:center;}   .c6 {width: 150px; word-wrap: break-word; text-align:left;}
         .th7{width: 150px;text-align:center;}   .c7 {width: 150px; word-wrap: break-word; text-align:left;}
-        .th8{width: 400px;text-align:center;}   .c8 {width: 400px; word-wrap: break-word; text-align:center;}
+        .th8{width: 100px;text-align:center;}   .c8 {width: 100px; word-wrap: break-word; text-align:center;}
 
         .pagination {text-align: right;
           border-left: 1px solid grey;
@@ -194,7 +194,9 @@ begin
                     5, '<span style="color:green">Утвержден</span>'
                   ) PV_Status,
             PV.RN PV_RN,
-            S.EXP_PLAN nSTATUS
+            S.EXP_PLAN nSTATUS,
+            PV.RPT_FILENAME RPT_FILENAME,
+            PV.ADD_FILENAME as ADD_FILENAME
         from Z_DEPFIN D,
             Z_DEPFIN_GRBS G,
             Z_JURPERS J,
@@ -207,8 +209,7 @@ begin
             Z_PFHD_VERSIONS PV,
             Z_STATUS S
       where (D.RN = pDEPFIN or pDEPFIN is NULL)
-        and (J.RN = :P2001_GRBS or :P2001_GRBS is NULL)
-        and (GR.RN = :P2001_ORGROUP or :P2001_ORGROUP is NULL)
+        and (GRV.DEPFIN_VERS_RN = pDEPFINVER or pDEPFINVER is NULL)
         and G.DEPFIN_RN = D.RN
         and G.JURPERS_RN = J.RN
         and O.JUR_PERS = J.RN
@@ -224,7 +225,6 @@ begin
         and O.RN = S.ORGRN(+)
         and S.PART = 'PVHDSTATUS'
         and S.PERIOD = PV.Rn
-        and ((Upper(O.OMS_CODE) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2001_SEARCH)||'%'))
         order by D.CODE, J.NAME, GR.CODE, O.ORDERNUMB, nvl(O.SHORT_NAME,O.CODE)
 	)
 	loop
@@ -266,13 +266,6 @@ begin
             sESIGN2 := '<span style="font-weight: bold;color:red">не подписан</span>';
         end if;
 
-        -- Формирование ссылки на отчет
-        if (((rec.nSTATUS = 4) and (ZGET_ROLE in (0,1))) and ZF_USER_CAN_APPROVE(:APP_USER, 'PFHD') or (ZF_GET_DEMO_SIGN() = 1)) then -- Проверен 4
-            sREP_BTN := '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':493:'||:APP_SESSION||':rCREATE_REP:::P493_REP_RN:'||rec.PV_RN)||'" class = "link_code" onclick="openLoader();">Утвердить</a>';
-        else
-            sREP_BTN := '';
-        end if;
-
         -- Подсчет количества строк
 		nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
 
@@ -284,7 +277,12 @@ begin
         sStatus     := '<td class="c5"><div class="c5">'||rec.PV_Status||'</></div></td>';
         sORGSIGN1   := '<td class="c6 " style="border-left:1px solid #ccc"><div class="c6">'||sESIGN1||'</div></td>';
         sORGSIGN2   := '<td class="c7 " style="border-left:1px solid #ccc"><div class="c7">'||sESIGN2||'</div></td>';
-        sREP        := '<td class="c8 " style="border-left:1px solid #ccc"><div class="c8">'||sREP_BTN||'</div></td>';
+        sREP        :=  '<td class="c8 " style="border-left:1px solid #ccc"><div class="c8">
+        				'||case when rec.RPT_FILENAME is not null then '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':2002:'||:APP_SESSION||':rDownload:::P2002_DNLD_RN:'||rec.PV_RN)||'"><img width="25" height ="25" src="/i/ico/xls.gif"/></a>
+        				' else '' end ||
+        				case when rec.ADD_FILENAME is not null then '<a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':2002:'||:APP_SESSION||':rDownloadAdd:::P2002_DNLD_RN:'||rec.PV_RN)||'"><img width="25" height ="25" src="/i/img/attachment_48x48.png"/></a>
+        				' else '' end ||
+                        '</div></td>';
 
 
 		htp.p('

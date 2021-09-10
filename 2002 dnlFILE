@@ -1,0 +1,19 @@
+declare
+  nRN number:= :P493_DNLD_RN;
+  sFILENAME varchar2(200 char);
+  FileBlob blob;
+
+BEGIN
+  select RPT_FILENAME, RPT_DOCDATA into sFILENAME, FileBlob from Z_PFHD_VERSIONS where RN = :P493_DNLD_RN;
+
+  owa_util.mime_header( wwv_flow_utilities.get_excel_mime_type, false );      --обозначим тип файла EXCEL
+  htp.p( 'Content-Length: ' || dbms_lob.getlength( FileBlob ) );         --... и размер файла
+
+  htp.p( 'Content-disposition: attachment; filename="' || UTL_URL.ESCAPE (sFILENAME, FALSE, 'UTF-8') || '";' );
+  owa_util.http_header_close;
+  wpg_docload.download_file( FileBlob );
+
+EXCEPTION
+  WHEN OTHERS THEN
+    ZP_EXCEPTION(0,'File not found!');
+END;
