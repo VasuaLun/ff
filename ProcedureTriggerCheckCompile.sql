@@ -1,8 +1,10 @@
 create or replace procedure DV_TESTTRIGG_CHECK_COMPILE
 as
 cLINE       clob;
-vNewTEXT    varchar2(4000) := 'ZF_CHECKPRIV3();';
-nCOUNT      number := 0;
+vOldTEXT    varchar2(4000) := 'ZF_CHECKPRIV2'; -- название изменяемой процедуры
+nCountSec   number := 0; -- счетчик успешных триггеров
+nCountUn    number := 0; -- счетчик нескомпилированных триггеров
+nCOUNT      number := 0; -- общий счетчик (для проверки)
 
 
 begin
@@ -11,12 +13,19 @@ begin
     )
     loop
         cLINE := to_clob(rec.BODY);
-
-        if instr(cLINE, vNewTEXT) > 0 then
-            if 
-            nCOUNT := nCOUNT + 1; -- счетчик скомпиленных триггеров
+        if instr(cLINE, vOldTEXT) > 0 then
+            nCOUNT := nCOUNT + 1;
+            begin
+                execute immediate 'alter trigger '||rec.NAME||' compile';
+                dbms_output.put_line('Триггер '||rec.NAME||' скомпилирован');
+                nCountSec := nCountSec + 1;
+            exception when others then
+                dbms_output.put_line('Триггер '||rec.NAME||' не скомпилирован');
+                execute immediate 'alter trigger '||rec.NAME||' compile';
+                nCountUN := nCountUN + 1;
+            end;
         end if;
     end loop;
 
-    dbms_output.put_line(nCOUNT); -- вывод количества проверенных триггеров
+    dbms_output.put_line('Итого  '||nCOUNT||chr(10)||'    скомпилировано ---------- '||nCountSec||' триггеров'||chr(10)||'    не скомпилировано ------- '||nCountUN||' триггеров');
 end;
