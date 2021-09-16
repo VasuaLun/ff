@@ -187,6 +187,7 @@ begin
         and O.DISTRICT = DIS.RN(+)
         and O.ORGKIND = OK.RN (+)
         and O.PRN = GR.RN(+)
+        and O.CLOSE_DATE is NULL
         and ((Upper(O.OMS_CODE) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2001_SEARCH)||'%'))
         order by D.CODE, J.NAME, GR.CODE, O.ORDERNUMB, nvl(O.SHORT_NAME,O.CODE)
 	)
