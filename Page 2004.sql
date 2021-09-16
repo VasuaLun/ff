@@ -1,4 +1,4 @@
---101; 2004; Z_JURPERS, Z_ORGREG
+--101; 2001; Z_JURPERS, Z_ORGREG
 declare
  pDEPFIN       number        := :P1_DEPFIN;
  pDEPFINVER    number        := :P1_DEPFIN_VERSION;
@@ -9,6 +9,10 @@ declare
  sDISTRICT     varchar2(4000);
  sORGKIND      varchar2(4000);
  sSERVCOUNT    varchar2(4000);
+ sFIL          varchar2(4000);
+ sOTHER        varchar2(4000);
+ sPUBLIC       varchar2(4000);
+ sCAP          varchar2(4000);
 
  sSUPPORT      varchar2(4000);
  sPINORG       varchar2(4000);
@@ -21,13 +25,6 @@ declare
 
  -----------------------------------------------
  nCOUNTROWS    number;
- nSERVTYPE1    number;
- nSERVTYPE2    number;
- nSERVTYPE3    number;
- nSERVTYPE4    number;
- nSERVTYPE5    number;
- sNEW_ORGGROUP varchar2(300) := ' ';
- sNEW_JURPERS  varchar2(300) := ' ';
  dLAST_LOGIN	date;
  SLAST_LOGIN   varchar2(300);
  nUSER_ACTIVE	number;
@@ -122,18 +119,14 @@ begin
 
         .th1{width: 30px;text-align:center; border-left: 0px !important}    .c1 {width: 30px; word-wrap: break-word; text-align:center; border-left: 0px !important}
 		.th2{width: 100%;text-align:center;}   .c2 {width: 100%; word-wrap: break-word; text-align:left;}
-		.th3{width: 120px;text-align:center;}   .c3 {width: 120px; word-wrap: break-word; text-align:center;}
-        .th4{width: 120px;text-align:center;}   .c4 {width: 120px; word-wrap: break-word; text-align:center;}
-        .th5{width: 120px;text-align:center;}  .c5 {width: 120px; word-wrap: break-word; text-align:center;}
-		.th51{width: 50px;text-align:center;}  .c51 {width: 50px; word-wrap: break-word; text-align:center;}
-		.th52{width: 65px;text-align:center;}  .c52 {width: 65px; word-wrap: break-word; text-align:center;}
-        .th6{width: 30px;text-align:center;}   .c6 {width: 30px; word-wrap: break-word; text-align:center;}
-        .th7{width: 30px;text-align:center;}   .c7 {width: 30px; word-wrap: break-word; text-align:center;}
-        .th8{width: 30px;text-align:center;}   .c8 {width: 30px; word-wrap: break-word; text-align:center;}
-        .th9{width: 80px;text-align:center;}   .c9 {width: 80px; word-wrap: break-word; text-align:center;}
-		.th10{width: 80px;text-align:center;}  .c10 {width: 80px; word-wrap: break-word; text-align:center;}
-		.th11{width: 80px;text-align:center;}  .c11 {width: 80px; word-wrap: break-word; text-align:center;}
-		.th12{width: 80px;text-align:center;}  .c12 {width: 80px; word-wrap: break-word; text-align:center;}
+		.th3{width: 120px;text-align:center;}   .c3 {width: 120px; word-wrap: break-word; text-align:right;}
+        .th4{width: 120px;text-align:center;}   .c4 {width: 120px; word-wrap: break-word; text-align:right;}
+        .th5{width: 120px;text-align:center;}  .c5 {width: 120px; word-wrap: break-word; text-align:right;}
+        .th6{width: 120px;text-align:center;}   .c6 {width: 120px; word-wrap: break-word; text-align:right;}
+        .th7{width: 120px;text-align:center;}   .c7 {width: 120px; word-wrap: break-word; text-align:right;}
+        .th8{width: 120px;text-align:center;}   .c8 {width: 120px; word-wrap: break-word; text-align:right;}
+        .th9{width: 120px;text-align:center;}   .c9 {width: 120px; word-wrap: break-word; text-align:right;}
+		.th10{width: 120px;text-align:center;}  .c10 {width: 120px; word-wrap: break-word; text-align:center;}
 
         .pagination {text-align: right;
           border-left: 1px solid grey;
@@ -157,246 +150,214 @@ begin
         <tr>
          <th class="header th1"><div class="th1">Тип</div></th>
          <th class="header th2" ><div class="th2">Учреждение</div></th>
-		 <th class="header th3" ><div class="th3">Округ</div></th>
-         <th class="header th4" ><div class="th4">Вид</div></th>
-         <th class="header th5" ><div class="th5">Б/П/Р/И/ОМС</div></th>
-
+		 <th class="header th3" ><div class="th3">Всего судсидий</div></th>
+         <th class="header th4" ><div class="th5">В т.ч. на услуги</div></th>
+         <th class="header th5" ><div class="th4">Иные субсидии</div></th>
+         <th class="header th6" ><div class="th6">Публичные<br>обязательства</div></th>
+         <th class="header th7" ><div class="th7">Капитальные<br>вложения</div></th>
+         <th class="header th8" ><div class="th8">Итого затраты</div></th>
+         <th class="header th9" ><div class="th9">Лимит ФО</div></th>
+         <th class="header th10" ><div class="th10">Расхождения</div></th>
          <th class="header"><div style="width:8px"></div></th>
         </tr>
       </thead>
     <tbody id="fullall" >');
 
+        APEX_COLLECTION.SORT_MEMBERS(
+            p_collection_name => 'TEST',
+            p_sort_on_column_number => '1'
+        );
+
+    	for rec in
+    	(
+            select c001, c002, c003, c004, c005, c006, n001, n002, n003 from APEX_collections where collection_name = 'TEST'
+    	)
+    	loop
+
+    		nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
+
+            if rec.n003 = 0 then sORGTYPE := 'Б'; else sORGTYPE := 'А'; end if;
+
+    		sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||sORGTYPE||'</span></div></td>';
+
+    		-- sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
+    		-- sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
+            sORGNAME    := '<td class="c2"><div class="c2"></>'||rec.c001||'</div></td>';
+
+    		sORGKIND    := '<td class="c4"><div class="c4">-</></div></td>';
+
+            select SUM(to_number(c002)) into sDISTRICT from APEX_collections where collection_name = 'TEST' and rec.n001 = n001 group by n002;
+            --if sDISTRICT != '0' then ZP_EXCEPTION(0, sDISTRICT); end if;
+            sDISTRICT   := '<td class="c3"><div class="c3">'||rec.c002||'</></div></td>'; -- вывод Всего затрат
+            sFIL        := '<td class="c4"><div class="c4">'||rec.c003||'</></div></td>'; -- вывод в том числе на субсиции
+            sOTHER      := '<td class="c5"><div class="c5">'||rec.c004||'</></div></td>'; -- вывод иные субсидии
+            sPUBLIC     := '<td class="c6"><div class="c6">'||rec.c005||'</></div></td>'; -- вывод публичные обязательства
+            sCAP        := '<td class="c7"><div class="c7">'||rec.c006||'</></div></td>'; -- вывод капитальные вложения
+
+    		-- sSERVCOUNT  := '<td class="c5 "><div class="c5"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.ORGRN||','||rec.VERS||')">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></></div></td>';
+
+    		htp.p('
+    			<tr>
+    				'||sORGTYPE||'
+    				'||sORGNAME||'
+    				'||sDISTRICT||'
+    				'||sFIL||'
+    				'||sOTHER||'
+                    '||sPUBLIC||'
+                    '||sCAP||'
+                    '||sORGKIND||'
+                    '||sORGKIND||'
+                    '||sORGKIND||'
+    			</tr>');
+    	end loop;
 
 
-	for rec in
-	(
-      select D.RN DEPRN, D.CODE DEPCODE, J.RN JURRN, J.NAME JURCODE, nvl(O.SHORT_NAME,O.CODE) ORGNAME, substr(L.NAME,1,1) ORGTYPE, DIS.CODE DISTRICT, OK.CODE ORGKIND, GR.CODE ORGROUP, O.VERSION VERS, O.RN  ORGRN
-        from Z_DEPFIN D, Z_DEPFIN_GRBS G, Z_JURPERS J, Z_ORGREG O, Z_DEPFIN_VERS_GRBS GRV, Z_LOV L, Z_DISTRICT DIS, Z_ORGKIND OK, Z_ORGROUP GR, Z_DEPFIN_VERS DV
-      where (D.RN = pDEPFIN or pDEPFIN is NULL)
-        and (DV.RN = pDEPFINVER or pDEPFINVER is NULL)
-        and (J.RN = :P2001_GRBS or :P2001_GRBS is NULL)
-        and (GR.RN = :P2001_ORGROUP or :P2001_ORGROUP is NULL)
-        and G.DEPFIN_RN = D.RN
-        and G.JURPERS_RN = J.RN
-        and O.JUR_PERS = J.RN
-        and DV.DEPFIN_RN = D.RN
-        and GRV.DEPFIN_VERS_RN = DV.RN
-        and O.VERSION = GRV.GRBS_VERSION
-        and O.ORGTYPE = L.NUM (+)
-        and L.PART (+) = 'ORGTYPE'
-        and O.DISTRICT = DIS.RN(+)
-        and O.ORGKIND = OK.RN (+)
-        and O.PRN = GR.RN(+)
-        and ((Upper(O.OMS_CODE) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2001_SEARCH)||'%'))
-        order by D.CODE, J.NAME, GR.CODE, O.ORDERNUMB, nvl(O.SHORT_NAME,O.CODE)
-	)
-	loop
+        htp.p('</tbody></table></div>');
+        htp.p('<ul class="pagination" style="margin:0px">');
+        htp.p('<li style="float:right;">Всего записей: <b>'||nCOUNTROWS||'</b></li>');
+        htp.p('<li style="float:left; display: none;" id="loading_scroll"><img src="/i/378.GIF" style="width: 130px"/> </li>');
+        htp.p('<li style="float:left; " id="save_shtat"></li>');
+        htp.p('<li style="clear:both"></li></ul>');
+        htp.p(
+        '<script>
 
-		nSERVTYPE1 := 0;
-		nSERVTYPE2 := 0;
-		nSERVTYPE3 := 0;
-		nSERVTYPE4 := 0;
-		nSERVTYPE5 := 0;
-		for QSERVTYPE in
-		(
-		 select S.WORKSERV_SIGN
-		   from Z_SERVLINKS L, Z_SERVREG S
-		  where L.SERVRN   = S.RN
-			and L.JUR_PERS = rec.JURRN
-			and L.VERSION  = rec.VERS
-			and L.ORGRN    = rec.ORGRN
-		)
-		loop
-			if QSERVTYPE.WORKSERV_SIGN = 1 then
-				nSERVTYPE1 := nSERVTYPE1 + 1;
-			elsif QSERVTYPE.WORKSERV_SIGN = 2 then
-				nSERVTYPE2 := nSERVTYPE2 + 1;
-			elsif QSERVTYPE.WORKSERV_SIGN = 3 then
-				nSERVTYPE3 := nSERVTYPE3 + 1;
-			elsif QSERVTYPE.WORKSERV_SIGN = 4 then
-				nSERVTYPE4 := nSERVTYPE4 + 1;
-			elsif QSERVTYPE.WORKSERV_SIGN = 5 then
-				nSERVTYPE5 := nSERVTYPE5 + 1;
-			end if;
-		end loop;
-
-        if sNEW_JURPERS = ' ' or sNEW_JURPERS != rec.JURCODE then
-            htp.p('<tr><td style="display: block;text-align:center;"><span style="font-weight: 800;color:#800000;font-size:18">'||rec.JURCODE||'</span></td></tr>');
-            sNEW_JURPERS := rec.JURCODE;
-        end if;
-
-		if sNEW_ORGGROUP = ' ' or sNEW_ORGGROUP != rec.ORGROUP then
-		 	htp.p('<tr><td style="display: block;"><span style="font-weight: bold;color:#800000">'||rec.ORGROUP||'</span></td></tr>');
-			sNEW_ORGGROUP := rec.ORGROUP;
-		end if;
-
-		nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
-
-		sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.ORGTYPE||'</span></div></td>';
-
-		sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
-		sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
-		sORGKIND    := '<td class="c4"><div class="c4">'||rec.ORGKIND||'</></div></td>';
-
-		sSERVCOUNT  := '<td class="c5 "><div class="c5"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.ORGRN||','||rec.VERS||')">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></></div></td>';
-
-		htp.p('
-			<tr>
-				'||sORGTYPE||'
-				'||sORGNAME||'
-				'||sDISTRICT||'
-				'||sORGKIND||'
-				'||sSERVCOUNT||'
-			</tr>');
-	end loop;
+            $(function(){
+              table_body=$("#fullall");
 
 
-    htp.p('</tbody></table></div>');
-    htp.p('<ul class="pagination" style="margin:0px">');
-    htp.p('<li style="float:right;">Всего записей: <b>'||nCOUNTROWS||'</b></li>');
-    htp.p('<li style="float:left; display: none;" id="loading_scroll"><img src="/i/378.GIF" style="width: 130px"/> </li>');
-    htp.p('<li style="float:left; " id="save_shtat"></li>');
-    htp.p('<li style="clear:both"></li></ul>');
-    htp.p(
-    '<script>
-
-        $(function(){
-          table_body=$("#fullall");
-
-
-          if (window.screen.height<=1024) {
-          table_body.height("260px");
-          $(".report_standard").css("width","100%");
-          } else {
-          table_body.height("700px");
-          $(".report_standard").css("width","100%");
-          }
-            $(".pagination").mousedown(startDrag);
-
-
-            function startDrag(e){
-                staticOffset = table_body.height() - e.pageY;
-                table_body.css("opacity", 0.25);
-                $(document).mousemove(performDrag).mouseup(endDrag);
-                return false;
+              if (window.screen.height<=1024) {
+              table_body.height("260px");
+              $(".report_standard").css("width","100%");
+              } else {
+              table_body.height("700px");
+              $(".report_standard").css("width","100%");
               }
+                $(".pagination").mousedown(startDrag);
 
-              function performDrag(e){
-                table_body.height(Math.max(150, staticOffset + e.pageY) + "px");
-                return false;
-              }
 
-              function endDrag(e){
-                $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
-                table_body.css("opacity", 1);
-              }
-        });
-
-        function save_data(rn, val, field, obj) {
-          apex.server.process("save_data", {
-                  x01: rn,
-                  x02: val,
-                  x03: field
-              }, {
-                  // refreshObject: "#tablediv",
-                 // loadingIndicator: "#save_data",
-                  success: function(data) {
-                     if (data.status === ''good'') {
-                          $(obj).css(''border-bottom'', ''1px solid green'');
-                      } else {
-                          $(obj).css(''border-bottom'', ''1px solid red'');
-                      }
+                function startDrag(e){
+                    staticOffset = table_body.height() - e.pageY;
+                    table_body.css("opacity", 0.25);
+                    $(document).mousemove(performDrag).mouseup(endDrag);
+                    return false;
                   }
-              });
-        }
 
-           $(document).ready(function() {
-        $(".myCell").on("mouseover", function() {
-            $(this).closest("td").addClass("highlight");
-            $(this).closest("th").addClass("highlight");
-            $(this).closest("table").find(".myCell:nth-child(" + ($(this).index() + 1) + ")").addClass("highlight");
-        });
-        $(".myCell").on("mouseout", function() {
-            $(this).closest("td").removeClass("highlight");
-            $(this).closest("th").removeClass("highlight");
-            $(this).closest("table").find(".myCell:nth-child(" + ($(this).index() + 1) + ")").removeClass("highlight");
-        });
-        });
+                  function performDrag(e){
+                    table_body.height(Math.max(150, staticOffset + e.pageY) + "px");
+                    return false;
+                  }
 
-        $(document).ready(function(){
-        var index = 1;
-        var tabindex = 1;
-           $(".decimal").inputmask({alias: "decimal",
-            groupSeparator: " ",
-            autoGroup: true,
-          allowPlus: false,
-          allowMinus: true,
-          max: 99999999999.99,
-          digits : 2,
-          radixPoint:",",
-          digitsOptional: false
-         });
+                  function endDrag(e){
+                    $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
+                    table_body.css("opacity", 1);
+                  }
+            });
 
-          $("input .decimal").each(function () {
-            $(this).attr("tabindex", index);
-            index++;});
-          $(".decimal").on("click", function() {
-              tabindex = $(this).attr("tabindex")
-            })
-            $(".decimal").on("keyup", function(e) {
-              if (e.keyCode === 40) {
-                tabindex++;
-                $(".decimal[tabindex=" + tabindex + "]").focus()
-                $(".decimal[tabindex=" + tabindex + "]").select()
-              }
-              if (e.keyCode == 38) {
-                tabindex--;
-                $(".decimal[tabindex=" + tabindex + "]").focus()
-                $(".decimal[tabindex=" + tabindex + "]").select()
-              }
-            })
-           });
+            function save_data(rn, val, field, obj) {
+              apex.server.process("save_data", {
+                      x01: rn,
+                      x02: val,
+                      x03: field
+                  }, {
+                      // refreshObject: "#tablediv",
+                     // loadingIndicator: "#save_data",
+                      success: function(data) {
+                         if (data.status === ''good'') {
+                              $(obj).css(''border-bottom'', ''1px solid green'');
+                          } else {
+                              $(obj).css(''border-bottom'', ''1px solid red'');
+                          }
+                      }
+                  });
+            }
 
-		function selecter(obj,rownum)
-		{
-		$("#fix").find("tr").removeClass("selected");
-		$("#fix").find("tr[row="+rownum+"]").addClass("selected");
-		$("#fix tr").removeClass("selected");
-		$(obj).parent("div").parent("td").parent("tr").addClass("selected");
-		}
+               $(document).ready(function() {
+            $(".myCell").on("mouseover", function() {
+                $(this).closest("td").addClass("highlight");
+                $(this).closest("th").addClass("highlight");
+                $(this).closest("table").find(".myCell:nth-child(" + ($(this).index() + 1) + ")").addClass("highlight");
+            });
+            $(".myCell").on("mouseout", function() {
+                $(this).closest("td").removeClass("highlight");
+                $(this).closest("th").removeClass("highlight");
+                $(this).closest("table").find(".myCell:nth-child(" + ($(this).index() + 1) + ")").removeClass("highlight");
+            });
+            });
 
-        function ShowDialog2(id, orgrn, rtype) {
-		$.ajax({
-			url: "wwv_flow.show",
-			type: "POST",
-			data: {
-				p_request: "APPLICATION_PROCESS=dialog_" + id,
-				p_flow_id: $("#pFlowId").val(),
-				p_flow_step_id: $("#pFlowStepId").val(),
-				p_instance: $("#pInstance").val(),
-				x01: orgrn,
-                x02: rtype
+            $(document).ready(function(){
+            var index = 1;
+            var tabindex = 1;
+               $(".decimal").inputmask({alias: "decimal",
+                groupSeparator: " ",
+                autoGroup: true,
+              allowPlus: false,
+              allowMinus: true,
+              max: 99999999999.99,
+              digits : 2,
+              radixPoint:",",
+              digitsOptional: false
+             });
 
-			},
-			success: function(data) {
+              $("input .decimal").each(function () {
+                $(this).attr("tabindex", index);
+                index++;});
+              $(".decimal").on("click", function() {
+                  tabindex = $(this).attr("tabindex")
+                })
+                $(".decimal").on("keyup", function(e) {
+                  if (e.keyCode === 40) {
+                    tabindex++;
+                    $(".decimal[tabindex=" + tabindex + "]").focus()
+                    $(".decimal[tabindex=" + tabindex + "]").select()
+                  }
+                  if (e.keyCode == 38) {
+                    tabindex--;
+                    $(".decimal[tabindex=" + tabindex + "]").focus()
+                    $(".decimal[tabindex=" + tabindex + "]").select()
+                  }
+                })
+               });
 
-				$("#" + id).html(data);
-				$("#" + id).dialog({
-					modal: true,
-					closeText: "Закрыть",
-					width: 600,
-					height: 400,
-					maxWidth: 600,
-					maxHeight: 400,
-					position: "center",
-					buttons: {
-						''Закрыть'': function() {
-							$(this).dialog("close");
-						}
-					}
-				});
-		}
-		});
-		}
-    </script>');
-end;
+    		function selecter(obj,rownum)
+    		{
+    		$("#fix").find("tr").removeClass("selected");
+    		$("#fix").find("tr[row="+rownum+"]").addClass("selected");
+    		$("#fix tr").removeClass("selected");
+    		$(obj).parent("div").parent("td").parent("tr").addClass("selected");
+    		}
+
+            function ShowDialog2(id, orgrn, rtype) {
+    		$.ajax({
+    			url: "wwv_flow.show",
+    			type: "POST",
+    			data: {
+    				p_request: "APPLICATION_PROCESS=dialog_" + id,
+    				p_flow_id: $("#pFlowId").val(),
+    				p_flow_step_id: $("#pFlowStepId").val(),
+    				p_instance: $("#pInstance").val(),
+    				x01: orgrn,
+                    x02: rtype
+
+    			},
+    			success: function(data) {
+
+    				$("#" + id).html(data);
+    				$("#" + id).dialog({
+    					modal: true,
+    					closeText: "Закрыть",
+    					width: 600,
+    					height: 400,
+    					maxWidth: 600,
+    					maxHeight: 400,
+    					position: "center",
+    					buttons: {
+    						''Закрыть'': function() {
+    							$(this).dialog("close");
+    						}
+    					}
+    				});
+    		}
+    		});
+    		}
+        </script>');
+    end;
