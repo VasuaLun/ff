@@ -2,6 +2,7 @@
 declare
  pDEPFIN       number        := :P1_DEPFIN;
  pDEPFINVER    number        := :P1_DEPFIN_VERSION;
+ pSORT         number        := :P2004_SORT;
 
  -----------------------------------------------
  sORGTYPE      varchar2(4000);
@@ -13,6 +14,9 @@ declare
  sOTHER        varchar2(4000);
  sPUBLIC       varchar2(4000);
  sCAP          varchar2(4000);
+ sOUTCOMESUM   varchar2(4000);
+ sLIM          varchar2(4000);
+ sDIFFSUM      varchar2(4000);
 
  sSUPPORT      varchar2(4000);
  sPINORG       varchar2(4000);
@@ -144,13 +148,14 @@ begin
         }
     </style>');
 
-
+--<th class="header th2" ><div class="th2">Учреждение</div></th>
     htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
     <thead>
         <tr>
          <th class="header th1"><div class="th1">Тип</div></th>
-         <th class="header th2" ><div class="th2">Учреждение</div></th>
-		 <th class="header th3" ><div class="th3">Всего судсидий</div></th>
+         <th class="th2"><div class="th2"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||-1||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Учреждение'
+         ||case when pSORT = 1 then ' ↓' end || case when pSORT = -1 then ' ↑' end||'</span></a></div></td>
+         <th class="header th3" ><div class="th3">Всего судсидий</div></th>
          <th class="header th4" ><div class="th5">В т.ч. на услуги</div></th>
          <th class="header th5" ><div class="th4">Иные субсидии</div></th>
          <th class="header th6" ><div class="th6">Публичные<br>обязательства</div></th>
@@ -163,14 +168,13 @@ begin
       </thead>
     <tbody id="fullall" >');
 
-        APEX_COLLECTION.SORT_MEMBERS(
-            p_collection_name => 'TEST',
-            p_sort_on_column_number => '1'
-        );
-
     	for rec in
     	(
-            select c001, c002, c003, c004, c005, c006, n001, n002, n003 from APEX_collections where collection_name = 'TEST'
+            select c001, c002, c003, c004, c005, c006, c007, c008, n001, n002, n003
+            from APEX_collections where collection_name = 'TEST'
+            order by
+                case when pSORT = 1 then c001 end asc,
+                case when pSORT = -1 then c001 end desc
     	)
     	loop
 
@@ -178,21 +182,19 @@ begin
 
             if rec.n003 = 0 then sORGTYPE := 'Б'; else sORGTYPE := 'А'; end if;
 
-    		sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||sORGTYPE||'</span></div></td>';
-
-    		-- sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
-    		-- sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
+    		sORGTYPE    := '<td class="c1"><div class="c1"></>'||sORGTYPE||'</div></td>';
             sORGNAME    := '<td class="c2"><div class="c2"></>'||rec.c001||'</div></td>';
-
     		sORGKIND    := '<td class="c4"><div class="c4">-</></div></td>';
-
-            select SUM(to_number(c002)) into sDISTRICT from APEX_collections where collection_name = 'TEST' and rec.n001 = n001 group by n002;
-            --if sDISTRICT != '0' then ZP_EXCEPTION(0, sDISTRICT); end if;
             sDISTRICT   := '<td class="c3"><div class="c3">'||rec.c002||'</></div></td>'; -- вывод Всего затрат
             sFIL        := '<td class="c4"><div class="c4">'||rec.c003||'</></div></td>'; -- вывод в том числе на субсиции
             sOTHER      := '<td class="c5"><div class="c5">'||rec.c004||'</></div></td>'; -- вывод иные субсидии
             sPUBLIC     := '<td class="c6"><div class="c6">'||rec.c005||'</></div></td>'; -- вывод публичные обязательства
             sCAP        := '<td class="c7"><div class="c7">'||rec.c006||'</></div></td>'; -- вывод капитальные вложения
+            sOUTCOMESUM := '<td class="c8"><div class="c8">'||rec.c007||'</></div></td>'; -- вывод Итого затраты
+            sLIM        := '<td class="c9"><div class="c9">'||rec.c008||'</></div></td>'; -- вывод Лимит ФО
+            sDIFFSUM    := '<td class="c9"><div class="c9">'||rec.c008||'</></div></td>'; -- вывод разница
+
+
 
     		-- sSERVCOUNT  := '<td class="c5 "><div class="c5"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.ORGRN||','||rec.VERS||')">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></></div></td>';
 
@@ -205,12 +207,11 @@ begin
     				'||sOTHER||'
                     '||sPUBLIC||'
                     '||sCAP||'
-                    '||sORGKIND||'
-                    '||sORGKIND||'
+                    '||sOUTCOMESUM||'
+                    '||sLIM||'
                     '||sORGKIND||'
     			</tr>');
     	end loop;
-
 
         htp.p('</tbody></table></div>');
         htp.p('<ul class="pagination" style="margin:0px">');
