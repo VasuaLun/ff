@@ -2,6 +2,7 @@
 declare
  pJURPERS      number        := :P1_JURPERS;
  pVERSION      number        := :P1_VERSION;
+ pSORT         number        := :P1300_SORT;
 
  pUSER         varchar2(100) := :APP_USER;
  pROLE         number        := ZGET_ROLE;
@@ -201,11 +202,43 @@ begin
     </style>');
 
 
+    -- htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
+    -- <thead>
+    --     <tr>
+    --      <th class="header th1"  rowspan="2"><div class="th1">Тип</div></th>
+	-- 	 <th class="header th2"  rowspan="2"><div class="th2">Учреждение</div></th>
+	-- 	 <th colspan="3"><div>Затраты</div></th>
+	-- 	 <th colspan="3"><div>Контингент</div></th>
+	-- 	 <th class="header th9"  rowspan="2"><div class="th9">Расч.норматив на 1 обуч.</div></th>
+	-- 	 <th class="header th10" rowspan="2"><div class="th10">Кол-во обуч. на 1 препод.</div></th>
+	-- 	 <th class="header th11" rowspan="2"><div class="th11">Доля педаг.раб.%</div></th>
+	-- 	 <th class="header th12" rowspan="2"><div class="th12">Инд</div></th>
+    --
+    --      <th class="header" rowspan="2"><div style="width:8px"></div></th>
+    --     </tr>
+    --
+    --     <tr>
+    --      <th class="header th3" ><div class="th3">Лимит</div></th>
+	-- 	 <th class="header th4" ><div class="th4">План</div></th>
+	-- 	 <th class="header th5" ><div class="th5">Расхождение</div></th>
+	-- 	 <th class="header th6" ><div class="th6">Лимит</div></th>
+	-- 	 <th class="header th7" ><div class="th7">План</div></th>
+	-- 	 <th class="header th8" ><div class="th8">Расхождение</div></th>
+    --     </tr>
+    --
+    --
+    --   </thead>
+    -- <tbody id="fullall" >');
+
+--    <th class="header th2"  rowspan="2"><div class="th2">Учреждение</div></th>
+
+
     htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
     <thead>
         <tr>
          <th class="header th1"  rowspan="2"><div class="th1">Тип</div></th>
-		 <th class="header th2"  rowspan="2"><div class="th2">Учреждение</div></th>
+         <th class="header th2"  rowspan="2"><div class="th2"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 1 then ''|| -1 ||'' when pSORT = -1 then ''|| 0 ||'' else ''|| 1 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Учреждение'
+         ||case when pSORT = 1 then ' ↓' end || case when pSORT = -1 then ' ↑' end||'</span></a></div></td>
 		 <th colspan="3"><div>Затраты</div></th>
 		 <th colspan="3"><div>Контингент</div></th>
 		 <th class="header th9"  rowspan="2"><div class="th9">Расч.норматив на 1 обуч.</div></th>
@@ -228,7 +261,6 @@ begin
 
       </thead>
     <tbody id="fullall" >');
-
 
     -- Инициализация
     --------------------------------------------
@@ -257,6 +289,8 @@ begin
         REXPGR(nITEMCOL).PLANSUM := rec.PSUM;
     END LOOP;
 
+    -- создание коллекции
+    APEX_COLLECTION.CREATE_OR_TRUNCATE_COLLECTION('DATANAL');
 
 	-- ОСНОВНОЙ ЦИКЛ по учреждениям
 	for rec in
@@ -372,68 +406,110 @@ begin
 			nTEACHER := 0;
 		end if;
 
+        -- Заполнение коллекции
+        APEX_COLLECTION.ADD_MEMBER(
+            p_collection_name => 'DATANAL',
+            p_c001            => rec.ORGTYPE,
+            p_c002            => to_char(rec.ORGRN),
+            p_c003            => rec.ORGNAME,
+            p_c004            => to_char(rec.ORGTYPE),
+            p_n001            => nPLANLIMSUM,
+            p_n002            => nPLANOUTSUM,
+            p_n003            => nIND_CACL,
+            p_n004            => nIND_VAL);
 
-		sEXP_LIMIT    := '<td class="c3"><div class="c3">'||to_char(nPLANLIMSUM,'999G999G999G999G990D00')||'</div></td>';
-		sEXP_PLAN     := '<td class="c4"><div class="c4">'||to_char(nPLANOUTSUM,'999G999G999G999G990D00')||'</div></td>';
-
-		nEXP_DIFF		:= nvl(nPLANOUTSUM,0) - nvl(nPLANLIMSUM,0);
-		if nEXP_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
-
-		sEXP_DIFF     := '<td class="c5"><div class="c5" style="color:'||sCOLOR||'">'||to_char(nEXP_DIFF,'999G999G999G999G990D00')||'</div></td>';
-		sIND_LIMIT    := '<td class="c6"><div class="c6">'||to_char(nIND_CACL,'999G999G999G999G990D00')||'</div></td>';
-		sIND_PLAN     := '<td class="c7"><div class="c7">'||to_char(nIND_VAL,'999G999G999G999G990D00')||'</div></td>';
-
-		nIND_DIFF		:= nvl(nIND_VAL,0) - nvl(nIND_CACL,0);
-		if nIND_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
-
-		sIND_DIFF     := '<td class="c8"><div class="c8" style="color:'||sCOLOR||'">'||to_char(nIND_DIFF,'999G999G999G999G990D00')||'</div></td>';
-		sNORMAIV      := '<td class="c9"><div class="c9"><b>'||to_char(nNORMAIV,'999G999G999G999G990D00')||'</b></div></td>';
-		sSTUDY     	  := '<td class="c10"><div class="c10">'||to_char(nPOST_FACT,'999G999G999G999G990D00')||'</div></td>';
-		sTEACHER      := '<td class="c11"><div class="c11">'||to_char(nTEACHER,'999G999G999G999G990D00')||'</div></td>';
-
-		if nvl(nPLANLIMSUM,0) > 0 then
-			nEXP_DIFF_PERC	:= abs(nEXP_DIFF)/nPLANLIMSUM * 100;
-		else
-			nEXP_DIFF_PERC := -1;
-		end if;
-
-		if nIND_CACL > 0 then
-			nIND_DIFF_PERC	:= abs(nIND_DIFF)/nIND_CACL * 100;
-		else
-			nIND_DIFF_PERC := -1;
-		end if;
-
-
-		if nIND_DIFF_PERC = -1 or nEXP_DIFF_PERC = -1 then
-			sBALL := '<img src="/i/fndwarnb.gif" title="Данные не заполнены" style="width:16px;"/>';
-		elsif nIND_DIFF_PERC <= 10 and nEXP_DIFF_PERC <= 10 then
-			sBALL := '<img src="/i/green.png" title="Расхождение не превышает 10% по ЗАТРАТАМ (лимит) и КОНТИНГЕНТУ(лимит)" style="width:16px;"/>';
-		elsif nIND_DIFF_PERC <= 20 and nEXP_DIFF_PERC <= 20 then
-			sBALL := '<img src="/i/yellow.png" title="Расхождение от 10 до 20% по ЗАТРАТАМ (лимит) или Контингенту (лимит)" style="width:16px;"/>';
-		else
-			sBALL := '<img src="/i/red.png" title="Расхождение свыше 20% по ЗАТРАТАМ (лимит) или КОНТИНГЕНТУ(лимит)" style="width:16px;"/>';
-		end if;
-
-
-		sBALL    	  := '<td class="c12"><div class="c12">'||sBALL||'</div></td>';
-
-		htp.p('
-			<tr>
-				'||sORGTYPE||'
-				'||sORGNAME||'
-				'||sEXP_LIMIT||'
-				'||sEXP_PLAN||'
-				'||sEXP_DIFF||'
-				'||sIND_LIMIT||'
-				'||sIND_PLAN||'
-				'||sIND_DIFF||'
-				'||sNORMAIV||'
-				'||sSTUDY||'
-				'||sTEACHER||'
-				'||sBALL||'
-			</tr>');
+		-- sEXP_LIMIT    := '<td class="c3"><div class="c3">'||to_char(nPLANLIMSUM,'999G999G999G999G990D00')||'</div></td>';
+		-- sEXP_PLAN     := '<td class="c4"><div class="c4">'||to_char(nPLANOUTSUM,'999G999G999G999G990D00')||'</div></td>';
+        --
+		-- nEXP_DIFF		:= nvl(nPLANOUTSUM,0) - nvl(nPLANLIMSUM,0);
+		-- if nEXP_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
+        --
+		-- sEXP_DIFF     := '<td class="c5"><div class="c5" style="color:'||sCOLOR||'">'||to_char(nEXP_DIFF,'999G999G999G999G990D00')||'</div></td>';
+		-- sIND_LIMIT    := '<td class="c6"><div class="c6">'||to_char(nIND_CACL,'999G999G999G999G990D00')||'</div></td>';
+		-- sIND_PLAN     := '<td class="c7"><div class="c7">'||to_char(nIND_VAL,'999G999G999G999G990D00')||'</div></td>';
+        --
+		-- nIND_DIFF		:= nvl(nIND_VAL,0) - nvl(nIND_CACL,0);
+		-- if nIND_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
+        --
+		-- sIND_DIFF     := '<td class="c8"><div class="c8" style="color:'||sCOLOR||'">'||to_char(nIND_DIFF,'999G999G999G999G990D00')||'</div></td>';
+		-- sNORMAIV      := '<td class="c9"><div class="c9"><b>'||to_char(nNORMAIV,'999G999G999G999G990D00')||'</b></div></td>';
+		-- sSTUDY     	  := '<td class="c10"><div class="c10">'||to_char(nPOST_FACT,'999G999G999G999G990D00')||'</div></td>';
+		-- sTEACHER      := '<td class="c11"><div class="c11">'||to_char(nTEACHER,'999G999G999G999G990D00')||'</div></td>';
+        --
+		-- if nvl(nPLANLIMSUM,0) > 0 then
+		-- 	nEXP_DIFF_PERC	:= abs(nEXP_DIFF)/nPLANLIMSUM * 100;
+		-- else
+		-- 	nEXP_DIFF_PERC := -1;
+		-- end if;
+        --
+		-- if nIND_CACL > 0 then
+		-- 	nIND_DIFF_PERC	:= abs(nIND_DIFF)/nIND_CACL * 100;
+		-- else
+		-- 	nIND_DIFF_PERC := -1;
+		-- end if;
+        --
+        --
+		-- if nIND_DIFF_PERC = -1 or nEXP_DIFF_PERC = -1 then
+		-- 	sBALL := '<img src="/i/fndwarnb.gif" title="Данные не заполнены" style="width:16px;"/>';
+		-- elsif nIND_DIFF_PERC <= 10 and nEXP_DIFF_PERC <= 10 then
+		-- 	sBALL := '<img src="/i/green.png" title="Расхождение не превышает 10% по ЗАТРАТАМ (лимит) и КОНТИНГЕНТУ(лимит)" style="width:16px;"/>';
+		-- elsif nIND_DIFF_PERC <= 20 and nEXP_DIFF_PERC <= 20 then
+		-- 	sBALL := '<img src="/i/yellow.png" title="Расхождение от 10 до 20% по ЗАТРАТАМ (лимит) или Контингенту (лимит)" style="width:16px;"/>';
+		-- else
+		-- 	sBALL := '<img src="/i/red.png" title="Расхождение свыше 20% по ЗАТРАТАМ (лимит) или КОНТИНГЕНТУ(лимит)" style="width:16px;"/>';
+		-- end if;
+        --
+        --
+		-- sBALL    	  := '<td class="c12"><div class="c12">'||sBALL||'</div></td>';
+        --
+		-- htp.p('
+		-- 	<tr>
+		-- 		'||sORGTYPE||'
+		-- 		'||sORGNAME||'
+		-- 		'||sEXP_LIMIT||'
+		-- 		'||sEXP_PLAN||'
+		-- 		'||sEXP_DIFF||'
+		-- 		'||sIND_LIMIT||'
+		-- 		'||sIND_PLAN||'
+		-- 		'||sIND_DIFF||'
+		-- 		'||sNORMAIV||'
+		-- 		'||sSTUDY||'
+		-- 		'||sTEACHER||'
+		-- 		'||sBALL||'
+		-- 	</tr>');
 	END LOOP;
 
+    for rec in
+    (
+        select c001, c002, c003, c004, n001, n002
+        from APEX_collections where collection_name = 'DATANAL'
+        order by
+        case when pSORT = 1  then c003 end asc,
+        case when pSORT = -1 then c003 end desc
+    )
+    loop
+        sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.c001||'</span></div></td>';
+        sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.c002||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.c003||'</span></a></div></td>';
+        sIND_DIFF     := '<td class="c8"><div class="c8" style="color:'||sCOLOR||'">'||to_char(nIND_DIFF,'999G999G999G999G990D00')||'</div></td>';
+        sNORMAIV      := '<td class="c9"><div class="c9"><b>-</b></div></td>';
+        -- sSTUDY     	  := '<td class="c10"><div class="c10">'||to_char(nPOST_FACT,'999G999G999G999G990D00')||'</div></td>';
+        -- sTEACHER      := '<td class="c11"><div class="c11">'||to_char(nTEACHER,'999G999G999G999G990D00')||'</div></td>';
+        htp.p('
+        	<tr>
+        		'||sORGTYPE||'
+        		'||sORGNAME||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        		'||sNORMAIV||'
+        	</tr>');
+    end loop;
 
     htp.p('</tbody></table></div>');
     htp.p('<ul class="pagination" style="margin:0px">');
