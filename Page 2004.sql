@@ -148,19 +148,24 @@ begin
         }
     </style>');
 
---<th class="header th2" ><div class="th2">Учреждение</div></th>
     htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
     <thead>
         <tr>
          <th class="header th1"><div class="th1">Тип</div></th>
-         <th class="th2"><div class="th2"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||-1||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Учреждение'
+         <th class="th2"><div class="th2"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 1 then ''|| -1 ||'' when pSORT = -1 then ''|| 0 ||'' else ''|| 1 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Учреждение'
          ||case when pSORT = 1 then ' ↓' end || case when pSORT = -1 then ' ↑' end||'</span></a></div></td>
-         <th class="header th3" ><div class="th3">Всего судсидий</div></th>
-         <th class="header th4" ><div class="th5">В т.ч. на услуги</div></th>
-         <th class="header th5" ><div class="th4">Иные субсидии</div></th>
-         <th class="header th6" ><div class="th6">Публичные<br>обязательства</div></th>
-         <th class="header th7" ><div class="th7">Капитальные<br>вложения</div></th>
-         <th class="header th8" ><div class="th8">Итого затраты</div></th>
+         <th class="th3"><div class="th3"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 2 then ''|| -2 ||'' when pSORT = -2 then ''|| 0 ||'' else ''|| 2 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Всего судсидий'
+         ||case when pSORT = 2 then ' ↓' end || case when pSORT = -2 then ' ↑' end||'</span></a></div></td>
+         <th class="th4"><div class="th4"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 3 then ''|| -3 ||'' when pSORT = -3 then ''|| 0 ||'' else ''|| 3 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">В т.ч. на услуги'
+         ||case when pSORT = 3 then ' ↓' end || case when pSORT = -3 then ' ↑' end||'</span></a></div></td>
+         <th class="th5"><div class="th5"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 4 then ''|| -4 ||'' when pSORT = -4 then ''|| 0 ||'' else ''|| 4 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Иные субсидии'
+         ||case when pSORT = 4 then ' ↓' end || case when pSORT = -4 then ' ↑' end||'</span></a></div></td>
+         <th class="th6"><div class="th6"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 5 then ''|| -5 ||'' when pSORT = -5 then ''|| 0 ||'' else ''|| 5 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Публичные<br>обязательства'
+         ||case when pSORT = 5 then ' ↓' end || case when pSORT = -5 then ' ↑' end||'</span></a></div></td>
+         <th class="th7"><div class="th7"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 6 then ''|| -6 ||'' when pSORT = -6 then ''|| 0 ||'' else ''|| 6 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Капитальные<br>вложения'
+         ||case when pSORT = 6 then ' ↓' end || case when pSORT = -6 then ' ↑' end||'</span></a></div></td>
+         <th class="th8"><div class="th8"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 7 then ''|| -7 ||'' when pSORT = -7 then ''|| 0 ||'' else ''|| 7 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Итого затраты'
+         ||case when pSORT = 7 then ' ↓' end || case when pSORT = -7 then ' ↑' end||'</span></a></div></td>
          <th class="header th9" ><div class="th9">Лимит ФО</div></th>
          <th class="header th10" ><div class="th10">Расхождения</div></th>
          <th class="header"><div style="width:8px"></div></th>
@@ -170,33 +175,42 @@ begin
 
     	for rec in
     	(
-            select c001, c002, c003, c004, c005, c006, c007, c008, n001, n002, n003
+            select c001, c002, c003, c004, n001, n002, n003, n004, n005, (n001 + n003 + n004 + n005) as ALLS
             from APEX_collections where collection_name = 'TEST'
             order by
-                case when pSORT = 1 then c001 end asc,
-                case when pSORT = -1 then c001 end desc
+                case when pSORT = 1  then c001 end asc,
+                case when pSORT = -1 then c001 end desc,
+                case when pSORT = 2  then n001 end asc,
+                case when pSORT = -2 then n001 end desc,
+                case when pSORT = 3  then n002 end asc,
+                case when pSORT = -3 then n002 end desc,
+                case when pSORT = 4  then n003 end asc,
+                case when pSORT = -4 then n003 end desc,
+                case when pSORT = 5  then n004 end asc,
+                case when pSORT = -5 then n004 end desc,
+                case when pSORT = 6  then n005 end asc,
+                case when pSORT = -6 then n005 end desc,
+                case when pSORT = 7  then ALLS end asc,
+                case when pSORT = -7 then ALLS end desc,
+                c004 desc
     	)
     	loop
 
     		nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
 
-            if rec.n003 = 0 then sORGTYPE := 'Б'; else sORGTYPE := 'А'; end if;
+            if rec.c004 = '0' then sORGTYPE := 'Б'; else sORGTYPE := 'А'; end if;
 
     		sORGTYPE    := '<td class="c1"><div class="c1"></>'||sORGTYPE||'</div></td>';
             sORGNAME    := '<td class="c2"><div class="c2"></>'||rec.c001||'</div></td>';
     		sORGKIND    := '<td class="c4"><div class="c4">-</></div></td>';
-            sDISTRICT   := '<td class="c3"><div class="c3">'||rec.c002||'</></div></td>'; -- вывод Всего затрат
-            sFIL        := '<td class="c4"><div class="c4">'||rec.c003||'</></div></td>'; -- вывод в том числе на субсиции
-            sOTHER      := '<td class="c5"><div class="c5">'||rec.c004||'</></div></td>'; -- вывод иные субсидии
-            sPUBLIC     := '<td class="c6"><div class="c6">'||rec.c005||'</></div></td>'; -- вывод публичные обязательства
-            sCAP        := '<td class="c7"><div class="c7">'||rec.c006||'</></div></td>'; -- вывод капитальные вложения
-            sOUTCOMESUM := '<td class="c8"><div class="c8">'||rec.c007||'</></div></td>'; -- вывод Итого затраты
-            sLIM        := '<td class="c9"><div class="c9">'||rec.c008||'</></div></td>'; -- вывод Лимит ФО
-            sDIFFSUM    := '<td class="c9"><div class="c9">'||rec.c008||'</></div></td>'; -- вывод разница
-
-
-
-    		-- sSERVCOUNT  := '<td class="c5 "><div class="c5"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.ORGRN||','||rec.VERS||')">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></></div></td>';
+            sDISTRICT   := '<td class="c3"><div class="c3">'||rec.n001||'</></div></td>'; -- вывод Всего затрат
+            sFIL        := '<td class="c4"><div class="c4">'||rec.n002||'</></div></td>'; -- вывод в том числе на субсиции
+            sOTHER      := '<td class="c5"><div class="c5">'||rec.n003||'</></div></td>'; -- вывод иные субсидии
+            sPUBLIC     := '<td class="c6"><div class="c6">'||rec.n004||'</></div></td>'; -- вывод публичные обязательства
+            sCAP        := '<td class="c7"><div class="c7">'||rec.n005||'</></div></td>'; -- вывод капитальные вложения
+            sOUTCOMESUM := '<td class="c8"><div class="c8">'||rec.ALLS||'</></div></td>'; -- вывод Итого затраты
+            -- sLIM        := '<td class="c9"><div class="c9">'||rec.c008||'</></div></td>'; -- вывод Лимит ФО
+            -- sDIFFSUM    := '<td class="c9"><div class="c9">'||rec.c008||'</></div></td>'; -- вывод разница
 
     		htp.p('
     			<tr>
@@ -208,7 +222,7 @@ begin
                     '||sPUBLIC||'
                     '||sCAP||'
                     '||sOUTCOMESUM||'
-                    '||sLIM||'
+                    '||sORGKIND||'
                     '||sORGKIND||'
     			</tr>');
     	end loop;
