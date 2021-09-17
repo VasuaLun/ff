@@ -166,8 +166,10 @@ begin
          ||case when pSORT = 6 then ' ↓' end || case when pSORT = -6 then ' ↑' end||'</span></a></div></td>
          <th class="th8"><div class="th8"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 7 then ''|| -7 ||'' when pSORT = -7 then ''|| 0 ||'' else ''|| 7 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Итого затраты'
          ||case when pSORT = 7 then ' ↓' end || case when pSORT = -7 then ' ↑' end||'</span></a></div></td>
-         <th class="header th9" ><div class="th9">Лимит ФО</div></th>
-         <th class="header th10" ><div class="th10">Расхождения</div></th>
+         <th class="th9"><div class="th9"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 8 then ''|| -8 ||'' when pSORT = -8 then ''|| 0 ||'' else ''|| 8 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Лимит ФО'
+         ||case when pSORT = 8 then ' ↓' end || case when pSORT = -8 then ' ↑' end||'</span></a></div></td>
+         <th class="th10"><div class="th10"><a href="f?p=101:2004:'||v('APP_SESSION')||'::NO::P2004_SORT:'||case when pSORT = 9 then ''|| -9 ||'' when pSORT = -9 then ''|| 0 ||'' else ''|| 9 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Расхождения'
+         ||case when pSORT = 9 then ' ↓' end || case when pSORT = -9 then ' ↑' end||'</span></a></div></td>
          <th class="header"><div style="width:8px"></div></th>
         </tr>
       </thead>
@@ -175,7 +177,7 @@ begin
 
     	for rec in
     	(
-            select c001, c002, c003, c004, n001, n002, n003, n004, n005, (n001 + n003 + n004 + n005) as ALLS
+            select c001, c002, c003, c004, to_number(c005) as FO, n001, n002, n003, n004, n005, (n001 + n003 + n004 + n005) as ALLS, to_number(c005) - (n001 + n003 + n004 + n005) as DIFF
             from APEX_collections where collection_name = 'TEST'
             order by
                 case when pSORT = 1  then c001 end asc,
@@ -192,6 +194,10 @@ begin
                 case when pSORT = -6 then n005 end desc,
                 case when pSORT = 7  then ALLS end asc,
                 case when pSORT = -7 then ALLS end desc,
+                case when pSORT = 8  then FO   end asc,
+                case when pSORT = -8 then FO   end desc,
+                case when pSORT = 9  then DIFF end asc,
+                case when pSORT = -9 then DIFF end desc,
                 c004 desc
     	)
     	loop
@@ -209,8 +215,8 @@ begin
             sPUBLIC     := '<td class="c6"><div class="c6">'||rec.n004||'</></div></td>'; -- вывод публичные обязательства
             sCAP        := '<td class="c7"><div class="c7">'||rec.n005||'</></div></td>'; -- вывод капитальные вложения
             sOUTCOMESUM := '<td class="c8"><div class="c8">'||rec.ALLS||'</></div></td>'; -- вывод Итого затраты
-            -- sLIM        := '<td class="c9"><div class="c9">'||rec.c008||'</></div></td>'; -- вывод Лимит ФО
-            -- sDIFFSUM    := '<td class="c9"><div class="c9">'||rec.c008||'</></div></td>'; -- вывод разница
+            sLIM        := '<td class="c9"><div class="c9">'||rec.FO||'</></div></td>'; -- вывод Лимит ФО
+            sDIFFSUM    := '<td class="c9"><div class="c9">'||rec.DIFF||'</></div></td>'; -- вывод разница
 
     		htp.p('
     			<tr>
@@ -222,8 +228,8 @@ begin
                     '||sPUBLIC||'
                     '||sCAP||'
                     '||sOUTCOMESUM||'
-                    '||sORGKIND||'
-                    '||sORGKIND||'
+                    '||sLIM||'
+                    '||sDIFFSUM||'
     			</tr>');
     	end loop;
 
