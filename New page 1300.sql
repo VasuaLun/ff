@@ -2,6 +2,7 @@
 declare
  pJURPERS      number        := :P1_JURPERS;
  pVERSION      number        := :P1_VERSION;
+ pSORT         number        := :P1300_SORT;
 
  pUSER         varchar2(100) := :APP_USER;
  pROLE         number        := ZGET_ROLE;
@@ -33,6 +34,8 @@ declare
  sTEACHER     	varchar2(4000);
  sBALL    		varchar2(4000);
  sSOLV    		varchar2(4000);
+ sNORMAIV1     	varchar2(4000);
+
 
  nIND_VAL		number(19,2);
  nIND_CACL		number(19,2);
@@ -207,12 +210,16 @@ begin
     <thead>
         <tr>
          <th class="header th1"  rowspan="2"><div class="th1">Тип</div></th>
-		 <th class="header th2"  rowspan="2"><div class="th2">Учреждение</div></th>
+         <th class="header th2"  rowspan="2"><div class="th2"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 1 then ''|| -1 ||'' when pSORT = -1 then ''|| 0 ||'' else ''|| 1 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Учреждение'
+         ||case when pSORT = 1 then ' ↓' end || case when pSORT = -1 then ' ↑' end||'</span></a></div></td>
 		 <th colspan="3"><div>Затраты</div></th>
 		 <th colspan="3"><div>Контингент</div></th>
-		 <th class="header th9"  rowspan="2"><div class="th9">Расч.норматив на 1 обуч.</div></th>
-		 <th class="header th10" rowspan="2"><div class="th10">Кол-во обуч. на 1 препод.</div></th>
-		 <th class="header th11" rowspan="2"><div class="th11">Доля педаг.раб.%</div></th>
+         <th class="header th9"  rowspan="2"><div class="th9"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 8 then ''|| -8 ||'' when pSORT = -8 then ''|| 0 ||'' else ''|| 8 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Расч.норматив на 1 обуч.'
+         ||case when pSORT = 8 then ' ↓' end || case when pSORT = -8 then ' ↑' end||'</span></a></div></td>
+         <th class="header th10"  rowspan="2"><div class="th10"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 9 then ''|| -9 ||'' when pSORT = -9 then ''|| 0 ||'' else ''|| 9 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Кол-во обуч. на 1 препод.'
+         ||case when pSORT = 9 then ' ↓' end || case when pSORT = -9 then ' ↑' end||'</span></a></div></td>
+         <th class="header th11"  rowspan="2"><div class="th11"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 10 then ''|| -10 ||'' when pSORT = -10 then ''|| 0 ||'' else ''|| 10 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Доля педаг.раб.%'
+         ||case when pSORT = 10 then ' ↓' end || case when pSORT = -10 then ' ↑' end||'</span></a></div></td>
 		 <th class="header th12" rowspan="2"><div class="th12">Инд</div></th>
 		 <th class="header th13" rowspan="2"><div class="th13">Решение</div></th>
          <th class="header" rowspan="2"><div style="width:8px"></div></th>
@@ -220,12 +227,18 @@ begin
         </tr>
 
         <tr>
-         <th class="header th3" ><div class="th3">Лимит</div></th>
-		 <th class="header th4" ><div class="th4">План</div></th>
-		 <th class="header th5" ><div class="th5">Расхождение</div></th>
-		 <th class="header th6" ><div class="th6">Лимит</div></th>
-		 <th class="header th7" ><div class="th7">План</div></th>
-		 <th class="header th8" ><div class="th8">Расхожд</div></th>
+        <th class="header th3"><div class="th3"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 2 then ''|| -2 ||'' when pSORT = -2 then ''|| 0 ||'' else ''|| 2 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Лимит'
+        ||case when pSORT = 2 then ' ↓' end || case when pSORT = -2 then ' ↑' end||'</span></a></div></td>
+        <th class="header th4"><div class="th4"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 3 then ''|| -3 ||'' when pSORT = -3 then ''|| 0 ||'' else ''|| 3 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">План'
+        ||case when pSORT = 3 then ' ↓' end || case when pSORT = -3 then ' ↑' end||'</span></a></div></td>
+        <th class="header th5"><div class="th5"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 4 then ''|| -4 ||'' when pSORT = -4 then ''|| 0 ||'' else ''|| 4 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Расхождение'
+        ||case when pSORT = 4 then ' ↓' end || case when pSORT = -4 then ' ↑' end||'</span></a></div></td>
+        <th class="header th6"><div class="th6"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 5 then ''|| -5 ||'' when pSORT = -5 then ''|| 0 ||'' else ''|| 5 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Лимит'
+        ||case when pSORT = 5 then ' ↓' end || case when pSORT = -5 then ' ↑' end||'</span></a></div></td>
+        <th class="header th7"><div class="th7"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 6 then ''|| -6 ||'' when pSORT = -6 then ''|| 0 ||'' else ''|| 6 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">План'
+        ||case when pSORT = 6 then ' ↓' end || case when pSORT = -6 then ' ↑' end||'</span></a></div></td>
+        <th class="header th8"><div class="th8"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 7 then ''|| -7 ||'' when pSORT = -7 then ''|| 0 ||'' else ''|| 7 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Расхожд'
+        ||case when pSORT = 7 then ' ↓' end || case when pSORT = -7 then ' ↑' end||'</span></a></div></td>
         </tr>
 
 
@@ -261,6 +274,8 @@ begin
         REXPGR(nITEMCOL).PLANSUM := rec.PSUM;
     END LOOP;
 
+    -- создание коллекции
+    APEX_COLLECTION.CREATE_OR_TRUNCATE_COLLECTION('DATANAL');
 
 	-- ОСНОВНОЙ ЦИКЛ по учреждениям
 	for rec in
@@ -400,21 +415,6 @@ begin
 			nPOST_FACT := 0;
 		end if;
 
-        -- Заполнение коллекции
-        APEX_COLLECTION.ADD_MEMBER(
-            p_collection_name => 'DATANAL',
-            p_c001            => rec.ORGTYPE,
-            p_c002            => to_char(rec.ORGRN),
-            p_c003            => rec.ORGNAME,
-            p_c004            => to_char(rec.ORGTYPE),
-            p_c005            => to_char(nEXP_DIFF),
-            p_c006            => to_char(nIND_DIFF),
-            p_c007            => to_char(nNORMAIV),
-            p_n001            => nPLANLIMSUM,
-            p_n002            => nPLANOUTSUM,
-            p_n003            => nIND_CACL,
-            p_n004            => nIND_VAL);
-
 		sIND_DIFF     := '<td class="c8"><div class="c8" style="color:'||sCOLOR||'">'||to_char(nIND_DIFF,'999G999G999G999G990D00')||'</div></td>';
 		sNORMAIV      := '<td class="c9"><div class="c9"><b>'||to_char(nNORMAIV,'999G999G999G999G990D00')||'</b></div></td>';
 		sSTUDY     	  := '<td class="c10"><div class="c10">'||to_char(nPOST_FACT,'999G999G999G999G990D00')||'</div></td>';
@@ -457,26 +457,87 @@ begin
 		sBALL    	  := '<td class="c12"><div class="c12">'||sBALL||'</div></td>';
 		sSOLV		  := '<td class="c13"><div class="c13">'||sSOLV||'</div></td>';
 
-		htp.p('
-			<tr>
-				'||sORGTYPE||'
-				'||sORGNAME||'
-				'||sEXP_LIMIT||'
-				'||sEXP_PLAN||'
-				'||sEXP_DIFF||'
-				'||sIND_LIMIT||'
-				'||sIND_PLAN||'
-				'||sIND_DIFF||'
-				'||sNORMAIV||'
-				'||sSTUDY||'
-				'||sTEACHER||'
-				'||sBALL||'
-				'||sSOLV||'
-			</tr>');
+        -- Заполнение коллекции
+        APEX_COLLECTION.ADD_MEMBER(
+            p_collection_name => 'DATANAL',
+            p_c001            => rec.ORGTYPE,
+            p_c002            => to_char(rec.ORGRN),
+            p_c003            => rec.ORGNAME,
+            p_c004            => to_char(nPOST_FACT),
+            p_c005            => to_char(nEXP_DIFF),
+            p_c006            => to_char(nIND_DIFF),
+            p_c007            => to_char(nNORMAIV),
+            p_c008            => sORGTYPE,
+            p_c009            => sORGNAME,
+            p_c010            => sEXP_LIMIT,
+            p_c011            => sEXP_PLAN,
+            p_c012            => sEXP_DIFF,
+            p_c013            => sIND_LIMIT,
+            p_c014            => sIND_PLAN,
+            p_c015            => sIND_DIFF,
+            p_c016            => sNORMAIV,
+            p_c017            => sSTUDY,
+            p_c018            => sTEACHER,
+            p_c019            => sBALL,
+            p_c020            => sSOLV,
+            p_c021            => to_char(nTEACHER),
+            p_n001            => nPLANLIMSUM,
+            p_n002            => nPLANOUTSUM,
+            p_n003            => nIND_CACL,
+            p_n004            => nIND_VAL);
+
 	END LOOP;
 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    for rec in
+    (
+        select c001, to_number(c002) as ORGRN, c003, to_number(c004) as POST_FACT, to_number(c005) as EXP_DIFF, to_number(c006) as IND_DIFF, to_number(c007) as NORMAIV, n001, n002, n003, n004, c008, c009, c010, c011, c012, c013, c014, c015, c016, c017, c018, c019, c020, to_number(c021) as TRACHER
+        from APEX_collections where collection_name = 'DATANAL'
+        order by
+        case when pSORT = 1  then c003     end asc,
+        case when pSORT = -1 then c003     end desc,
+        case when pSORT = 2  then n001     end asc,
+        case when pSORT = -2 then n001     end desc,
+        case when pSORT = 3  then n002     end asc,
+        case when pSORT = -3 then n001     end desc,
+        case when pSORT = 4  then EXP_DIFF end asc,
+        case when pSORT = -4 then EXP_DIFF end desc,
+        case when pSORT = 5  then n003     end asc,
+        case when pSORT = -5 then n003     end desc,
+        case when pSORT = 6  then n004     end asc,
+        case when pSORT = -6 then n004     end desc,
+        case when pSORT = 7  then IND_DIFF end asc,
+        case when pSORT = -7 then IND_DIFF end desc,
+        case when pSORT = 8  then NORMAIV  end asc,
+        case when pSORT = -8 then NORMAIV  end desc,
+        case when pSORT = 9  then POST_FACT  end asc,
+        case when pSORT = -9 then POST_FACT  end desc,
+        case when pSORT = 10  then TRACHER  end asc,
+        case when pSORT = -10 then TRACHER  end desc,
+        case when pSORT = 0 then c001 end
+    )
+    loop
 
+        htp.p('
+            <tr>
+                '||rec.c008||'
+                '||rec.c009||'
+                '||rec.c010||'
+                '||rec.c011||'
+                '||rec.c012||'
+                '||rec.c013||'
+                '||rec.c014||'
+                '||rec.c015||'
+                '||rec.c016||'
+                '||rec.c017||'
+                '||rec.c018||'
+                '||rec.c019||'
+                '||rec.c020||'
+            </tr>');
 
+    end loop;
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
