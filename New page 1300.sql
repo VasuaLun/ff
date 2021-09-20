@@ -2,7 +2,6 @@
 declare
  pJURPERS      number        := :P1_JURPERS;
  pVERSION      number        := :P1_VERSION;
- pSORT         number        := :P1300_SORT;
 
  pUSER         varchar2(100) := :APP_USER;
  pROLE         number        := ZGET_ROLE;
@@ -30,10 +29,10 @@ declare
 
  sCOLOR			varchar2(100);
  sNORMAIV     	varchar2(4000);
- sNORMAIV1     	varchar2(4000);
  sSTUDY     	varchar2(4000);
  sTEACHER     	varchar2(4000);
  sBALL    		varchar2(4000);
+ sSOLV    		varchar2(4000);
 
  nIND_VAL		number(19,2);
  nIND_CACL		number(19,2);
@@ -178,13 +177,14 @@ begin
         .th5{width: 100px;text-align:center;}  .c5 {width: 100px; word-wrap: break-word; text-align:right;}
 		.th5{width: 100px;text-align:center;}  .c5 {width: 100px; word-wrap: break-word; text-align:right;}
 		.th5{width: 100px;text-align:center;}  .c5 {width: 100px; word-wrap: break-word; text-align:right;}
-        .th6{width: 100px;text-align:center;}   .c6 {width: 100px; word-wrap: break-word; text-align:right;}
-        .th7{width: 100px;text-align:center;}   .c7 {width: 100px; word-wrap: break-word; text-align:right;}
-        .th8{width: 100px;text-align:center;}   .c8 {width: 100px; word-wrap: break-word; text-align:right;}
+        .th6{width: 70px;text-align:center;}   .c6 {width: 70px; word-wrap: break-word; text-align:right;}
+        .th7{width: 70px;text-align:center;}   .c7 {width: 70px; word-wrap: break-word; text-align:right;}
+        .th8{width: 70px;text-align:center;}   .c8 {width: 70px; word-wrap: break-word; text-align:right;}
         .th9{width: 100px;text-align:center;}   .c9 {width: 100px; word-wrap: break-word; text-align:right;}
 		.th10{width: 80px;text-align:center;}  .c10 {width: 80px; word-wrap: break-word; text-align:right;}
 		.th11{width: 80px;text-align:center;}  .c11 {width: 80px; word-wrap: break-word; text-align:right;}
 		.th12{width: 30px;text-align:center;}  .c12 {width: 30px; word-wrap: break-word; text-align:center;}
+		.th13{width: 150px;text-align:center;}  .c13 {width: 150px; word-wrap: break-word; text-align:left;}
 
         .pagination {text-align: right;
           border-left: 1px solid grey;
@@ -203,71 +203,35 @@ begin
     </style>');
 
 
-    -- htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
-    -- <thead>
-    --     <tr>
-    --      <th class="header th1"  rowspan="2"><div class="th1">Тип</div></th>
-	-- 	 <th class="header th2"  rowspan="2"><div class="th2">Учреждение</div></th>
-	-- 	 <th colspan="3"><div>Затраты</div></th>
-	-- 	 <th colspan="3"><div>Контингент</div></th>
-	-- 	 <th class="header th9"  rowspan="2"><div class="th9">Расч.норматив на 1 обуч.</div></th>
-	-- 	 <th class="header th10" rowspan="2"><div class="th10">Кол-во обуч. на 1 препод.</div></th>
-	-- 	 <th class="header th11" rowspan="2"><div class="th11">Доля педаг.раб.%</div></th>
-	-- 	 <th class="header th12" rowspan="2"><div class="th12">Инд</div></th>
-    --
-    --      <th class="header" rowspan="2"><div style="width:8px"></div></th>
-    --     </tr>
-    --
-    --     <tr>
-    --      <th class="header th3" ><div class="th3">Лимит</div></th>
-	-- 	 <th class="header th4" ><div class="th4">План</div></th>
-	-- 	 <th class="header th5" ><div class="th5">Расхождение</div></th>
-	-- 	 <th class="header th6" ><div class="th6">Лимит</div></th>
-	-- 	 <th class="header th7" ><div class="th7">План</div></th>
-	-- 	 <th class="header th8" ><div class="th8">Расхождение</div></th>
-    --     </tr>
-    --
-    --
-    --   </thead>
-    -- <tbody id="fullall" >');
-
---    <th class="header th2"  rowspan="2"><div class="th2">Учреждение</div></th>
-
-
     htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
     <thead>
         <tr>
          <th class="header th1"  rowspan="2"><div class="th1">Тип</div></th>
-         <th class="header th2"  rowspan="2"><div class="th2"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 1 then ''|| -1 ||'' when pSORT = -1 then ''|| 0 ||'' else ''|| 1 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Учреждение'
-         ||case when pSORT = 1 then ' ↓' end || case when pSORT = -1 then ' ↑' end||'</span></a></div></td>
+		 <th class="header th2"  rowspan="2"><div class="th2">Учреждение</div></th>
 		 <th colspan="3"><div>Затраты</div></th>
 		 <th colspan="3"><div>Контингент</div></th>
 		 <th class="header th9"  rowspan="2"><div class="th9">Расч.норматив на 1 обуч.</div></th>
 		 <th class="header th10" rowspan="2"><div class="th10">Кол-во обуч. на 1 препод.</div></th>
 		 <th class="header th11" rowspan="2"><div class="th11">Доля педаг.раб.%</div></th>
 		 <th class="header th12" rowspan="2"><div class="th12">Инд</div></th>
-
+		 <th class="header th13" rowspan="2"><div class="th13">Решение</div></th>
          <th class="header" rowspan="2"><div style="width:8px"></div></th>
+
         </tr>
 
         <tr>
-        <th class="header th3"><div class="th3"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 2 then ''|| -2 ||'' when pSORT = -2 then ''|| 0 ||'' else ''|| 2 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Лимит'
-        ||case when pSORT = 2 then ' ↓' end || case when pSORT = -2 then ' ↑' end||'</span></a></div></td>
-        <th class="header th4"><div class="th4"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 3 then ''|| -3 ||'' when pSORT = -3 then ''|| 0 ||'' else ''|| 3 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">План'
-        ||case when pSORT = 3 then ' ↓' end || case when pSORT = -3 then ' ↑' end||'</span></a></div></td>
-        <th class="header th5"><div class="th5"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 4 then ''|| -4 ||'' when pSORT = -4 then ''|| 0 ||'' else ''|| 4 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Расхождение'
-        ||case when pSORT = 4 then ' ↓' end || case when pSORT = -4 then ' ↑' end||'</span></a></div></td>
-        <th class="header th6"><div class="th6"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 5 then ''|| -5 ||'' when pSORT = -5 then ''|| 0 ||'' else ''|| 5 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Лимит'
-        ||case when pSORT = 5 then ' ↓' end || case when pSORT = -5 then ' ↑' end||'</span></a></div></td>
-        <th class="header th7"><div class="th7"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 6 then ''|| -6 ||'' when pSORT = -6 then ''|| 0 ||'' else ''|| 6 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">План'
-        ||case when pSORT = 6 then ' ↓' end || case when pSORT = -6 then ' ↑' end||'</span></a></div></td>
-        <th class="header th8"><div class="th8"><a href="f?p=101:1300:'||v('APP_SESSION')||'::NO::P1300_SORT:'||case when pSORT = 7 then ''|| -7 ||'' when pSORT = -7 then ''|| 0 ||'' else ''|| 7 ||'' end||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Расхождение'
-        ||case when pSORT = 7 then ' ↓' end || case when pSORT = -7 then ' ↑' end||'</span></a></div></td>
+         <th class="header th3" ><div class="th3">Лимит</div></th>
+		 <th class="header th4" ><div class="th4">План</div></th>
+		 <th class="header th5" ><div class="th5">Расхождение</div></th>
+		 <th class="header th6" ><div class="th6">Лимит</div></th>
+		 <th class="header th7" ><div class="th7">План</div></th>
+		 <th class="header th8" ><div class="th8">Расхожд</div></th>
         </tr>
 
 
       </thead>
     <tbody id="fullall" >');
+
 
     -- Инициализация
     --------------------------------------------
@@ -282,6 +246,7 @@ begin
 	   and SL.VERSION = EA.VERSION
 	   and SL.ORGRN = EA.ORGRN
 	   and SL.SERVRN = EA.SERVRN
+       and SL.FICTIV_SERV is null  -- !!! +++
        and (nvl(EA.SERVSUM,0) > 0 or nvl(EA.MSUM,0) > 0)
      group by EA.ORGRN, E.EXPKVR, E.KOSGURN, E.FOTYPE2, E.RN, SL.SERVKBK, upper(trim(E.KOSGU))
     )LOOP
@@ -296,8 +261,6 @@ begin
         REXPGR(nITEMCOL).PLANSUM := rec.PSUM;
     END LOOP;
 
-    -- создание коллекции
-    APEX_COLLECTION.CREATE_OR_TRUNCATE_COLLECTION('DATANAL');
 
 	-- ОСНОВНОЙ ЦИКЛ по учреждениям
 	for rec in
@@ -330,7 +293,7 @@ begin
 
 		sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.ORGTYPE||'</span></div></td>';
 
-		sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
+		sORGNAME    := '<td class="c2"><div class="c2">'||rec.ORGNAME||'</div></td>';
 
 	-- Показатели объема
 		select sum(iv.YPLAN3), sum(iv.YPLAN3_CALC) into nIND_VAL, nIND_CACL
@@ -344,7 +307,7 @@ begin
 		  and sl.servrn = s.rn
 		  and iv.prn = sl.rn
 		  and iv.qind = ql.rn
-		  and S.SERVSIGN = SS.RN and ss.numb in (1,2) -- группы услуг (школа, детсад)
+		  and S.SERVSIGN = SS.RN and ss.numb in (1,2) -- !!!группы услуг (школа, детсад)
 		  and (S.SERVSIGN = :P1300_SERVGROUP or :P1300_SERVGROUP is null)
 		  --and ql.numb = '001'
 		  --
@@ -395,6 +358,7 @@ begin
 		end if;
 
 		-- POST_GROUP = ("указные") - UNUMB = 6 !!!!
+		-- 349848958
 		select sum(POST_FACT) into nPOST_FACT from x_fot where version = pVERSION and  ORGRN = rec.ORGRN and POST_GROUP in (select rn from X_JLOV where  part ='POST_GROUP' and UNUMB = 6 and version = pVERSION);
 
 		if nIND_VAL > 0 then
@@ -413,9 +377,28 @@ begin
 			nTEACHER := 0;
 		end if;
 
-        nEXP_DIFF := nvl(nPLANOUTSUM,0) - nvl(nPLANLIMSUM,0);
 
-        nIND_DIFF := nvl(nIND_VAL,0) - nvl(nIND_CACL,0);
+		sEXP_LIMIT    := '<td class="c3"><div class="c3"><a style="text-decoration: underline;font-weight:bold;color:blue;" href="'||APEX_UTIL.PREPARE_URL('javascript:modalWin2('||rec.ORGRN||');')||'">'||to_char(nPLANLIMSUM,'999G999G999G999G990D00')||'</a></div></td>';
+		sEXP_PLAN     := '<td class="c4"><div class="c4"><a style="text-decoration: underline;font-weight:bold;color:blue;" href="'||APEX_UTIL.PREPARE_URL('javascript:modalWin2('||rec.ORGRN||');')||'">'||to_char(nPLANOUTSUM,'999G999G999G999G990D00')||'</a></div></td>';
+
+		nEXP_DIFF		:= nvl(nPLANOUTSUM,0) - nvl(nPLANLIMSUM,0);
+		if nEXP_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
+
+		sEXP_DIFF     := '<td class="c5"><div class="c5" style="color:'||sCOLOR||'">'||to_char(nEXP_DIFF,'999G999G999G999G990D00')||'</div></td>';
+		sIND_LIMIT    := '<td class="c6"><div class="c6"><a style="text-decoration: underline;font-weight:bold;color:blue;" href="'||APEX_UTIL.PREPARE_URL('javascript:modalWin1('||rec.ORGRN||');')||'">'||to_char(nIND_CACL,'999G999G999G999G990D00')||'</a></div></td>';
+		sIND_PLAN     := '<td class="c7"><div class="c7"><a style="text-decoration: underline;font-weight:bold;color:blue;" href="'||APEX_UTIL.PREPARE_URL('javascript:modalWin1('||rec.ORGRN||');')||'">'||to_char(nIND_VAL,'999G999G999G999G990D00')||'</a></div></td>';
+
+		--<a style="text-decoration: underline;font-weight:bold;color:blue;" href="'||APEX_UTIL.PREPARE_URL('javascript:modalWin1('||rec.ORGRN||');')||'">'||to_char(nSERVPLAN,sNFMT)||'</a>
+
+		nIND_DIFF		:= nvl(nIND_VAL,0) - nvl(nIND_CACL,0);
+		if nIND_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
+
+		-- +++
+		if nPOST_FACT > 0 then
+			nPOST_FACT := nIND_VAL/nPOST_FACT;
+		else
+			nPOST_FACT := 0;
+		end if;
 
         -- Заполнение коллекции
         APEX_COLLECTION.ADD_MEMBER(
@@ -432,131 +415,70 @@ begin
             p_n003            => nIND_CACL,
             p_n004            => nIND_VAL);
 
-		-- sEXP_LIMIT    := '<td class="c3"><div class="c3">'||to_char(nPLANLIMSUM,'999G999G999G999G990D00')||'</div></td>';
-		-- sEXP_PLAN     := '<td class="c4"><div class="c4">'||to_char(nPLANOUTSUM,'999G999G999G999G990D00')||'</div></td>';
-        --
-		-- nEXP_DIFF		:= nvl(nPLANOUTSUM,0) - nvl(nPLANLIMSUM,0);
-		-- if nEXP_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
-        --
-		-- sEXP_DIFF     := '<td class="c5"><div class="c5" style="color:'||sCOLOR||'">'||to_char(nEXP_DIFF,'999G999G999G999G990D00')||'</div></td>';
-		-- sIND_LIMIT    := '<td class="c6"><div class="c6">'||to_char(nIND_CACL,'999G999G999G999G990D00')||'</div></td>';
-		-- sIND_PLAN     := '<td class="c7"><div class="c7">'||to_char(nIND_VAL,'999G999G999G999G990D00')||'</div></td>';
-        --
-		-- nIND_DIFF		:= nvl(nIND_VAL,0) - nvl(nIND_CACL,0);
-		-- if nIND_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
-        --
-		-- sIND_DIFF     := '<td class="c8"><div class="c8" style="color:'||sCOLOR||'">'||to_char(nIND_DIFF,'999G999G999G999G990D00')||'</div></td>';
-		-- sNORMAIV      := '<td class="c9"><div class="c9"><b>'||to_char(nNORMAIV,'999G999G999G999G990D00')||'</b></div></td>';
-		-- sSTUDY     	  := '<td class="c10"><div class="c10">'||to_char(nPOST_FACT,'999G999G999G999G990D00')||'</div></td>';
-		-- sTEACHER      := '<td class="c11"><div class="c11">'||to_char(nTEACHER,'999G999G999G999G990D00')||'</div></td>';
-        --
-		-- if nvl(nPLANLIMSUM,0) > 0 then
-		-- 	nEXP_DIFF_PERC	:= abs(nEXP_DIFF)/nPLANLIMSUM * 100;
-		-- else
-		-- 	nEXP_DIFF_PERC := -1;
-		-- end if;
-        --
-		-- if nIND_CACL > 0 then
-		-- 	nIND_DIFF_PERC	:= abs(nIND_DIFF)/nIND_CACL * 100;
-		-- else
-		-- 	nIND_DIFF_PERC := -1;
-		-- end if;
-        --
-        --
-		-- if nIND_DIFF_PERC = -1 or nEXP_DIFF_PERC = -1 then
-		-- 	sBALL := '<img src="/i/fndwarnb.gif" title="Данные не заполнены" style="width:16px;"/>';
-		-- elsif nIND_DIFF_PERC <= 10 and nEXP_DIFF_PERC <= 10 then
-		-- 	sBALL := '<img src="/i/green.png" title="Расхождение не превышает 10% по ЗАТРАТАМ (лимит) и КОНТИНГЕНТУ(лимит)" style="width:16px;"/>';
-		-- elsif nIND_DIFF_PERC <= 20 and nEXP_DIFF_PERC <= 20 then
-		-- 	sBALL := '<img src="/i/yellow.png" title="Расхождение от 10 до 20% по ЗАТРАТАМ (лимит) или Контингенту (лимит)" style="width:16px;"/>';
-		-- else
-		-- 	sBALL := '<img src="/i/red.png" title="Расхождение свыше 20% по ЗАТРАТАМ (лимит) или КОНТИНГЕНТУ(лимит)" style="width:16px;"/>';
-		-- end if;
-        --
-        --
-		-- sBALL    	  := '<td class="c12"><div class="c12">'||sBALL||'</div></td>';
-        --
-		-- htp.p('
-		-- 	<tr>
-		-- 		'||sORGTYPE||'
-		-- 		'||sORGNAME||'
-		-- 		'||sEXP_LIMIT||'
-		-- 		'||sEXP_PLAN||'
-		-- 		'||sEXP_DIFF||'
-		-- 		'||sIND_LIMIT||'
-		-- 		'||sIND_PLAN||'
-		-- 		'||sIND_DIFF||'
-		-- 		'||sNORMAIV||'
-		-- 		'||sSTUDY||'
-		-- 		'||sTEACHER||'
-		-- 		'||sBALL||'
-		-- 	</tr>');
+		sIND_DIFF     := '<td class="c8"><div class="c8" style="color:'||sCOLOR||'">'||to_char(nIND_DIFF,'999G999G999G999G990D00')||'</div></td>';
+		sNORMAIV      := '<td class="c9"><div class="c9"><b>'||to_char(nNORMAIV,'999G999G999G999G990D00')||'</b></div></td>';
+		sSTUDY     	  := '<td class="c10"><div class="c10">'||to_char(nPOST_FACT,'999G999G999G999G990D00')||'</div></td>';
+		sTEACHER      := '<td class="c11"><div class="c11">'||to_char(nTEACHER,'999G999G999G999G990D00')||'</div></td>';
+
+		if nvl(nPLANLIMSUM,0) > 0 then
+			nEXP_DIFF_PERC	:= nEXP_DIFF/nPLANLIMSUM * 100;
+		else
+			nEXP_DIFF_PERC := null;
+		end if;
+
+		if nIND_CACL > 0 then
+			nIND_DIFF_PERC	:= nIND_DIFF/nIND_CACL * 100;
+		else
+			nIND_DIFF_PERC := null;
+		end if;
+
+		if nIND_DIFF_PERC is null or nEXP_DIFF_PERC is null then
+			sSOLV	:= '';
+			sBALL := '<img src="/i/fndwarnb.gif" title="Данные не заполнены" style="width:16px;"/>';
+		elsif abs(nIND_DIFF_PERC) <= 5 and abs(nEXP_DIFF_PERC) <= 5 then
+			sSOLV	:= 'Решений не требуется';
+			sBALL := '<img src="/i/green.png" style="width:16px;"/>';
+		elsif abs(nIND_DIFF_PERC) <= 5 and abs(nEXP_DIFF_PERC) > 5 then
+			sSOLV	:= 'Необходимо уточнение субвенции';
+			sBALL := '<img src="/i/yellow.png"  style="width:16px;"/>';
+
+		elsif nIND_DIFF_PERC < -5 and abs(nEXP_DIFF_PERC) <= 5 then
+			sSOLV	:= 'Средства доведены не в полном объеме. Необходимо связаться с адм. мун.обр.';
+			sBALL := '<img src="/i/red.png" style="width:16px;"/>';
+		elsif nIND_DIFF_PERC > 5 and abs(nEXP_DIFF_PERC) <= 5 then
+			sSOLV	:= 'Средства доведены до организации в объеме, превыш. субвенцию. Необходима корр-ка ПФХД.';
+			sBALL := '<img src="/i/red.png" style="width:16px;"/>';
+		elsif abs(nIND_DIFF_PERC) > 5 and abs(nEXP_DIFF_PERC) > 5 then
+			sSOLV	:= 'Необходимо уточнение субвенции';
+			sBALL := '<img src="/i/yellow.png" style="width:16px;"/>';
+		end if;
+
+
+		sBALL    	  := '<td class="c12"><div class="c12">'||sBALL||'</div></td>';
+		sSOLV		  := '<td class="c13"><div class="c13">'||sSOLV||'</div></td>';
+
+		htp.p('
+			<tr>
+				'||sORGTYPE||'
+				'||sORGNAME||'
+				'||sEXP_LIMIT||'
+				'||sEXP_PLAN||'
+				'||sEXP_DIFF||'
+				'||sIND_LIMIT||'
+				'||sIND_PLAN||'
+				'||sIND_DIFF||'
+				'||sNORMAIV||'
+				'||sSTUDY||'
+				'||sTEACHER||'
+				'||sBALL||'
+				'||sSOLV||'
+			</tr>');
 	END LOOP;
 
-    for rec in
-    (
-        select c001, c002, c003, c004, to_number(c005) as EXP_DIFF, to_number(c006) as IND_DIFF, to_number(c007) as NORMAIV, n001, n002, n003, n004
-        from APEX_collections where collection_name = 'DATANAL'
-        order by
-        case when pSORT = 1  then c003     end asc,
-        case when pSORT = -1 then c003     end desc,
-        case when pSORT = 2  then n001     end asc,
-        case when pSORT = -2 then n001     end desc,
-        case when pSORT = 3  then n002     end asc,
-        case when pSORT = -3 then n001     end desc,
-        case when pSORT = 4  then EXP_DIFF end asc,
-        case when pSORT = -4 then EXP_DIFF end desc,
-        case when pSORT = 5  then n003     end asc,
-        case when pSORT = -5 then n003     end desc,
-        case when pSORT = 6  then n004     end asc,
-        case when pSORT = -6 then n004     end desc,
-        case when pSORT = 7  then IND_DIFF end asc,
-        case when pSORT = -7 then IND_DIFF end desc,
-        case when pSORT = 8  then NORMAIV end asc,
-        case when pSORT = -8 then NORMAIV end desc
 
-    )
-    loop
-        sNORMAIV1      := '<td class="c9"><div class="c9"><b>-</b></div></td>'; -- заглушка
 
-        -- Данные по цчреждению
-        sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.c001||'</span></div></td>';
-        sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.c002||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.c003||'</span></a></div></td>';
 
-        -- Затраты
-        sEXP_LIMIT  := '<td class="c3"><div class="c3">'||to_char(rec.n001,'999G999G999G999G990D00')||'</div></td>';
-        sEXP_PLAN     := '<td class="c4"><div class="c4">'||to_char(rec.n002,'999G999G999G999G990D00')||'</div></td>';
 
-        if rec.EXP_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
-        sEXP_DIFF     := '<td class="c5"><div class="c5" style="color:'||sCOLOR||'">'||to_char(rec.EXP_DIFF,'999G999G999G999G990D00')||'</div></td>';
-
-        -- Контингент
-        sIND_LIMIT    := '<td class="c6"><div class="c6">'||to_char(rec.n003,'999G999G999G999G990D00')||'</div></td>';
-        sIND_PLAN     := '<td class="c7"><div class="c7">'||to_char(rec.n004,'999G999G999G999G990D00')||'</div></td>';
-
-        if rec.IND_DIFF != 0 then sCOLOR := 'red'; else sCOLOR := 'black'; end if;
-        sIND_DIFF     := '<td class="c8"><div class="c8" style="color:'||sCOLOR||'">'||to_char(rec.IND_DIFF,'999G999G999G999G990D00')||'</div></td>';
-
-        sNORMAIV      := '<td class="c9"><div class="c9"><b>'||to_char(rec.NORMAIV,'999G999G999G999G990D00')||'</b></div></td>';
-
-        -- sSTUDY     	  := '<td class="c10"><div class="c10">'||to_char(nPOST_FACT,'999G999G999G999G990D00')||'</div></td>';
-        -- sTEACHER      := '<td class="c11"><div class="c11">'||to_char(nTEACHER,'999G999G999G999G990D00')||'</div></td>';
-        htp.p('
-        	<tr>
-        		'||sORGTYPE||'
-        		'||sORGNAME||'
-        		'||sEXP_LIMIT||'
-        		'||sEXP_PLAN||'
-        		'||sEXP_DIFF||'
-        		'||sIND_LIMIT||'
-        		'||sIND_PLAN||'
-        		'||sIND_DIFF||'
-        		'||sNORMAIV||'
-        		'||sNORMAIV1||'
-        		'||sNORMAIV1||'
-        		'||sNORMAIV1||'
-        	</tr>');
-    end loop;
 
     htp.p('</tbody></table></div>');
     htp.p('<ul class="pagination" style="margin:0px">');
