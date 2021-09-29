@@ -321,7 +321,7 @@ begin
 
 			sINUMB     := '<td class="c1"><div class="c1">'||rec.INUMB||'</></div></td>';
 
-            sNOTES     := '<td class="c2"><div class="c2"><a href="f?p=101:794:'||v('APP_SESSION')||'::NO::P794_RN:'||rec.ORGRN||'><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.NOTES||'</div></td>';
+            -- sNOTES     := '<td class="c2"><div class="c2"><a href="f?p=101:794:'||v('APP_SESSION')||'::NO::P794_RN:'||rec.ORGRN||'><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.NOTES||'</div></td>';
 
             sNOTES     := '<td class="c2"><div class="c2"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.rn||')">'||rec.NOTES||'</span></></div></td>';
 
