@@ -21,6 +21,13 @@ begin
     return default_value;
 end;
 
+declare default_value varchar2(24);
+begin
+    select PLAN2 into default_value
+        from Z_VERSIONS where RN = :P1_VERSION;
+    return default_value;
+end;
+
 Select NEXT_PERIOD, PLAN1, PLAN2
   into nNEXTPERIOD, nPLAN1, nPLAN2
   from Z_VERSIONS where RN = pVersion;
