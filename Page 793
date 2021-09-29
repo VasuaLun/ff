@@ -321,12 +321,18 @@ begin
 
 			sINUMB     := '<td class="c1"><div class="c1">'||rec.INUMB||'</></div></td>';
 
-            sNOTES     := '<td class="c2"><div class="c2"><a href="f?p=101:794:'||v('APP_SESSION')||'::NO::P794_RN:'||rec.ORGRN||'><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.NOTES||'</div></td>';;
+            -- sNOTES     := '<td class="c2"><div class="c2"><a href="f?p=101:794:'||v('APP_SESSION')||'::NO::P794_RN:'||rec.ORGRN||'><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.NOTES||'</div></td>';
+
+            sNOTES     := '<td class="c2"><div class="c2"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.rn||')">'||rec.NOTES||'</span></></div></td>';
+
+
+            -- sSERVCOUNT  := '<td class="c5 "><div class="c5"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.ORGRN||','||rec.VERS||')">'||nSERVTYPE1 || ' / '||nSERVTYPE2||' / '||nSERVTYPE3||' / '||nSERVTYPE4||' / '||nSERVTYPE5||'</span></></div></td>';
+
 
 			-- sNOTES     := '<td class="c2"><div class="c2"><textarea  '||sDISABLED||' '|| sDISABLED_DEBCRED ||' rows="2" class="in_txtl textarea"  placeholder="Введите наименование доходов" style="font-weight:bold"  value="'||rec.NOTES||'"
 			-- 			onfocus="selecter(this,''row_'||rec.rn||''')" onblur="save_data('||rec.rn||',this.value, ''NOTES'', this);"/>'||rec.NOTES||'</textarea></div></td>';
 
-            sEMPTY  := '<td class="c21" style="padding-left: 0px;"><div class="c21"><span class="btn btn-primary" style="float:right" onclick="location.href='''||APEX_UTIL.PREPARE_URL('javascript:modalWin2('||rec.rn||');')||'''">+</span></div></td>'; -- временнный вывод на редактирование
+            sEMPTY  := '<td class="c21"><div class="c21">'||rec.ACODE||'</></div></td>';
 
             -- sEMPTY     := '<td class="c21"><div class="c21">'||APEX_ITEM.POPUP_FROM_QUERY(1,'fmkdmf','SELECT rn, code FROM Z_ORGREG where RN = 344150893')||'</></div></td>';
             --sEMPTY     := '<td class="data" style="padding-left: 0px;"><span class="'||sBTNYPLAN||'" style="float:right" onclick="location.href='''||APEX_UTIL.PREPARE_URL('javascript:modalWin2('||rec.RN||',3);')||'''">+</span></td>';
