@@ -453,6 +453,10 @@ begin
 			sBALL := '<img src="/i/yellow.png" style="width:16px;"/>';
 		end if;
 
+        if (FuncDataAnalyzCheck(rec.ORGRN, pVERSION, )) then sSOLV := 'тлдтлдам';
+        else sSOLV := 'jkdfguerhtuilheruthwe';
+        end if;
+
 		sBALL    	  := '<td class="c12"><div class="c12">'||sBALL||'</div></td>';
 		sSOLV		  := '<td class="c13"><div class="c13">'||sSOLV||'</div></td>';
 

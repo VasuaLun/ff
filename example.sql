@@ -656,3 +656,17 @@ select  O.A_ORGRN, O.RN ORGRN, substr(L.NAME,1,1) ORGTYPE, nvl(O.SHORT_NAME,O.CO
        AND DF_V.DEPFIN_RN = :P2010_RN AND DF_V.RN = RN) nCOUNT
    FROM Z_DEPFIN_VERS DF_V
    WHERE :P2010_RN = DF_V.DEPFIN_RN
+
+    ALTER TABLE H_INCOME_PRILFORMS_DTL
+        MODIFY (COEFF NUMBER(19,9) DEFAULT null,
+             PLAN1_COEFF number(19,9) default null,
+             PLAN2_COEFF number(19,9) default null,
+             PLAN3_COEFF number(19,9) default null);
+
+    ALTER TABLE H_INCOME_PRILFORMS_DTL
+        ADD ACODE varchar2(35);
+
+        ALTER TABLE H_INCOME_PRILFORMS_DTL
+            MODIFY ACODE varchar2(35) default null;
+
+            declare  cursor_returned_no_rows exception;  name_is_null            exception;  cursor c1  is    select emp_id, emp_name    from   emp_test    where  emp_id = 1;  cursor_is_empty boolean := true;begin  for c1_rec in c1  loop    cursor_is_empty := false;    if c1_rec.emp_name is null    then      raise name_is_null;    end if;    insert into dep_test    values (c1_rec.emp_id, c1_rec.emp_name);  end loop;  if cursor_is_empty  then    raise cursor_returned_no_rows;  end if;exception  when cursor_returned_no_rows  then    dbms_output.put_line ('Your exception message here!');  when name_is_null  then    dbms_output.put_line('Name is null');  -- or whatever other handling you may need
