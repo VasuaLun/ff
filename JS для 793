@@ -7,6 +7,6 @@ if (window.showModalDialog) {
     console.log("1");
 }
 else {
-window.open("f?p=&APP_ID.:794:&SESSION.:POP:NO:794:P794_RN:"+rn,"name","height=700,width=920,toolbar=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no,modal=yes,top="+t+",left="+l);
+window.open("f?p=&APP_ID.:794:&SESSION.:POP:NO:794:P794_RN:"+rn,"name","height=700,width=1300,toolbar=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no,modal=yes,top="+t+",left="+l);
 }
 }
