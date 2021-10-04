@@ -202,7 +202,7 @@ begin
 
         .th1{width: 15px;text-align:center; border-left: 0px !important} .c1 {width: 15px; word-wrap: break-word; text-align:center; border-left: 0px !important}
 		.th2{width: 100%;text-align:center;}   .c2 {width: 100%; word-wrap: break-word; text-align:left;}
-        .th21{width: 180px;text-align:center;}   .c21 {width: 180px; word-wrap: break-word; text-align:left;}
+        .th21{width: 100px;text-align:center;}   .c21 {width: 100px; word-wrap: break-word; text-align:left;}
 
         .th3{width: 70px;text-align:center;}   .c3 {width: 70px; word-wrap: break-word; text-align:center;}
 		.th4{width: 70px;text-align:center;}   .c4 {width: 70px; word-wrap: break-word; text-align:center;}
@@ -259,22 +259,22 @@ begin
         <tr>
 		 <th class="header th3" ><div class="th3">'||case when sDisplay is null then 'Кол-во человек' else '' end||'</div></th>
 		 <th class="header th4" ><div class="th4">'||case when sDisplay is null then 'Средняя плата' else 'Сумма,руб.' end||'</div></th>
-         <th class="header th41" ><div class="th41">Количество дней/месяцев/выплат, руб; коэффициент</div></th>
+         <th class="header th41" ><div class="th41">Кол-во выплат(руб),<br>коэфф.</div></th>
 		 <th class="header th5" ><div class="th5">Итого, руб</div></th>
 
 		 <th class="header th6" ><div class="th6">'||case when sDisplay is null then 'Кол-во человек' else '' end||'</div></th>
 		 <th class="header th7" ><div class="th7">'||case when sDisplay is null then 'Средняя плата' else 'Сумма,руб.' end||'</div></th>
-         <th class="header th71" ><div class="th71">Количество дней/месяцев/выплат, руб; коэффициент</div></th>
+         <th class="header th71" ><div class="th71">Кол-во выплат(руб),<br>коэфф.</div></th>
 		 <th class="header th8" ><div class="th8">Итого, руб</div></th>
 
 		 <th class="header th9" ><div class="th9">'||case when sDisplay is null then 'Кол-во человек' else '' end||'</div></th>
 		 <th class="header th10" ><div class="th10">'||case when sDisplay is null then 'Средняя плата' else 'Сумма,руб.' end||'</div></th>
-         <th class="header th101" ><div class="th101">Количество дней/месяцев/выплат, руб; коэффициент</div></th>
+         <th class="header th101" ><div class="th101">Кол-во выплат(руб),<br>коэфф.</div></th>
 		 <th class="header th11" ><div class="th11">Итого, руб</div></th>
 
 		 <th class="header th12" ><div class="th12">'||case when sDisplay is null then 'Кол-во человек' else '' end||'</div></th>
 		 <th class="header th13" ><div class="th13">'||case when sDisplay is null then 'Средняя плата' else 'Сумма,руб.' end||'</div></th>
-         <th class="header th131" ><div class="th131">Количество дней/месяцев/выплат, руб; коэффициент</div></th>
+         <th class="header th131" ><div class="th131">Кол-во выплат(руб),<br>коэфф.</div></th>
 		 <th class="header th14" ><div class="th14">Итого, руб</div></th>
         </tr>
 
@@ -321,7 +321,7 @@ begin
 
 			sINUMB     := '<td class="c1"><div class="c1">'||rec.INUMB||'</></div></td>';
 
-            sNOTES     := '<td class="c2"><div class="c2"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.rn||')">'||rec.NOTES||'</span></></div></td>';
+            sNOTES     := '<td class="c2"><div class="c2"><span style="font-weight: bold;color:#0000ff;white-space: nowrap" onclick="modalWin2('||rec.rn||','||pVERSION||','||pJURPERS||','||pORGRN||')">'||nvl(rec.NOTES, '-')||'</span></></div></td>';
 
             sEMPTY  := '<td class="c21"><div class="c21">'||rec.ACODE||'</></div></td>';
 
