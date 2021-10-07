@@ -4,6 +4,7 @@ declare
  pDEPFINVER    number        := :P1_DEPFIN_VERSION;
 
  -----------------------------------------------
+ sJURPERS      varchar2(4000);
  sORGTYPE      varchar2(4000);
  sORGNAME      varchar2(4000);
  sDONECALL     varchar2(4000);
@@ -21,7 +22,8 @@ nCOUNTHL4 number;
 
    -- Массив с логом звонков горячей линии
 type t_call is record(
-    usern    number,
+    SUPRN    number,
+    JURRN    number,
     countC   number,
     STATUS   number
  );
@@ -32,14 +34,6 @@ begin
 
     -- Инициализация
     ----------------------------------------------------
-    select U.RN, count(L.RN), L.STATUS
-    BULK COLLECT into CALLARR
-    from Z_SUPPORTLOG L, Z_USERS U
-    where L.status in (2, 3)
-        and L.SUPPORT_USER in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
-        and U.LOGIN = L.SUPPORT_USER
-    group by U.RN, L.STATUS
-    order by U.RN;
 
     ----------------------------------------------------
     apex_javascript.add_library (
@@ -124,9 +118,13 @@ begin
 
 
         .th1{width: 100%;text-align:center; border-left: 0px !important}    .c1 {width: 100%; word-wrap: break-word; text-align:center; border-left: 0px !important}
-        .th_plan1{width: 210px;text-align:center;} .cp1 {width: 210px; word-wrap: break-word; text-align:left;}
-		.th_plan2{width: 210px;text-align:center;} .cp2 {width: 210px; word-wrap: break-word; text-align:left;}
-		.th_plan3{width: 210px;text-align:center;} .cp3 {width: 210px; word-wrap: break-word; text-align:left;}
+        .th_plan1{width: 70px;text-align:center;} .cp1 {width: 70px; word-wrap: break-word; text-align:left;}
+		.th_plan2{width: 70px;text-align:center;} .cp2 {width: 70px; word-wrap: break-word; text-align:left;}
+		.th_plan3{width: 70px;text-align:center;} .cp3 {width: 70px; word-wrap: break-word; text-align:left;}
+        .th_out1{width: 50px;text-align:center;}   .co1 {width: 50px; word-wrap: break-word; text-align:right;}
+        .th_out2{width: 50px;text-align:center;}   .co2 {width: 50px; word-wrap: break-word; text-align:right;}
+        .th_out3{width: 50px;text-align:center;}   .co3 {width: 50px; word-wrap: break-word; text-align:right;}
+        .th_out4{width: 50px;text-align:center;}   .co4 {width: 50px; word-wrap: break-word; text-align:right;}
 
         .pagination {text-align: right;
           border-left: 1px solid grey;
@@ -148,23 +146,22 @@ begin
     htp.p('<div><table border="0" id="fix" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%" id="">
       <thead>
           <tr>
-           <th class="header th1" rowspan="3"><div class="th1">Сотрудник</div></th>
-           <th class="header" colspan="2"><div>Центр сообщений</div></th>
-           <th class="header" colspan="2"><div>Горячая линия</div></th>
-           <th class="header" colspan="2"><div>Центр задач</div></th>
+           <th class="header th1" rowspan="3"><div class="th1">Проект</div></th>');
 
-           <th class="header" rowspan="3"><div style="width:8px"></div></th>
-          </tr>
-         <tr>
-            <th class="header th_plan1" rowspan="2"><div class="th_plan1">Выполнено</div></th>
-            <th class="header th_plan1" rowspan="2"><div class="th_plan1">В работе</div></th>
-            <th class="header th_plan2" rowspan="2"><div class="th_plan2">Выполнено</div></th>
-            <th class="header th_plan2" rowspan="2"><div class="th_plan2">В работе</div></th>
-            <th class="header th_plan3" rowspan="2"><div class="th_plan3">Выполнено</div></th>
-            <th class="header th_plan3" rowspan="2"><div class="th_plan3">В работе</div></th>
-         </tr>
-         </thead>
-       <tbody id="fullall">');
+    for rec in
+    (
+        select NAME
+        from Z_USERS
+        where LOGIN in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
+    )
+    loop
+        htp.p('
+           <th class="header" colspan="3"><div>'||rec.NAME||'</div></th>');
+    end loop;
+
+    htp.p('<th class="header" colspan="4"><div>Итого</div></th>
+           <th class="header" rowspan="3"><div style="width:20px">%</div></th>
+           <th class="header" rowspan="3"><div style="width:8px"></div></th></tr><tr>');
 
     for rec in
     (
@@ -173,85 +170,57 @@ begin
         where LOGIN in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
     )
     loop
-        nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
-
-        for CALL in CALLARR.FIRST..CALLARR.COUNT
-        loop
-            if (CALLARR(CALL).usern = rec.RN) then
-                if (CALLARR(CALL).STATUS = 2) then
-                    nCOUNTHL4 := CALLARR(CALL).countC;
-                elsif (CALLARR(CALL).STATUS = 3) then
-                    nCOUNTHL3 := CALLARR(CALL).countC;
-                end if;
-            end if;
-        end loop;
-
-        sORGTYPE   := '<td class="c1"><div class="c1">'||rec.NAME||'</></div></td>';
-
-        sORGNAME   := '<td class="cp1"><div class="cp1">-</></div></td>';
-        sDONECALL  := '<td class="cp2"><div class="cp2">'||nCOUNTHL3||'</></div></td>';
-        SWORKCALL  := '<td class="cp2"><div class="cp2">'||nCOUNTHL4||'</></div></td>';
-        sORGKIND    := '<td class="cp3"><div class="cp3">-</></div></td>';
-
-        sSERVCOUNT  := '<td class="c4"><div class="c4">-</></div></td>';
-
         htp.p('
-            <tr>
-                '||sORGTYPE||'
-                '||sORGNAME||'
-                '||sORGNAME||'
-                '||sDONECALL||'
-                '||SWORKCALL||'
-                '||sORGKIND||'
-                '||sORGKIND||'
-            </tr>');
+                <th class="header th_plan1" rowspan="2"><div class="th_plan1">Центр сообщений</div></th>
+                <th class="header th_plan2" rowspan="2"><div class="th_plan2">Горячая линия</div></th>
+                <th class="header th_plan3" rowspan="2"><div class="th_plan3">Центр задач</div></th>
+             ');
     end loop;
 
-	-- for rec in
-	-- (
-    --   select D.RN DEPRN, D.CODE DEPCODE, J.RN JURRN, J.NAME JURCODE, nvl(O.SHORT_NAME,O.CODE) ORGNAME, substr(L.NAME,1,1) ORGTYPE, DIS.CODE DISTRICT, OK.CODE ORGKIND, GR.CODE ORGROUP, O.VERSION VERS, O.RN  ORGRN
-    --     from Z_DEPFIN D, Z_DEPFIN_GRBS G, Z_JURPERS J, Z_ORGREG O, Z_DEPFIN_VERS_GRBS GRV, Z_LOV L, Z_DISTRICT DIS, Z_ORGKIND OK, Z_ORGROUP GR, Z_DEPFIN_VERS DV
-    --   where (D.RN = pDEPFIN or pDEPFIN is NULL)
-    --     and (DV.RN = pDEPFINVER or pDEPFINVER is NULL)
-    --     and (J.RN = :P2001_GRBS or :P2001_GRBS is NULL)
-    --     and (GR.RN = :P2001_ORGROUP or :P2001_ORGROUP is NULL)
-    --     and G.DEPFIN_RN = D.RN
-    --     and G.JURPERS_RN = J.RN
-    --     and O.JUR_PERS = J.RN
-    --     and DV.DEPFIN_RN = D.RN
-    --     and GRV.DEPFIN_VERS_RN = DV.RN
-    --     and O.VERSION = GRV.GRBS_VERSION
-    --     and O.ORGTYPE = L.NUM (+)
-    --     and L.PART (+) = 'ORGTYPE'
-    --     and O.DISTRICT = DIS.RN(+)
-    --     and O.ORGKIND = OK.RN (+)
-    --     and O.PRN = GR.RN(+)
-    --     and O.CLOSE_DATE is NULL
-    --     and ((Upper(O.OMS_CODE) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2001_SEARCH)||'%'))
-    --     order by D.CODE, J.NAME, GR.CODE, O.ORDERNUMB, nvl(O.SHORT_NAME,O.CODE)
-	-- )
-	-- loop
-    --
-	-- 	nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
-    --
-	-- 	sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.ORGTYPE||'</span></div></td>';
-    --
-	-- 	sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
-	-- 	sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
-	-- 	sORGKIND    := '<td class="c4"><div class="c4">'||rec.ORGKIND||'</></div></td>';
-    --
-	-- 	sSERVCOUNT  := '<td class="c4"><div class="c4">-</></div></td>';
-    --
-	-- 	htp.p('
-	-- 		<tr>
-	-- 			'||sORGTYPE||'
-	-- 			'||sORGNAME||'
-	-- 			'||sDISTRICT||'
-	-- 			'||sORGKIND||'
-	-- 			'||sSERVCOUNT||'
-	-- 		</tr>');
-	-- end loop;
+    htp.p('
+            <th class="header th_out1" rowspan="2"><div class="th_out1">Центр сооб.</div></th>
+            <th class="header th_out2" rowspan="2"><div class="th_out2">Гор. линия</div></th>
+            <th class="header th_out3" rowspan="2"><div class="th_out3">Центр задач</div></th>
+            <th class="header th_out4" rowspan="2"><div class="th_out4">Всего</div></th>
+         ');
 
+    htp.p('</tr></thead><tbody id="fullall">');
+
+    for rec in
+    (
+        select distinct L.JUR_PERS, J.NAME
+        from Z_SUPPORTLOG L, Z_JURPERS J
+        where J.RN = L.JUR_PERS
+    )
+    loop
+
+        nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
+
+        sJURPERS := '<td class="c1"><div class="c1">-</></div></td>';
+
+        htp.p('<tr>'||sJURPERS||'');
+
+        for rec in
+        (
+            select RN, NAME, LOGIN
+            from Z_USERS
+            where LOGIN in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
+        )
+        loop
+            sDONECALL := '<td class="cp1"><div class="cp1">-</></div></td>';
+
+            htp.p('
+                <tr>
+                    '||sORGTYPE||'
+                    '||sORGNAME||'
+                    '||sORGNAME||'
+                    '||sDONECALL||'
+                    '||SWORKCALL||'
+                    '||sORGKIND||'
+                    '||sORGKIND||'
+                </tr>');
+        end loop;
+    end loop;
 
     htp.p('</tbody></table></div>');
     htp.p('<ul class="pagination" style="margin:0px">');
