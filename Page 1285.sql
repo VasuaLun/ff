@@ -1,20 +1,19 @@
 --101; 1285;
 declare
- pDEPFIN       number        := :P1_DEPFIN;
- pDEPFINVER    number        := :P1_DEPFIN_VERSION;
-
  -----------------------------------------------
  sORGTYPE      varchar2(4000);
  sORGNAME      varchar2(4000);
  sDONECALL     varchar2(4000);
  SWORKCALL     varchar2(4000);
- sDISTRICT     varchar2(4000);
+ sDONETASK     varchar2(4000);
+ sWORKTASK     varchar2(4000);
  sORGKIND      varchar2(4000);
- sSERVCOUNT    varchar2(4000);
 
  -----------------------------------------------
-nCOUNTHL3 number;
-nCOUNTHL4 number;
+ nCOUNTHL3 number;
+ nCOUNTHL4 number;
+ nCOUNTHL5 number;
+ nCOUNTHL6 number;
 
  -----------------------------------------------
  nCOUNTROWS    number;
@@ -23,7 +22,8 @@ nCOUNTHL4 number;
 type t_call is record(
     usern    number,
     countC   number,
-    STATUS   number
+    STATUS   number,
+    TYP     number
  );
  type t_call_arr is table of t_call;
  CALLARR t_call_arr;
@@ -32,14 +32,32 @@ begin
 
     -- Инициализация
     ----------------------------------------------------
-    select U.RN, count(L.RN), L.STATUS
+    select U.RN as URN,
+        count(L.RN) as COUN,
+        L.STATUS as STATUS,
+        2 as TYP
     BULK COLLECT into CALLARR
-    from Z_SUPPORTLOG L, Z_USERS U
-    where L.status in (2, 3)
+    from Z_SUPPORTLOG L, Z_USERS U, Z_SUPPORTLOG_HISTORY H
+    where L.status in (0,1,2, 3,4)
         and L.SUPPORT_USER in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
         and U.LOGIN = L.SUPPORT_USER
+        and H.LOG_RN = L.RN
+        and ((trunc(H.CHANGE_DATE) >= :P1285_DATESTART) or (:P1285_DATESTART is null))
+        and ((trunc(H.CHANGE_DATE) <= :P1285_DATEND) or (:P1285_DATEND is null))
     group by U.RN, L.STATUS
-    order by U.RN;
+    union all
+    select U.RN as URN,
+        count(T.RN) as COUN,
+        T.StATUS as STATUS,
+        3 as TYP
+    from W_TASK T, Z_USERS U
+    where t.EXECUTER = U.LOGIN
+        and t.EXECUTER in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
+        and ((trunc(T.MODIFIED) >= :P1285_DATESTART) or (:P1285_DATESTART is null))
+        and ((trunc(T.MODIFIED) <= :P1285_DATEND) or (:P1285_DATEND is null))
+    group by u.rn, t.status;
+
+
 
     ----------------------------------------------------
     apex_javascript.add_library (
@@ -123,10 +141,10 @@ begin
         }
 
 
-        .th1{width: 100%;text-align:center; border-left: 0px !important}    .c1 {width: 100%; word-wrap: break-word; text-align:center; border-left: 0px !important}
-        .th_plan1{width: 210px;text-align:center;} .cp1 {width: 210px; word-wrap: break-word; text-align:left;}
-		.th_plan2{width: 210px;text-align:center;} .cp2 {width: 210px; word-wrap: break-word; text-align:left;}
-		.th_plan3{width: 210px;text-align:center;} .cp3 {width: 210px; word-wrap: break-word; text-align:left;}
+        .th1{width: 100%;text-align:center; border-left: 0px !important}    .c1 {width: 100%; word-wrap: break-word; text-align:left; border-left: 0px !important}
+        .th_plan1{width: 100px;text-align:center;} .cp1 {width: 100px; word-wrap: break-word; text-align:right;}
+		.th_plan2{width: 100px;text-align:center;} .cp2 {width: 100px; word-wrap: break-word; text-align:right;}
+		.th_plan3{width: 100px;text-align:center;} .cp3 {width: 100px; word-wrap: break-word; text-align:right;}
 
         .pagination {text-align: right;
           border-left: 1px solid grey;
@@ -166,92 +184,65 @@ begin
          </thead>
        <tbody id="fullall">');
 
-    for rec in
-    (
-        select RN, NAME, LOGIN
-        from Z_USERS
-        where LOGIN in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
-    )
-    loop
-        nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
+    if CALLARR.EXISTS(1) then
 
-        for CALL in CALLARR.FIRST..CALLARR.COUNT
+        for rec in
+        (
+            select RN, NAME, LOGIN
+            from Z_USERS
+            where LOGIN in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
+            order by NAME
+        )
         loop
-            if (CALLARR(CALL).usern = rec.RN) then
-                if (CALLARR(CALL).STATUS = 2) then
-                    nCOUNTHL4 := CALLARR(CALL).countC;
-                elsif (CALLARR(CALL).STATUS = 3) then
-                    nCOUNTHL3 := CALLARR(CALL).countC;
+            nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
+
+            nCOUNTHL3 := 0;
+            nCOUNTHL4 := 0;
+            nCOUNTHL5 := 0;
+            nCOUNTHL6 := 0;
+
+            for CALL in CALLARR.FIRST..CALLARR.COUNT
+            loop
+                if (CALLARR(CALL).usern = rec.RN) then
+                    if (CALLARR(CALL).TYP = 3) then
+                        if (CALLARR(CALL).STATUS = 2) or (CALLARR(CALL).STATUS = 3) then
+                            nCOUNTHL6 := CALLARR(CALL).countC;
+                        elsif (CALLARR(CALL).STATUS = 5) then
+                            nCOUNTHL5 := CALLARR(CALL).countC;
+                        end if;
+                    elsif (CALLARR(CALL).TYP = 2) then
+                        if (CALLARR(CALL).STATUS = 2) then
+                            nCOUNTHL4 := CALLARR(CALL).countC;
+                        elsif (CALLARR(CALL).STATUS = 3) then
+                            nCOUNTHL3 := CALLARR(CALL).countC;
+                        end if;
+                    end if;
                 end if;
-            end if;
+            end loop;
+
+            sORGTYPE   := '<td class="c1"><div class="c1">'||rec.NAME||'</></div></td>';
+
+            sORGNAME   := '<td class="cp1"><div class="cp1">-</></div></td>';
+            sDONECALL  := '<td class="cp2"><div class="cp2">'||nCOUNTHL3||'</></div></td>';
+            SWORKCALL  := '<td class="cp2"><div class="cp2">'||nCOUNTHL4||'</></div></td>';
+            sDONETASK  := '<td class="cp2"><div class="cp2">'||nCOUNTHL5||'</></div></td>';
+            sWORKTASK  := '<td class="cp2"><div class="cp2">'||nCOUNTHL6||'</></div></td>';
+            sORGKIND    := '<td class="cp3"><div class="cp3">-</></div></td>';
+
+            htp.p('
+                <tr>
+                    '||sORGTYPE||'
+                    '||sORGNAME||'
+                    '||sORGNAME||'
+                    '||sDONECALL||'
+                    '||SWORKCALL||'
+                    '||sDONETASK||'
+                    '||sWORKTASK||'
+                </tr>');
         end loop;
 
-        sORGTYPE   := '<td class="c1"><div class="c1">'||rec.NAME||'</></div></td>';
-
-        sORGNAME   := '<td class="cp1"><div class="cp1">-</></div></td>';
-        sDONECALL  := '<td class="cp2"><div class="cp2">'||nCOUNTHL3||'</></div></td>';
-        SWORKCALL  := '<td class="cp2"><div class="cp2">'||nCOUNTHL4||'</></div></td>';
-        sORGKIND    := '<td class="cp3"><div class="cp3">-</></div></td>';
-
-        sSERVCOUNT  := '<td class="c4"><div class="c4">-</></div></td>';
-
-        htp.p('
-            <tr>
-                '||sORGTYPE||'
-                '||sORGNAME||'
-                '||sORGNAME||'
-                '||sDONECALL||'
-                '||SWORKCALL||'
-                '||sORGKIND||'
-                '||sORGKIND||'
-            </tr>');
-    end loop;
-
-	-- for rec in
-	-- (
-    --   select D.RN DEPRN, D.CODE DEPCODE, J.RN JURRN, J.NAME JURCODE, nvl(O.SHORT_NAME,O.CODE) ORGNAME, substr(L.NAME,1,1) ORGTYPE, DIS.CODE DISTRICT, OK.CODE ORGKIND, GR.CODE ORGROUP, O.VERSION VERS, O.RN  ORGRN
-    --     from Z_DEPFIN D, Z_DEPFIN_GRBS G, Z_JURPERS J, Z_ORGREG O, Z_DEPFIN_VERS_GRBS GRV, Z_LOV L, Z_DISTRICT DIS, Z_ORGKIND OK, Z_ORGROUP GR, Z_DEPFIN_VERS DV
-    --   where (D.RN = pDEPFIN or pDEPFIN is NULL)
-    --     and (DV.RN = pDEPFINVER or pDEPFINVER is NULL)
-    --     and (J.RN = :P2001_GRBS or :P2001_GRBS is NULL)
-    --     and (GR.RN = :P2001_ORGROUP or :P2001_ORGROUP is NULL)
-    --     and G.DEPFIN_RN = D.RN
-    --     and G.JURPERS_RN = J.RN
-    --     and O.JUR_PERS = J.RN
-    --     and DV.DEPFIN_RN = D.RN
-    --     and GRV.DEPFIN_VERS_RN = DV.RN
-    --     and O.VERSION = GRV.GRBS_VERSION
-    --     and O.ORGTYPE = L.NUM (+)
-    --     and L.PART (+) = 'ORGTYPE'
-    --     and O.DISTRICT = DIS.RN(+)
-    --     and O.ORGKIND = OK.RN (+)
-    --     and O.PRN = GR.RN(+)
-    --     and O.CLOSE_DATE is NULL
-    --     and ((Upper(O.OMS_CODE) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.SHORT_NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.NAME) like '%'||Upper(:P2001_SEARCH)||'%') or (Upper(O.CODE) like '%'||Upper(:P2001_SEARCH)||'%'))
-    --     order by D.CODE, J.NAME, GR.CODE, O.ORDERNUMB, nvl(O.SHORT_NAME,O.CODE)
-	-- )
-	-- loop
-    --
-	-- 	nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
-    --
-	-- 	sORGTYPE    := '<td class="c1"><div class="c1"><span style="font-weight: bold; white-space: nowrap;color:#800000; padding-left: 5px;">'||rec.ORGTYPE||'</span></div></td>';
-    --
-	-- 	sORGNAME    := '<td class="c2"><div class="c2"><a href="f?p=101:56:'||v('APP_SESSION')||'::NO::P56_RN:'||rec.ORGRN||'"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">'||rec.ORGNAME||'</span></a></div></td>';
-	-- 	sDISTRICT   := '<td class="c3"><div class="c3">'||rec.DISTRICT||'</></div></td>';
-	-- 	sORGKIND    := '<td class="c4"><div class="c4">'||rec.ORGKIND||'</></div></td>';
-    --
-	-- 	sSERVCOUNT  := '<td class="c4"><div class="c4">-</></div></td>';
-    --
-	-- 	htp.p('
-	-- 		<tr>
-	-- 			'||sORGTYPE||'
-	-- 			'||sORGNAME||'
-	-- 			'||sDISTRICT||'
-	-- 			'||sORGKIND||'
-	-- 			'||sSERVCOUNT||'
-	-- 		</tr>');
-	-- end loop;
-
+    else htp.p('<tr><td><div>Данные не найдены</div></td></tr>');
+    end if;
 
     htp.p('</tbody></table></div>');
     htp.p('<ul class="pagination" style="margin:0px">');

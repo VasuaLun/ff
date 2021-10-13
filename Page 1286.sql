@@ -1,4 +1,4 @@
---101; 1285;
+--101; 1286;
 declare
  pSTATUS varchar2(1) := :P1286_WORK;
 
@@ -12,34 +12,81 @@ declare
 
  -----------------------------------------------
  nMark          number := 0;
+
+ /*
+  1е - центр сообщений
+  2е - горячая линия
+  3е - центр задач
+ */
  nCOUNTHL2      number;
  nCOUNTHL2A     number;
  nCOUNTHL2END   number;
+ nCOUNTHL3      number;
+ nCOUNTHL3A     number;
+ nCOUNTHL3END   number;
+
+ nAMOUNT        number;
 
  -----------------------------------------------
  nCOUNTROWS    number;
+
+ nSUPPNUMB     number;
 
    -- Массив с логом звонков горячей линии
 type t_call is record(
     JURRN    number,
     SUPRN    number,
-    countC   number
+    countC   number,
+    TYP      number
  );
  type t_call_arr is table of t_call;
  CALLARR t_call_arr;
 
+ type t_amount is record(
+     SUPRN    number,
+     countC1  number,
+     countC2  number,
+     countC3  number
+  );
+  type t_amount_arr is table of t_amount;
+  AMMARR t_amount_arr;
+
 begin
     -- Инициализация
     ----------------------------------------------------
-    select J.RN as JUR, U.RN as US, COUNT(L.RN)
+    select J.RN,
+        U.RN,
+        COUNT(L.RN) as COUN,
+        2 as TYP
     bulk collect into CALLARR
-    from Z_SUPPORTLOG L, Z_USERS U, Z_JURPERS J
+    from Z_SUPPORTLOG L, Z_USERS U, Z_JURPERS J, Z_SUPPORTLOG_HISTORY H
     where L.SUPPORT_USER in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
+        and ((L.StATUS = 2 and :P1286_WORK is null)
+            or (L.StATUS = 3 and :P1286_WORK = 1))
         and U.LOGIN = L.SUPPORT_USER
         and J.RN = L.JUR_PERS
-        and ((nvl(pSTATUS, 0) = 1 and L.STATUS = 3) or (nvl(pSTATUS, 0) = 0 and L.STATUS = 2))
+        and H.LOG_RN = L.RN
+        and ((trunc(H.CHANGE_DATE) >= :P1286_DATESTART) or (:P1286_DATESTART is null))
+        and ((trunc(H.CHANGE_DATE) <= :P1286_DATEND) or (:P1286_DATEND is null))
     group by J.RN, U.RN
-    order by J.RN;
+    union all
+    select case
+             when J.RN is NULL
+                then 0
+                else J.RN
+           end as JUR,
+        U.RN as URN,
+        count(T.RN) as COUN,
+        3 as TYP
+    from W_TASK T, Z_USERS U, Z_JURPERS J
+    where t.EXECUTER = U.LOGIN
+        and T.JURPERS = J.RN (+)
+        and ((T.StATUS in (2, 3) and :P1286_WORK is null)
+            or (T.StATUS = 5 and :P1286_WORK = 1))
+        and T.EXECUTER in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
+        and ((trunc(T.MODIFIED) >= :P1286_DATESTART) or (:P1286_DATESTART is null))
+        and ((trunc(T.MODIFIED) <= :P1286_DATEND) or (:P1286_DATEND is null))
+    group by J.RN, U.RN;
 
     ----------------------------------------------------
     apex_javascript.add_library (
@@ -124,9 +171,9 @@ begin
 
 
         .th1{width: 100%;text-align:center; border-left: 0px !important}    .c1 {width: 100%; word-wrap: break-word; text-align:left; border-left: 0px !important}
-        .th_plan1{width: 70px;text-align:center;} .cp1 {width: 70px; word-wrap: break-word; text-align:left;}
-		.th_plan2{width: 70px;text-align:center;} .cp2 {width: 70px; word-wrap: break-word; text-align:left;}
-		.th_plan3{width: 70px;text-align:center;} .cp3 {width: 70px; word-wrap: break-word; text-align:left;}
+        .th_plan1{width: 70px;text-align:center;} .cp1 {width: 70px; word-wrap: break-word; text-align:right;}
+		.th_plan2{width: 70px;text-align:center;} .cp2 {width: 70px; word-wrap: break-word; text-align:right;}
+		.th_plan3{width: 70px;text-align:center;} .cp3 {width: 70px; word-wrap: break-word; text-align:right;}
         .th_out1{width: 50px;text-align:center;}   .co1 {width: 50px; word-wrap: break-word; text-align:right;}
         .th_out2{width: 50px;text-align:center;}   .co2 {width: 50px; word-wrap: break-word; text-align:right;}
         .th_out3{width: 50px;text-align:center;}   .co3 {width: 50px; word-wrap: break-word; text-align:right;}
@@ -195,24 +242,153 @@ begin
 
     htp.p('</tr></thead><tbody id="fullall">');
 
-    -- цикл для вывода строк
-    for recJ in
-    (
-        select distinct L.JUR_PERS, J.NAME, J.RN
-        from Z_SUPPORTLOG L, Z_JURPERS J
-        where J.RN = L.JUR_PERS
-    )
-    loop
+    if CALLARR.EXISTS(1) then
 
-        nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
+        -- цикл для вывода строк - по ГРБС
+        for recJ in
+        (
+            select 'Финатек' as NAME,
+                0 as RN
+            from dual
+            union
+            select distinct J.NAME as NAME,
+                J.RN as RN
+            from Z_SUPPORTLOG L,
+                Z_JURPERS J,
+                Z_SUPPORTLOG_HISTORY H
+            where J.RN = L.JUR_PERS
+                and H.LOG_RN = L.RN
+                and ((trunc(H.CHANGE_DATE) >= :P1286_DATESTART) or (:P1286_DATESTART is null))
+                and ((trunc(H.CHANGE_DATE) <= :P1286_DATEND) or (:P1286_DATEND is null))
+                and ((L.StATUS = 2 and :P1286_WORK is null)
+                    or (L.StATUS = 3 and :P1286_WORK = 1))
+            union
+            select distinct J.NAME as NAME,
+                J.RN as RN
+            from W_TASK T,
+                Z_JURPERS J
+            where J.RN = T.JURPERS
+                and ((trunc(T.MODIFIED) >= :P1286_DATESTART) or (:P1286_DATESTART is null))
+                and ((trunc(T.MODIFIED) <= :P1286_DATEND) or (:P1286_DATEND is null))
+                and ((T.StATUS in (2, 3) and :P1286_WORK is null)
+                    or (T.StATUS = 5 and :P1286_WORK = 1))
+        )
+        loop
 
-        nCOUNTHL2A := 0;
+            -- счетчик строк
+            nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
 
-        sJURPERS := '<td class="c1"><div class="c1">'||recJ.NAME||'</></div></td>';
+            -- обнуление итогов по строкам
+            nCOUNTHL2A := 0;
+            nCOUNTHL3A := 0;
+
+            nSUPPNUMB := 0;
+
+            sJURPERS := '<td class="c1"><div class="c1">'||recJ.NAME||'</></div></td>';
+
+            htp.p('<tr>'||sJURPERS||'');
+
+            -- цикл для динамического вывода пользователей
+            for recU in
+            (
+                select RN, NAME, LOGIN
+                from Z_USERS
+                where LOGIN in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
+            )
+            loop
+
+                nSUPPNUMB := nSUPPNUMB + 1;
+
+                -- обнуление
+                nCOUNTHL2 := 0;
+                nCOUNTHL3 := 0;
+
+                for USE in CALLARR.FIRST..CALLARR.COUNT
+                loop
+
+                    if nMARK = 0 then
+                        if CALLARR(USE).TYP = 2 then
+                            nCOUNTHL2END := nvl(nCOUNTHL2END, 0) + CALLARR(USE).countC;
+                            if CALLARR(USE).JURRN = recJ.RN and CALLARR(USE).SUPRN = recU.RN then
+                                nCOUNTHL2  := CALLARR(USE).countC;
+                                -- сумма откликов по горячей линии в строке
+                                nCOUNTHL2A := nCOUNTHL2A + nCOUNTHL2;
+                            end if;
+                        elsif CALLARR(USE).TYP = 3 then
+                            nCOUNTHL3END := nvl(nCOUNTHL3END, 0) + CALLARR(USE).countC;
+                            if CALLARR(USE).JURRN = recJ.RN and CALLARR(USE).SUPRN = recU.RN then
+                                nCOUNTHL3  := CALLARR(USE).countC;
+                                -- сумма откликов по горячей линии в строке
+                                nCOUNTHL3A := nCOUNTHL3A + nCOUNTHL3;
+                            end if;
+                        end if;
+
+                    elsif CALLARR(USE).JURRN = recJ.RN and CALLARR(USE).SUPRN = recU.RN then
+
+                        if CALLARR(USE).TYP = 2 then
+                            nCOUNTHL2  := CALLARR(USE).countC;
+                            -- сумма откликов по горячей линии в строке
+                            nCOUNTHL2A := nCOUNTHL2A + nCOUNTHL2;
+
+                            -- выйти из цикла
+                            GOTO output;
+                        elsif CALLARR(USE).TYP = 3 then
+                            nCOUNTHL3  := CALLARR(USE).countC;
+                            -- сумма откликов по горячей линии в строке
+                            nCOUNTHL3A := nCOUNTHL3A + nCOUNTHL3;
+
+                            -- выйти из цикла
+                            GOTO output;
+                        end if;
+
+                    end if;
+
+                end loop;
+
+                nMARK := 1;
+
+                -- lebel для перехода после завершения цикла
+                <<output>>
+                sMESSAGE  := '<td class="cp1"><div class="cp1">-</></div></td>';
+                sDONECALL := '<td class="cp2"><div class="cp2">'||to_char(nvl(nCOUNTHL2,0))||'</></div></td>';
+                sTASK     := '<td class="cp3"><div class="cp3">'||to_char(nvl(nCOUNTHL3,0))||'</></div></td>';
+
+                AMMARR(nSUPPNUMB).SUPRN := recU.RN;
+
+                AMMARR(nSUPPNUMB).countC2 := nvl(AMMARR(nSUPPNUMB).countC2, 0) + nCOUNTHL2;
+                AMMARR(nSUPPNUMB).countC3 := nvl(AMMARR(nSUPPNUMB).countC3, 0) + nCOUNTHL3;
+
+                htp.p('
+                        '||sMESSAGE||'
+                        '||sDONECALL||'
+                        '||sTASK||'
+                     ');
+            end loop;
+
+            -- Итого по строке
+            nAMOUNT := nCOUNTHL2A + nCOUNTHL3A;
+
+            sMESSAGE  := '<td class="co1"><div class="co1">-</></div></td>';
+            sDONECALL := '<td class="co2"><div class="co2">'||nCOUNTHL2A||'</></div></td>';
+            sTASK     := '<td class="co3"><div class="co3">'||nCOUNTHL3A||'</></div></td>';
+            sAMOUNT   := '<td class="co4"><div class="co4">'||nAMOUNT||'</></div></td>';
+
+            sPERCENT  := '<td class="c2"><div class="c2">'||LTRIM(to_char(nvl(nAMOUNT/(nCOUNTHL2END + nCOUNTHL3END)*100,0),'999G999G999G999G999G990D00'),' ')||'</></div></td>';
+
+            htp.p('
+                    '||sMESSAGE||'
+                    '||sDONECALL||'
+                    '||sTASK||'
+                    '||sAMOUNT||'
+                    '||sPERCENT||'
+                </tr>');
+
+        end loop;
+
+        sJURPERS := '<td class="c1"><div class="c1">Итого:</></div></td>';
 
         htp.p('<tr>'||sJURPERS||'');
 
-        -- цикл для динамического вывода количества пользователей
         for recU in
         (
             select RN, NAME, LOGIN
@@ -220,47 +396,32 @@ begin
             where LOGIN in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
         )
         loop
-
-            nCOUNTHL2 := 0;
-
-            for USE in CALLARR.FIRST..CALLARR.COUNT
+            
+            for USE in AMMARR.FIRST..AMMARR.COUNT
             loop
-                if nMARK = 0 then
-                    nCOUNTHL2END := nvl(nCOUNTHL2END, 0) + CALLARR(USE).countC;
-                    if CALLARR(USE).JURRN = recJ.RN and CALLARR(USE).SUPRN = recU.RN then
-                        nCOUNTHL2  := CALLARR(USE).countC;
-                        -- сумма откликов по горячей линии в строке
-                        nCOUNTHL2A := nCOUNTHL2A + nCOUNTHL2;
-                    end if;
-                elsif CALLARR(USE).JURRN = recJ.RN and CALLARR(USE).SUPRN = recU.RN then
-                    nCOUNTHL2  := CALLARR(USE).countC;
-                    -- сумма откликов по горячей линии в строке
-                    nCOUNTHL2A := nCOUNTHL2A + nCOUNTHL2;
-                    GOTO output; -- выйти из цикла
+                if AMMARR(USE).SUPRN = recU.RN then
+                    nCOUNTHL3 := USE;
                 end if;
             end loop;
 
-            nMARK := 1;
-
-            -- lebel для перехода после завершения цикла
-            <<output>>
             sMESSAGE  := '<td class="cp1"><div class="cp1">-</></div></td>';
-            sDONECALL := '<td class="cp2"><div class="cp2">'||to_char(nvl(nCOUNTHL2,0))||'</></div></td>';
-            sTASK     := '<td class="cp3"><div class="cp3">-</></div></td>';
+            sDONECALL := '<td class="cp2"><div class="cp2">'||to_char(nvl(AMMARR(nCOUNTHL3).countC2,0))||'</></div></td>';
+            sTASK     := '<td class="cp3"><div class="cp3">'||to_char(nvl(AMMARR(nCOUNTHL3).countC3,0))||'</></div></td>';
 
-            htp.p('
+            htp.p('<tr>
                     '||sMESSAGE||'
                     '||sDONECALL||'
                     '||sTASK||'
-                 ');
+                  ');
+
         end loop;
 
         sMESSAGE  := '<td class="co1"><div class="co1">-</></div></td>';
-        sDONECALL := '<td class="co2"><div class="co2">'||nCOUNTHL2A||'</></div></td>';
+        sDONECALL := '<td class="co2"><div class="co2">-</></div></td>';
         sTASK     := '<td class="co3"><div class="co3">-</></div></td>';
-        sAMOUNT   := '<td class="co4"><div class="co4">'||nCOUNTHL2A||'</></div></td>';
+        sAMOUNT   := '<td class="co4"><div class="co4">-</></div></td>';
 
-        sPERCENT  := '<td class="c2"><div class="c2">'||LTRIM(to_char(nvl(nCOUNTHL2A/nCOUNTHL2END*100,0),'999G999G999G999G999G990D00'),' ')||'</></div></td>';
+        sPERCENT  := '<td class="c2"><div class="c2">100%</></div></td>';
 
         htp.p('
                 '||sMESSAGE||'
@@ -270,7 +431,8 @@ begin
                 '||sPERCENT||'
             </tr>');
 
-    end loop;
+        else htp.p('<tr><td><div>Данные не найдены</div></td></tr>');
+    end if;
 
     htp.p('</tbody></table></div>');
     htp.p('<ul class="pagination" style="margin:0px">');
