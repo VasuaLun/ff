@@ -48,7 +48,7 @@ type t_call is record(
      countC2  number,
      countC3  number
   );
-  type t_amount_arr is table of t_amount;
+  type t_amount_arr is table of t_amount index by pls_integer;
   AMMARR t_amount_arr;
 
 begin
@@ -299,6 +299,7 @@ begin
 
                 nSUPPNUMB := nSUPPNUMB + 1;
 
+
                 -- обнуление
                 nCOUNTHL2 := 0;
                 nCOUNTHL3 := 0;
@@ -389,6 +390,9 @@ begin
 
         htp.p('<tr>'||sJURPERS||'');
 
+        nCOUNTHL2END := 0;
+        nCOUNTHL3END := 0;
+
         for recU in
         (
             select RN, NAME, LOGIN
@@ -396,7 +400,7 @@ begin
             where LOGIN in ('VASILTSOVA', 'DEMYANOVA', 'PROHOROVA', 'BUBAEVA')
         )
         loop
-            
+
             for USE in AMMARR.FIRST..AMMARR.COUNT
             loop
                 if AMMARR(USE).SUPRN = recU.RN then
@@ -408,7 +412,10 @@ begin
             sDONECALL := '<td class="cp2"><div class="cp2">'||to_char(nvl(AMMARR(nCOUNTHL3).countC2,0))||'</></div></td>';
             sTASK     := '<td class="cp3"><div class="cp3">'||to_char(nvl(AMMARR(nCOUNTHL3).countC3,0))||'</></div></td>';
 
-            htp.p('<tr>
+            nCOUNTHL2END := nvl(nCOUNTHL2END, 0) + nvl(AMMARR(nCOUNTHL3).countC2,0);
+            nCOUNTHL3END := nvl(nCOUNTHL3END, 0) + nvl(AMMARR(nCOUNTHL3).countC3,0);
+
+            htp.p('
                     '||sMESSAGE||'
                     '||sDONECALL||'
                     '||sTASK||'
@@ -416,11 +423,12 @@ begin
 
         end loop;
 
-        sMESSAGE  := '<td class="co1"><div class="co1">-</></div></td>';
-        sDONECALL := '<td class="co2"><div class="co2">-</></div></td>';
-        sTASK     := '<td class="co3"><div class="co3">-</></div></td>';
-        sAMOUNT   := '<td class="co4"><div class="co4">-</></div></td>';
+        nAMOUNT := nvl(nCOUNTHL2END, 0) + nvl(nCOUNTHL3END, 0);
 
+        sMESSAGE  := '<td class="co1"><div class="co1">-</></div></td>';
+        sDONECALL := '<td class="co2"><div class="co2">'||nCOUNTHL2END||'</></div></td>';
+        sTASK     := '<td class="co3"><div class="co3">'||nCOUNTHL3END||'</></div></td>';
+        sAMOUNT   := '<td class="co4"><div class="co4">'||nAMOUNT||'</></div></td>';
         sPERCENT  := '<td class="c2"><div class="c2">100%</></div></td>';
 
         htp.p('
