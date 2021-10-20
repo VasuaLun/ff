@@ -1,0 +1,340 @@
+create or replace procedure ZP_PURCHASES2022_RECALC
+(
+ pJURPERS number,
+ pVERSION number,
+ pORGRN   number,
+ pFILIAL  number default null
+)
+as
+    nNEXTYEARSUM  number;
+    nNEXTYEARSUM1 number;
+    nNEXTYEARSUM2 number;
+    nNEXTYEARSUM3 number;
+    nFILIAL       number;
+begin
+
+    if pFILIAL is null then
+        begin
+            select RN
+              into nFILIAL
+              from Z_ORGFL
+             where JURPERS   = pJURPERS
+               and VERSION   = pVERSION
+               and ORGRN     = pORGRN
+               and ORDERNUM  = 1
+               and CODE = 'ОСНОВНОЙ';
+        exception when others then
+            ZP_EXCEPTION (0, 'Не найден филиал. Обратитесь к администратору.');
+        end;
+    else
+        nFILIAL := pFILIAL;
+    end if;
+
+    --- 1.3
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26310', '26320')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     = '26300'
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+
+    --- 1.4.1
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26411', '26412')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     = '26410'
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+
+    --- 1.4.2
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26421', '26422')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     = '26420'
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+
+
+    --- 1.4.4
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26441', '26442')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     = '26440'
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+
+    --- 1.4.5
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26451', '26452')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     = '26450'
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+
+    --- 1.4
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26410', '26420', '26430', '26440', '26450')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     = '26400'
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+
+    --- 1
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26100', '26200', '26300', '26400')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     = '26000'
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+
+
+    --- 2
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26510', '26520', '26530')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     in ('26500')
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+
+    --- 3
+    begin
+        select sum(FZ_44_SUM), sum(NEXT_YEAR_SUM_1), sum(NEXT_YEAR_SUM_2), sum(NEXT_YEAR_SUM_3)
+          into nNEXTYEARSUM, nNEXTYEARSUM1, nNEXTYEARSUM2, nNEXTYEARSUM3
+          from Z_PURCHASES
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE in ('26610', '26620', '26630')
+           and new_2020 = 2020;
+    exception when others then
+        nNEXTYEARSUM  := null;
+        nNEXTYEARSUM1 := null;
+        nNEXTYEARSUM2 := null;
+        nNEXTYEARSUM3 := null;
+    end;
+
+    begin
+        update Z_PURCHASES
+           set FZ_44_SUM   = nNEXTYEARSUM,
+               NEXT_YEAR_SUM_1 = nNEXTYEARSUM1,
+               NEXT_YEAR_SUM_2 = nNEXTYEARSUM2,
+               NEXT_YEAR_SUM_3 = nNEXTYEARSUM3
+         where JURPERS  = pJURPERS
+           and VERSION  = pVERSION
+           and ORGRN    = pORGRN
+           and FILIAL   = nFILIAL
+           and CODE     in ('26600')
+           and new_2020 = 2020;
+    exception when others then
+        null;
+    end;
+end;​
