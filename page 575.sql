@@ -112,7 +112,8 @@ begin
                KBK.NKBK_RN KBKRN, KBK.SCODE KBKCODE,
                KVR.RN KVRRN, KVR.CODE KVRCODE,
                K.RN KOSGURN, K.CODE KOSGUCODE,
-               nvl(P.SUMMA, 0) PAYSUM, 0 ZKPSUM_REQUISITS, 0 ZKPSUM_NO_REQUISITS
+               case pPERIOD when 3 then nvl(P.SUMMA, 0) else 0 end PAYSUM,
+               0 ZKPSUM_REQUISITS, 0 ZKPSUM_NO_REQUISITS
     	  from Z_PAY P, Z_KOSGU K, Z_EXPKVR_ALL KVR, Z_LOV L, ZV_KBKALL KBK, Z_ORGREG O, Z_ZKP_SPEC_LINKS ZSL
     	 where P.KVR = KVR.RN
     	   and P.KOSGU = K.RN(+)
@@ -141,8 +142,18 @@ begin
                KVR.RN KVRRN, KVR.CODE KVRCODE,
                K.RN KOSGURN, K.CODE KOSGUCODE,
                0 PAYSUM,
-			   case when P.AGRDATE is not null or P.AGRNUMB is not null or P.VENDOR_ALL_RN is not null then nvl(ZSP.SUMMA, 0) else 0 end ZKPSUM_REQUISITS,
-			   case when P.AGRDATE is null and P.AGRNUMB is null and P.VENDOR_ALL_RN is null then nvl(ZSP.SUMMA, 0) else 0 end ZKPSUM_NO_REQUISITS
+			   case when P.AGRDATE is not null or P.AGRNUMB is not null or P.VENDOR_ALL_RN is not null then
+                                                                                                        case pPERIOD
+                                                                                                            when 3 then nvl(ZSP.SUMMA, 0)
+                                                                                                            when 4 then nvl(ZSP.SUMMA2, 0)
+                                                                                                            when 5 then nvl(ZSP.SUMMA3, 0) end else 0 end ZKPSUM_REQUISITS,
+
+			   case when P.AGRDATE is null and P.AGRNUMB is null and P.VENDOR_ALL_RN is null then
+                                                                                                        case pPERIOD
+                                                                                                            when 3 then nvl(ZSP.SUMMA, 0)
+                                                                                                            when 4 then nvl(ZSP.SUMMA2, 0)
+                                                                                                            when 5 then nvl(ZSP.SUMMA3, 0) end else 0 end ZKPSUM_NO_REQUISITS
+
           from Z_ZKP P, Z_ZKP_SPEC ZS, Z_ZKP_SPECPRICE ZSP, Z_KOSGU K, Z_EXPKVR_ALL KVR, Z_LOV L, ZV_KBKALL KBK, Z_ORGREG O
          where P.RN = ZS.ZKP_RN
            and P.RN = ZSP.ZKP_RN
@@ -184,11 +195,8 @@ begin
                   into nESUM_OUTC
                   from (
                         select case pPERIOD
-                                     when 1 then EX.PLANSUM1
-                                     when 2 then EX.PLANSUM2
-                                     when 4 then EX.PLANSUM_02
-                                     when 5 then EX.PLANSUM_01
-                                     when 6 then EX.PLANSUM3
+                                     when 4 then EX.PLANSUM1
+                                     when 5 then EX.PLANSUM2
                                      when 3 then EX.ESUM end ESUM
                           from Z_EXP_HISTORY EX, Z_PFHD_VERSIONS PV
                          where EX.ORGRN = rec.ORGRN
@@ -207,11 +215,8 @@ begin
                   into nESUM_REST
                   from (
                   select case pPERIOD
-                                  when 1 then EX.PLANSUM1
-                                  when 2 then EX.PLANSUM2
-                                  when 4 then EX.PLANSUM_02
-                                  when 5 then EX.PLANSUM_01
-                                  when 6 then EX.PLANSUM3
+                                  when 4 then EX.PLANSUM1
+                                  when 5 then EX.PLANSUM2
                                   when 3 then EX.ESUM end ESUM
                           from Z_EXP_HISTORY EX, Z_PFHD_VERSIONS PV
                          where EX.ORGRN = rec.ORGRN
@@ -565,9 +570,9 @@ begin
 				<td class="c10 " ><div class="c10">'||to_char(nvl(AA_EXP_SUM(CURR_NUM).PAYSUM, 0),sFMT)||'</div></td>
 
         <td class="c11 " ><div class="c11">'||to_char(nNOT_PAID_ZKP, sFMT)||'</div></td>
-        <td class="c12 " ><div class="c12">'||case when pALLORGRN is null then '<a class="link_code" href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':638:'||:APP_SESSION||'::::P638_TYPE,P638_KBK,P638_KOSGU,P638_KVR,P638_FOTYPE2:1,'||AA_EXP_SUM(CURR_NUM).KBKRN||','||AA_EXP_SUM(CURR_NUM).KOSGURN||','||AA_EXP_SUM(CURR_NUM).EXPKVR||','||AA_EXP_SUM(CURR_NUM).FOTYPE2)||'">'||to_char(nvl(AA_EXP_SUM(CURR_NUM).ZKPSUM_REQUISITS, 0), sFMT)||'</a>' else to_char(nvl(AA_EXP_SUM(CURR_NUM).ZKPSUM_REQUISITS, 0), sFMT) end ||'</div></td>
+        <td class="c12 " ><div class="c12">'||case when pALLORGRN is null then '<a class="link_code" href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':638:'||:APP_SESSION||'::::P638_TYPE,P638_KBK,P638_KOSGU,P638_KVR,P638_FOTYPE2,P638_PERIOD:1,        '||AA_EXP_SUM(CURR_NUM).KBKRN||','||AA_EXP_SUM(CURR_NUM).KOSGURN||','||AA_EXP_SUM(CURR_NUM).EXPKVR||','||AA_EXP_SUM(CURR_NUM).FOTYPE2)||','||pPERIOD||'">'||to_char(nvl(AA_EXP_SUM(CURR_NUM).ZKPSUM_REQUISITS, 0), sFMT)||'</a>' else to_char(nvl(AA_EXP_SUM(CURR_NUM).ZKPSUM_REQUISITS, 0), sFMT) end ||'</div></td>
 
-        <td class="c8 " ><div class="c8">'||case when pALLORGRN is null then '<a class="link_code" href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':638:'||:APP_SESSION||'::::P638_TYPE,P638_KBK,P638_KOSGU,P638_KVR,P638_FOTYPE2:2,'||AA_EXP_SUM(CURR_NUM).KBKRN||','||AA_EXP_SUM(CURR_NUM).KOSGURN||','||AA_EXP_SUM(CURR_NUM).EXPKVR||','||AA_EXP_SUM(CURR_NUM).FOTYPE2)||'">'||to_char(nvl(AA_EXP_SUM(CURR_NUM).ZKPSUM_NO_REQUISITS, 0), sFMT)||'</a>' else to_char(nvl(AA_EXP_SUM(CURR_NUM).ZKPSUM_NO_REQUISITS, 0), sFMT) end ||'</div></td>
+        <td class="c8 " ><div class="c8">'||case when pALLORGRN is null then '<a class="link_code" href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':638:'||:APP_SESSION||'::::P638_TYPE,P638_KBK,P638_KOSGU,P638_KVR,P638_FOTYPE2,P638_PERIOD:2,'||AA_EXP_SUM(CURR_NUM).KBKRN||','||AA_EXP_SUM(CURR_NUM).KOSGURN||','||AA_EXP_SUM(CURR_NUM).EXPKVR||','||AA_EXP_SUM(CURR_NUM).FOTYPE2)||','||pPERIOD||'">'||to_char(nvl(AA_EXP_SUM(CURR_NUM).ZKPSUM_NO_REQUISITS, 0), sFMT)||'</a>' else to_char(nvl(AA_EXP_SUM(CURR_NUM).ZKPSUM_NO_REQUISITS, 0), sFMT) end ||'</div></td>
 
 				<td class="c9 last" ><div class="c9 '||case when nDIFF_REST_ZKP < 0 then 'red' else null end||'">'||to_char(nDIFF_REST_ZKP, sFMT)||'</div></td>
 
