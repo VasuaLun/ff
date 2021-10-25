@@ -44,10 +44,8 @@ begin
     return outcome;
 end;
 
--- Работа кнопки SAVE
 declare
     p_notes varchar2(500) := :P794_NOTE;
-    p_code varchar2(100)  := :P794_ACODE;
     p_x1          number  := :P794_1PERCOUNT;
     p_x2          number  := :P794_1PAY;
     p_total       number  := :P794_1OUTCOME;
@@ -86,8 +84,40 @@ begin
         PLAN1_COEFF = p_plan1_coeff,
         PLAN2_COEFF = p_plan2_coeff,
         PLAN3_COEFF = p_plan3_coeff,
-        ACODE = p_code,
         CONTENT = p_content
+    where RN = :P794_RN;
+end;
+
+-- Работа кнопки SAVE
+declare
+
+    p_coeff       number  := :P794_1DAYSCOUNT;
+    p_plan1_coeff number  := :P794_2DAYSCOUNT;
+    p_plan2_coeff number  := :P794_3DAYSCOUNT;
+    p_plan3_coeff number  := :P794_4DAYSCOUNT;
+    p_content     varchar2(500) := :P794_CONTENT;
+
+begin
+    UPDATE H_INCOME_PRILFORMS_DTL
+    set NOTES = :P794_NOTE,
+        X1 = :P794_1PERCOUNT,
+        X2 = :P794_1PAY,
+        TOTAL = :P794_1OUTCOME,
+        PLAN1_X1 = :P794_2PERCOUNT,
+        PLAN1_X2 = :P794_2PAY,
+        PLAN1_TOTAL = :P794_2OUTCOME,
+        PLAN2_X1 = :P794_3PERCOUNT,
+        PLAN2_X2 = :P794_3PAY,
+        PLAN2_TOTAL = :P794_3OUTCOME,
+        PLAN3_X1 = :P794_4PERCOUNT,
+        PLAN3_X2 = :P794_4PAY,
+        PLAN3_TOTAL = :P794_4OUTCOME,
+        COEFF = :P794_1DAYSCOUNT,
+        PLAN1_COEFF = :P794_2DAYSCOUNT,
+        PLAN2_COEFF = :P794_3DAYSCOUNT,
+        PLAN3_COEFF = :P794_4DAYSCOUNT,
+        FUND = :P794_FUND,
+        CONTENT = :P794_CONTENT
     where RN = :P794_RN;
 end;
 
@@ -125,39 +155,43 @@ begin
     end if;
 end;
 
-declare
-    n1Percount number;
-    n2Percount number;
-    n3Percount number;
-    n4Percount number;
-    n1Pay      number;
-    n2Pay      number;
-    n3Pay      number;
-    n4Pay      number;
-    n1DaysC    number;
-    n2DaysC    number;
-    n3DaysC    number;
-    n4DaysC    number;
-    n1Outcome  number;
-    n2Outcome  number;
-    n3Outcome  number;
-    n4Outcome  number;
+-- Код ЦС
+select F.RN, F.CODE as Код, F.NAME as Название
+from Z_ORG_BUDGDETAIL D, Z_FUNDS F
+where D.rtype = 5
+    and D.VERSION = v('P794_VERSION')
+    and D.JUR_PERS = v('P794_JURPERS')
+    and D. PRN = v('P794_ORG')
+    and D.FUND = F.RN (+)
+
+    declare default_value varchar2(24);
+    begin
+        select PLAN1 into default_value
+            from Z_VERSIONS where RN = :P1_VERSION;
+        return default_value;
+    end;
+
+
 begin
-    begin select X1          into :P794_1PERCOUNT  from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_1PERCOUNT  := 0; end;
-    begin select PLAN1_X1    into :P794_2PERCOUNT  from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_2PERCOUNT  := 0; end;
-    begin select PLAN2_X1    into :P794_3PERCOUNT  from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_3PERCOUNT  := 0; end;
-    begin select PLAN3_X1    into :P794_4PERCOUNT  from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_4PERCOUNT  := 0; end;
-    begin select X2          into :P794_1PAY       from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_1PAY       := 0; end;
-    begin select PLAN1_X2    into :P794_3PAY       from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_2PAY       := 0; end;
-    begin select PLAN2_X2    into :P794_2PAY       from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_3PAY       := 0; end;
-    begin select PLAN3_X2    into :P794_4PAY       from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_4PAY       := 0; end;
-    begin select COEFF       into :P794_1DAYSCOUNT from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_1DAYSCOUNT := 0; end;
-    begin select PLAN1_COEFF into :P794_2DAYSCOUNT from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_2DAYSCOUNT := 0; end;
-    begin select PLAN2_COEFF into :P794_3DAYSCOUNT from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_3DAYSCOUNT := 0; end;
-    begin select PLAN3_COEFF into :P794_4DAYSCOUNT from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_4DAYSCOUNT := 0; end;
-    begin select TOTAL       into :P794_1OUTCOME   from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_1OUTCOME   := 0; end;
-    begin select PLAN1_TOTAL into :P794_2OUTCOME   from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_2OUTCOME   := 0; end;
-    begin select PLAN2_TOTAL into :P794_3OUTCOME   from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_3OUTCOME   := 0; end;
-    begin select PLAN3_TOTAL into :P794_4OUTCOME   from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_4OUTCOME   := 0; end;
-    begin select CONTENT     into :P794_CONTENT    from H_INCOME_PRILFORMS_DTL where RN = :P794_RN; exception when NO_DATA_FOUND then :P794_CONTENT   := 0; end;
+    UPDATE H_INCOME_PRILFORMS_DTL
+    set NOTES       = :P794_NOTE,
+        X1          = replace(:P794_1PERCOUNT, ' '),
+        X2          = replace(:P794_1PAY, ' '),
+        TOTAL       = replace(:P794_1OUTCOME, ' '),
+        PLAN1_X1    = replace(:P794_2PERCOUNT, ' '),
+        PLAN1_X2    = replace(:P794_2PAY, ' '),
+        PLAN1_TOTAL = replace(:P794_2OUTCOME, ' '),
+        PLAN2_X1    = replace(:P794_3PERCOUNT, ' '),
+        PLAN2_X2    = replace(:P794_3PAY, ' '),
+        PLAN2_TOTAL = replace(:P794_3OUTCOME, ' '),
+        PLAN3_X1    = replace(:P794_4PERCOUNT, ' '),
+        PLAN3_X2    = replace(:P794_4PAY, ' '),
+        PLAN3_TOTAL = replace(:P794_4OUTCOME, ' '),
+        COEFF       = replace(:P794_1DAYSCOUNT, ' '),
+        PLAN1_COEFF = replace(:P794_2DAYSCOUNT, ' '),
+        PLAN2_COEFF = replace(:P794_3DAYSCOUNT, ' '),
+        PLAN3_COEFF = replace(:P794_4DAYSCOUNT, ' '),
+        FUND        = :P794_FUND,
+        CONTENT     = :P794_CONTENT
+    where RN = :P794_RN;
 end;

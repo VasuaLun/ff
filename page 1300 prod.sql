@@ -1,8 +1,8 @@
---101; 1400; Анализ учреждений
+--101; 1300; Анализ учреждений
 declare
  pJURPERS      number        := :P1_JURPERS;
  pVERSION      number        := :P1_VERSION;
- pSORT         number        := :P1400_SORT;
+ pSORT         number        := :P1300_SORT;
 
  pUSER         varchar2(100) := :APP_USER;
  pROLE         number        := ZGET_ROLE;
@@ -62,6 +62,12 @@ declare
  nPOST_FACT		number(19,2);
  nNORMAIV		number(19,2);
  --
+ nFO1          number(19,2);
+ nFO2          number(19,2);
+ nFO3          number(19,2);
+ nFO4          number(19,2);
+
+ --
  nFOTALL		number(19,2);
  nFOT1			number(19,2);
  nTEACHER		number(19,2);
@@ -69,7 +75,19 @@ declare
  nOKLAD_PAY		number(19,2);
  nCOMPENS_PAY	number(19,2);
  nSTIMUL_PAY	number(19,2);
+ --
+ nIND_DIFF_TOT		number(19,2) := 0;
+ nIND_VAL_TOT		number(19,2) := 0;
+ nIND_CACL_TOT		number(19,2) := 0;
 
+ nEXP_DIFF_TOT		number(19,2) := 0;
+ nPLANLIMSUM_TOT	number(19,2) := 0;
+ nPLANSUM_TOT		number(19,2) := 0;
+
+ nFINCODE           number;
+ vFINNAME           varchar2(400);
+
+ nFOTSUMM           number;
  -----------------------------------------------
  nCOUNTROWS    number;
  NITEMCOL	   number;
@@ -89,7 +107,9 @@ declare
    EXPMAT  number,
    KBK_RN  number,
    PLANSUM number,
-   RESTSUM number
+   RESTSUM number,
+   FINN    number,
+   SUMMFOT number
  );
 
  type TEXPGR  is table of CEXPGR index by pls_integer;
@@ -112,48 +132,8 @@ begin
 --<th class="header th111" rowspan="2"><div class="th111">Средняя зп,%</div></th>
 
 --<th class="header th111" rowspan="2"><div class="th111">Расчетный ФОТ, тыс.руб</div></th>
--- При onclick на заголовок меняется значения параметра pSORT (P1400_SORT), в зависимости от этого параметра происходит сортировка коллекции
-    htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
-    <thead>
-        <tr>
-         <th class="header th1"  rowspan="2"><div class="th1">Тип</div></th>
-         <th class="header th2"  rowspan="2"><div class="th2"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 1 then ''|| -1 ||'' when pSORT = -1 then ''|| 0 ||'' else ''|| 1 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Учреждение'
-         ||case when pSORT = 1 then ' v' end || case when pSORT = -1 then ' ^' end||'</span></a></div></td>
-		 <th colspan="3"><div>Затраты</div></th>
-		 <th colspan="3"><div>Контингент</div></th>
-         <th class="header th9"  rowspan="2"><div class="th9"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 8 then ''|| -8 ||'' when pSORT = -8 then ''|| 0 ||'' else ''|| 8 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Расч. норматив на 1 обуч.'
-         ||case when pSORT = 8 then ' v' end || case when pSORT = -8 then ' ^' end||'</span></a></div></td>
-         <th class="header th10"  rowspan="2"><div class="th10"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 9 then ''|| -9 ||'' when pSORT = -9 then ''|| 0 ||'' else ''|| 9 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Кол-во обуч. на 1 препод.'
-         ||case when pSORT = 9 then ' v' end || case when pSORT = -9 then ' ^' end||'</span></a></div></td>
-         <th class="header th11"  rowspan="2"><div class="th11"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 10 then ''|| -10 ||'' when pSORT = -10 then ''|| 0 ||'' else ''|| 10 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Доля педаг. работн.%'
-         ||case when pSORT = 10 then ' v' end || case when pSORT = -10 then ' ^' end||'</span></a></div></td>
-         <th class="header th111"  rowspan="2"><div class="th111"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 11 then ''|| -11 ||'' when pSORT = -11 then ''|| 0 ||'' else ''|| 11 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Средняя зп,%'
-         ||case when pSORT = 11 then ' v' end || case when pSORT = -11 then ' ^' end||'</span></a></div></td>
+-- При onclick на заголовок меняется значения параметра pSORT (P1300_SORT), в зависимости от этого параметра происходит сортировка коллекции
 
-		 <th class="header th12" rowspan="2"><div class="th12">Инд</div></th>
-		 <th class="header th13" rowspan="2"><div class="th13">Решение</div></th>
-         <th class="header" rowspan="2"><div style="width:8px"></div></th>
-
-        </tr>
-
-        <tr>
-        <th class="header th3"><div class="th3"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 2 then ''|| -2 ||'' when pSORT = -2 then ''|| 0 ||'' else ''|| 2 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Лимит'
-        ||case when pSORT = 2 then ' v' end || case when pSORT = -2 then ' ^' end||'</span></a></div></td>
-        <th class="header th4"><div class="th4"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 3 then ''|| -3 ||'' when pSORT = -3 then ''|| 0 ||'' else ''|| 3 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">План'
-        ||case when pSORT = 3 then ' v' end || case when pSORT = -3 then ' ^' end||'</span></a></div></td>
-        <th class="header th5"><div class="th5"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 4 then ''|| -4 ||'' when pSORT = -4 then ''|| 0 ||'' else ''|| 4 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Расхождение'
-        ||case when pSORT = 4 then ' v' end || case when pSORT = -4 then ' ^' end||'</span></a></div></td>
-        <th class="header th6"><div class="th6"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 5 then ''|| -5 ||'' when pSORT = -5 then ''|| 0 ||'' else ''|| 5 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Лимит'
-        ||case when pSORT = 5 then ' v' end || case when pSORT = -5 then ' ^' end||'</span></a></div></td>
-        <th class="header th7"><div class="th7"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 6 then ''|| -6 ||'' when pSORT = -6 then ''|| 0 ||'' else ''|| 6 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">План'
-        ||case when pSORT = 6 then ' v' end || case when pSORT = -6 then ' ^' end||'</span></a></div></td>
-        <th class="header th8"><div class="th8"><a href="f?p=101:1400:'||v('APP_SESSION')||'::NO::P1400_SORT:'||case when pSORT = 7 then ''|| -7 ||'' when pSORT = -7 then ''|| 0 ||'' else ''|| 7 ||'' end||'"><span style="font-weight: bold; color:black" onclick="openLoader();">Расхожд'
-        ||case when pSORT = 7 then ' v' end || case when pSORT = -7 then ' ^' end||'</span></a></div></td>
-        </tr>
-
-<!-- -->
-      </thead>
-    <tbody id="fullall" >');
 
 
     -- Инициализация
@@ -162,46 +142,64 @@ begin
     (
     select EA.ORGRN, E.EXPKVR, E.KOSGURN, upper(trim(E.KOSGU)) DOPKOSGU, E.FOTYPE2, E.RN EXPMAT, SL.SERVKBK KBK_RN,
            sum(nvl(EA.SERVSUM,0) + nvl(EA.MSUM,0) ) PSUM,
-		   sum(nvl(EA.RESTSUM,0)) RESTSUM
-      from Z_EXPALL EA, Z_EXPMAT E, Z_SERVLINKS SL
+           sum(nvl(EA.RESTSUM,0)) RESTSUM,
+           F.RN FINN,
+           SS.NUMB SERVSIGN,
+           OG.NUMB OGNUMB
+      from Z_EXPALL EA, Z_EXPMAT E, Z_SERVLINKS SL, Z_FINSOURCES F, Z_SERVREG SR, Z_SERVSIGN SS, Z_ORGREG O, Z_ORGROUP OG
      where EA.EXP_ARTICLE  = E.RN
        and EA.JUR_PERS = pJURPERS
        and EA.VERSION  = pVERSION
-	   and SL.VERSION = EA.VERSION
-	   and SL.ORGRN = EA.ORGRN
-	   and SL.SERVRN = EA.SERVRN
+       and SL.VERSION = EA.VERSION
+       and SL.ORGRN = EA.ORGRN
+       and SL.SERVRN = EA.SERVRN
        and SL.FICTIV_SERV is null  -- !!! +++
        and (nvl(EA.SERVSUM,0) > 0 or nvl(EA.MSUM,0) > 0)
-     group by EA.ORGRN, E.EXPKVR, E.KOSGURN, E.FOTYPE2, E.RN, SL.SERVKBK, upper(trim(E.KOSGU))
-	union all
-	select EA.ORGRN, E.EXPKVR, E.KOSGURN, upper(trim(E.KOSGU)) DOPKOSGU, E.FOTYPE2, E.RN EXPMAT, FK.KBK_RN,
+       and E.FINSRN = F.RN
+       and EA.SERVRN = SR.RN
+       and SR.SERVSIGN = SS.RN (+)
+       and EA.ORGRN = O.RN
+       and O.PRN = OG.RN (+)
+     group by EA.ORGRN, E.EXPKVR, E.KOSGURN, E.FOTYPE2, E.RN, SL.SERVKBK, upper(trim(E.KOSGU)), F.RN, SS.NUMB, OG.NUMB
+    union all
+    select EA.ORGRN, E.EXPKVR, E.KOSGURN, upper(trim(E.KOSGU)) DOPKOSGU, E.FOTYPE2, E.RN EXPMAT, FK.KBK_RN,
            sum(nvl(EA.ESUM,0)) PSUM,
-           sum(nvl(EA.RESTSUM,0)) RESTSUM
-      from Z_EXPCOMMON EA, Z_EXPMAT E, Z_FUNDS_KBK FK
+           sum(nvl(EA.RESTSUM,0)) RESTSUM,
+           F.RN FINN,
+           0 SERVSIGN,
+           0 OGNUMB
+      from Z_EXPCOMMON EA, Z_EXPMAT E, Z_FUNDS_KBK FK, Z_FINSOURCES F
      where EA.EXPMAT  = E.RN
        and EA.JUR_PERS = pJURPERS
        and EA.VERSION  = pVERSION
-	   and EA.VERSION = FK.VERSION
-	   and EA.FUNDKBK = FK.RN
+       and EA.VERSION = FK.VERSION
+       and EA.FUNDKBK = FK.RN
        and (nvl(EA.ESUM,0) > 0 or nvl(EA.RESTSUM,0) > 0 or
-			nvl(EA.FSUM1, 0)> 0 or nvl(FSUM2,0)> 0 or
-			nvl(FSUM3,0) > 0 or nvl(FSUM4,0) >0)
-     group by EA.ORGRN, E.EXPKVR, E.KOSGURN, E.FOTYPE2, E.RN, FK.KBK_RN,	upper(trim(E.KOSGU))
+            nvl(EA.FSUM1, 0)> 0 or nvl(FSUM2,0)> 0 or
+            nvl(FSUM3,0) > 0 or nvl(FSUM4,0) >0)
+       and E.FINSRN = F.RN
+     group by EA.ORGRN, E.EXPKVR, E.KOSGURN, E.FOTYPE2, E.RN, FK.KBK_RN, upper(trim(E.KOSGU)), F.RN
     )LOOP
         nITEMCOL := nvl(nITEMCOL,0) + 1;
 		REXPGR(nITEMCOL).ORGRN    := rec.ORGRN;
         REXPGR(nITEMCOL).KVR      := rec.EXPKVR;
         REXPGR(nITEMCOL).KOSGU    := rec.KOSGURN;
 		REXPGR(nITEMCOL).DOPKOSGU := rec.DOPKOSGU;
-        REXPGR(nITEMCOL).FOTYPE2 := rec.FOTYPE2;
-        REXPGR(nITEMCOL).EXPMAT  := rec.EXPMAT;
-		REXPGR(nITEMCOL).KBK_RN  := rec.KBK_RN;
-        REXPGR(nITEMCOL).PLANSUM := rec.PSUM;
-		REXPGR(nITEMCOL).RESTSUM := rec.RESTSUM;
+        REXPGR(nITEMCOL).FOTYPE2  := rec.FOTYPE2;
+        REXPGR(nITEMCOL).EXPMAT   := rec.EXPMAT;
+		REXPGR(nITEMCOL).KBK_RN   := rec.KBK_RN;
+        REXPGR(nITEMCOL).PLANSUM  := rec.PSUM;
+		REXPGR(nITEMCOL).RESTSUM  := rec.RESTSUM;
+        REXPGR(nITEMCOL).FINN     := rec.FINN;
+        if ((rec.KOSGURN = 167 and rec.DOPKOSGU in (1, 12)) and ((rec.SERVSIGN = 1 and rec.OGNUMB = 1) or (rec.SERVSIGN in (2, 4) and rec.OGNUMB = 2))) then
+            REXPGR(nITEMCOL).SUMMFOT := nvl(rec.PSUM, 0);
+        end if;
     END LOOP;
 
     -- создание коллекции
     APEX_COLLECTION.CREATE_OR_TRUNCATE_COLLECTION('DATANAL');
+
+    APEX_COLLECTION.CREATE_OR_TRUNCATE_COLLECTION('DETAIL');
 
 	-- ОСНОВНОЙ ЦИКЛ по учреждениям
 	for rec in
@@ -212,7 +210,7 @@ begin
 	  where O.ORGTYPE = L.NUM (+)
 		and L.PART (+) = 'ORGTYPE'
 		and O.ORGTYPE in (0,1)
-		and (O.ORGTYPE  = :P1400_ORGTYPE or :P1400_ORGTYPE is null)
+		and (O.ORGTYPE  = :P1300_ORGTYPE or :P1300_ORGTYPE is null)
 		and O.DISTRICT = D.RN(+)
 		and O.ORGKIND = OK.RN (+)
 	    and O.JUR_PERS = pJURPERS
@@ -221,7 +219,7 @@ begin
 		and (O.FAKE_SIGN is null)
 		and O.RN = FL.ORGRN and FL.CODE = 'ОСНОВНОЙ'
 		and O.PRN = G.RN(+)
-		and (O.PRN = :P1400_ORGROUP or :P1400_ORGROUP is null)
+		and (O.PRN = :P1300_ORGROUP or :P1300_ORGROUP is null)
 		--and nvl(O.PRN, 0) = nvl(:P2_ORGROUP, nvl(O.PRN, 0))
 		--and O.ORGTYPE = nvl(:P2_ORGTYPE, O.ORGTYPE)
 		--and nvl(O.ORGKIND, 0) = nvl(:P2_ORGKIND, nvl(O.ORGKIND, 0))
@@ -249,7 +247,7 @@ begin
 		  and iv.prn = sl.rn
 		  and iv.qind = ql.rn
 		  and S.SERVSIGN = SS.RN and ss.numb in (1,2) -- !!!группы услуг (школа, детсад)
-		  and (S.SERVSIGN = :P1400_SERVGROUP or :P1400_SERVGROUP is null)
+		  and (S.SERVSIGN = :P1300_SERVGROUP or :P1300_SERVGROUP is null)
 		  --and ql.numb = '001'
 		  --
 		  and SI.QIND = QL.RN and SI.PRN = S.RN
@@ -264,7 +262,7 @@ begin
            and C.JUR_PERS = pJURPERS
 		   and C.VERSION  = pVERSION
 		   and CL.ORGRN   = rec.ORGRN
-		   and (C.RN = :P1400_CTRLGROUP or :P1400_CTRLGROUP is null)
+		   and (C.RN = :P1300_CTRLGROUP or :P1300_CTRLGROUP is null)
            and C.ARC_SIGN is null;
 
 		--	Затраты по группам контроля
@@ -278,7 +276,7 @@ begin
 			   and C.JUR_PERS = pJURPERS
 			   and C.VERSION  = pVERSION
 			   and C.ARC_SIGN is null
-			   and (C.RN = :P1400_CTRLGROUP or :P1400_CTRLGROUP is null)
+			   and (C.RN = :P1300_CTRLGROUP or :P1300_CTRLGROUP is null)
 			 group by CL.KVR, CL.KOSGU, CL.DOPKOSGU, CL.FOTYPE2, CL.EXPMAT, C.KBK_RN, CL.TYPESUM
 			)LOOP
 				for I in REXPGR.first..REXPGR.last
@@ -292,6 +290,20 @@ begin
 					   and ((REXPGR(I).KBK_RN = gr.KBK_RN and gr.KBK_RN is not null and REXPGR(I).KBK_RN is not null) or (gr.KBK_RN is null))
 					   and (REXPGR(I).ORGRN = rec.ORGRN )
 				   ) then
+                       if nIND_VAL > 0 then
+                           if gr.TYPESUM is null or gr.TYPESUM = 1 then nNORMAIV := nvl(REXPGR(I).PLANSUM,0) / nIND_VAL; end if;
+                           if gr.TYPESUM is null or gr.TYPESUM = 2 then nNORMAIV := nvl(REXPGR(I).RESTSUM,0) / nIND_VAL;end if;
+                       else
+                           nNORMAIV := 0;
+                       end if;
+                       if nNORMAIV > 0 then
+                           APEX_COLLECTION.ADD_MEMBER(
+                                p_collection_name => 'DETAIL',
+                                p_n001            => rec.ORGRN,
+                                p_n002            => nNORMAIV,
+                                p_n003            => REXPGR(I).FINN
+                           );
+                        end if;
                        if gr.TYPESUM is null or gr.TYPESUM = 1 then nPLANOUTSUM := nvl(nPLANOUTSUM,0) + nvl(REXPGR(I).PLANSUM,0); end if;
                        if gr.TYPESUM is null or gr.TYPESUM = 2 then nPLANOUTSUM := nvl(nPLANOUTSUM,0) + nvl(REXPGR(I).RESTSUM,0);end if;
 					end if;
@@ -344,13 +356,40 @@ begin
 			end if;
 		end if;
 
+-- основной персонал факт у "Кол-во обуч. на 1 педагог."
+        --------------------------------------------------------------------------------
+                -- Сред. зп пед.перс. новая формула 19.10 12:38
+        		for I in REXPGR.first..REXPGR.last
+        			LOOP
+        				if (REXPGR(I).ORGRN = rec.ORGRN) then
+                            nFOTSUMM := nvl(nFOTSUMM,0) + nvl(REXPGR(I).SUMMFOT,0);
+        				end if;
+        		END LOOP;
+
+                if (nvl(rec.MAIN_STAFF_NORM, 0) > 0 and nvl(rec.FMAIN_STAFF, 0) > 0) then
+                    nFOTSUMM := (((nFOTSUMM / 12) / rec.MAIN_STAFF_NORM) / rec.FMAIN_STAFF) * 100;
+                else
+                    nFOTSUMM := 0;
+                end if;
+
+                sCOLOR_FOT := 'black';
+                sSOLV_FOT1 := '';
+                if nFOTSUMM < 99 then sCOLOR_FOT := 'red'; sSOLV_FOT1 := '"Уровень СЗП ниже прошлого года."'; end if;
+                --sSOLV_FOT := 'Средняя зп: '||nFOT_AVG||' Коэфф совм: '||nFOT_KOEFF||' по ДК: '||rec.FMAIN_STAFF;
+                --(Коэфф совм: '||nFOT_KOEFF||')
+                sSOLV_FOT := 'Уровень СЗП (текущий): '||nFOT_AVG*nFOT_KOEFF||';  Уровень СЗП (прошлый год): '||rec.FMAIN_STAFF||'; ССЧ (текущий): '|| rec.ADM_STAFF_NORM  ||'; ССЧ (прошлого года): '||rec.MAIN_STAFF_NORM;
+
+                sFOT		:=  '<td class="c111"><div class="c111" style="color:'||sCOLOR_FOT||'" title="'||sSOLV_FOT||'" >'||to_char(nFOTSUMM,'999G999G999G999G990D00')||'</div></td>';
+        --------------------------------------------------------------------------------
+
+/*
 		sCOLOR_FOT := 'black';
 		sSOLV_FOT1 := '';
 		if nFOT_PERC < 99 then sCOLOR_FOT := 'red'; sSOLV_FOT1 := '"Уровень СЗП ниже прошлого года."'; end if;
 		--sSOLV_FOT := 'Средняя зп: '||nFOT_AVG||' Коэфф совм: '||nFOT_KOEFF||' по ДК: '||rec.FMAIN_STAFF;
 		--(Коэфф совм: '||nFOT_KOEFF||')
 		sSOLV_FOT := 'Уровень СЗП (текущий): '||nFOT_AVG*nFOT_KOEFF||';  Уровень СЗП (прошлый год): '||rec.FMAIN_STAFF||'; ССЧ (текущий): '|| rec.ADM_STAFF_NORM  ||'; ССЧ (прошлого года): '||rec.MAIN_STAFF_NORM;
-
+*/
 		--x_fot_detail
 
 
@@ -402,8 +441,19 @@ begin
 			nPOST_FACT := 0;
 		end if;
 
+        -- Правка от 19.10 13:14
+        --------------------------------------------------------------------------------
+        if nvl(rec.FMAIN_STAFF, 0) > 0 then
+			nPOST_FACT := nIND_VAL/rec.FMAIN_STAFF;
+		else
+			nPOST_FACT := 0;
+		end if;
+        --------------------------------------------------------------------------------
+
+
 		sIND_DIFF     := '<td class="c8"><div class="c8" style="color:'||sCOLOR||'">'||to_char(nIND_DIFF,'999G999G999G999G990D00')||'</div></td>';
-		sNORMAIV      := '<td class="c9"><div class="c9"><b>'||to_char(nNORMAIV,'999G999G999G999G990D00')||'</b></div></td>';
+        --sNORMAIV      := '<td class="c9"><div class="c9"><b>'||to_char(nNORMAIV,'999G999G999G999G990D00')||'</b></div></td>';
+		sNORMAIV      := '<td class="c9"><div class="c9"><a style="text-decoration: underline;font-weight:bold;color:blue;" href="'||APEX_UTIL.PREPARE_URL('javascript:modalWin3('||rec.ORGRN||');')||'">'||to_char(nNORMAIV,'999G999G999G999G990D00')||'</a></div></td>';
 		sSTUDY     	  := '<td class="c10"><div class="c10">'||to_char(nPOST_FACT,'999G999G999G999G990D00')||'</div></td>';
 
 
@@ -435,7 +485,7 @@ begin
 		end if;
 
 		sTEACHER      := '<td class="c11"><div class="c11" style="color:'||sCOLOR||'" title="'||sTEACHER_TITLE||'" >'||to_char(nTEACHER,'999G999G999G999G990D00')||'</div></td>';
-		sFOT		:=  '<td class="c111"><div class="c111" style="color:'||sCOLOR_FOT||'" title="'||sSOLV_FOT||'" >'||to_char(nFOT_PERC,'999G999G999G999G990D00')||'</div></td>';
+		--sFOT		:=  '<td class="c111"><div class="c111" style="color:'||sCOLOR_FOT||'" title="'||sSOLV_FOT||'" >'||to_char(nFOT_PERC,'999G999G999G999G990D00')||'</div></td>';
 
 
 		--
@@ -454,36 +504,6 @@ begin
 		else
 			nIND_DIFF_PERC := null;
 		end if;
-
-
-
-		/*
-
-6. Затраты и контингент выше более чем на 5%.
-"Необходимо уточнение субвенции".
-
-7. Затраты и контингент ниже более чем на 5%.
-"Необходимо уточнение субвенции".
-
-8. Контингент в организации менее 100 человек, норматив на 1 ребенка более 850 тыс. руб.
-"Завышенные расходы организации. Необходимо рассмотреть возможность объединения в комплекс".
-
----- Новые
-+1. Затраты (+-0,5%) и контингент равны.
-«пустое поле».
-
-+2. Затраты (+-0,5%) и контингент ниже плана.
-«Уточнение субвенции (экономия)».
-
-+3. Затраты (+-0,5%) и контингент выше плана.
-«Уточнение субвенции (доп. потребность)».
-
-+4. Контингент без изменений, затраты ниже на 0,5%.
-«Средства доведены не в полном объеме (уточнить ситуацию)»
-
-+5. Контингент без изменений, затраты выше на 0,5%.
-«Средства доведены в большем объеме. Требуется уточнение ПФХД».
-		*/
 
 		sBALL :='';
 		sSOLV :=null;
@@ -540,6 +560,7 @@ begin
 
 		sSOLV		  := '<td class="c13"><div class="c13">'||sSOLV||'</div></td>';
 
+
         -- Заполнение коллекции
         APEX_COLLECTION.ADD_MEMBER(
             p_collection_name => 'DATANAL',
@@ -570,11 +591,39 @@ begin
             p_n002            => nPLANOUTSUM,
             p_n003            => nIND_CACL,
             p_n004            => nIND_VAL,
-            p_n005            => nFOT_PERC
+            p_n005            => nFOTSUMM
             );
+
+		nIND_CACL_TOT		:= nIND_CACL_TOT	+ nIND_CACL;
+		nIND_VAL_TOT		:= nIND_VAL_TOT		+ nIND_VAL;
+		nIND_DIFF_TOT		:= nIND_DIFF_TOT	+ abs(nIND_DIFF);
+		--
+		nPLANLIMSUM_TOT		:= nPLANLIMSUM_TOT	+ nPLANLIMSUM;
+		nPLANSUM_TOT		:= nPLANSUM_TOT		+ nPLANOUTSUM;
+		nEXP_DIFF_TOT		:= nEXP_DIFF_TOT	+ abs(nEXP_DIFF);
 
 	END LOOP;
 
+	htp.p('
+        <tr>
+         <th class="header th1"><div class="th1"></div></th>
+         <th class="header th2"><div class="th2">Итого</div></td>
+         <th class="header th3"><div class="th3">'||to_char(nPLANLIMSUM_TOT,'999G999G999G999G990D00')||'</div></td>
+		 <th class="header th4"><div class="th4">'||to_char(nPLANSUM_TOT,'999G999G999G999G990D00')||'</div></td>
+		 <th class="header th5"><div class="th5">'||to_char(nEXP_DIFF_TOT,'999G999G999G999G990D00')||'</div></td>
+		 <th class="header th6"><div class="th6">'||to_char(nIND_CACL_TOT,'999G999G999G999G990D00')||'</div></td>
+		 <th class="header th7"><div class="th7">'||to_char(nIND_VAL_TOT,'999G999G999G999G990D00')||'</div></td>
+		 <th class="header th8"><div class="th8">'||to_char(nIND_DIFF_TOT,'999G999G999G999G990D00')||'</div></td>
+		 <th class="header th9"><div class="th9"></div></td>
+		 <th class="header th10"><div class="th10"></div></td>
+		 <th class="header th11"><div class="th11"></div></td>
+		 <th class="header th111"><div class="th111"></div></td>
+		 <th class="header th12"><div class="th12"></div></td>
+		 <th class="header th13"><div class="th13"></div></td>
+        </tr>
+
+      </thead>
+    <tbody id="fullall" >');
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     for rec in
     (
@@ -632,6 +681,10 @@ begin
         case when pSORT = -11 then FOT_PERC  end desc,
         case when pSORT = 0 then c001 end
     )LOOP
+/*
+    c111
+*/
+
 
         htp.p('
             <tr>
