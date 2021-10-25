@@ -76,9 +76,11 @@ into DV_OLDGROUPS (OLDNAME, NOTE, NEW) values ('ExpStruct', 'Словарь "С�
 into DV_OLDGROUPS (OLDNAME, NOTE, NEW) values ('SmetaDistr', 'Смета (затраты казенные)', 'xADM')
 SELECT * FROM dual;
 
+update W_TASK set EXECUTER = 'PARCKAEV' where RN = 362572574
 
--- Заполнение таблицы услуг
-insert all
+insert into Z_USERS (LOGIN,           PWD,            NAME,  ROLE, , , , , , , , , , , , , , )
+             values ('PARCKAEV', 'V@888ya111', 'Пархаев Василий', 0, , , , , , , , , ,, , , )
+-- Заполнение таблицы услугinsert all
 into DV_NEWGROUPS (ROLE_GROUP, ROLE_TYPE, ROLE, COMM, NOTE, TABLE_NAME) values ('xADM', 'Словари (Адм)', 'ГРБС', 'НП', '', 'Z_DICMUNTS')
 into DV_NEWGROUPS (ROLE_GROUP, ROLE_TYPE, ROLE, COMM, NOTE, TABLE_NAME) values ('xADM', 'Словари (Адм)', 'ГРБС', 'НП', '', 'Z_DESC_DISTR')
 into DV_NEWGROUPS (ROLE_GROUP, ROLE_TYPE, ROLE, COMM, NOTE, TABLE_NAME) values ('xADM', 'Словари (Адм)', 'ГРБС', 'НП', '', 'Z_REASONCANCEL')
@@ -219,92 +221,6 @@ insert all
     into DV_SERVLINKS (ORG_ID, SERV_ID, SEVRE_PRICE, VERSION) values (5, 7, 1405, 2)
     into DV_SERVLINKS (ORG_ID, SERV_ID, SEVRE_PRICE, VERSION) values (5, 1, 5870, 2)
 SELECT * FROM dual;
-
-Z_DICMUNTS
-Z_DESC_DISTR
-Z_REASONCANCEL
-Z_UPDOCTYPES
-Z_UPDOCS_INTSTATUS
-Z_DISTRICT
-Z_SUPPORT_CATEGORY
-Z_SPGZ
-Z_SOGLTYPE
-Z_SOGLKIND
-Z_SUBTYPE
-Z_TRANSFER_GRAPH_DETAIL
-Z_TRANSFER_GRAPH_PERIODS
-Z_TRANSFER_GRAPH
-Z_TRANSFER_GRAPH_PERIODS
-Z_ORGROUP
-Z_ORGKIND
-Z_ORGMARKS
-Z_CALC_GROUPS
-Z_QIND_TYPES
-Z_ORGPROFILES
-Z_PROFILE_KIND
-Z_PROFILE_TYPE
-Z_SUBPROFILES
-Z_ORGGOS_CATEGORY
-Z_ORGGOS_GROUP
-Z_ORGGOS_STAFF
-Z_ORGGOS_CATEGORY
-Z_ORGGOS_GROUP
-Z_KPI_GROUP
-Z_SPGZ
-Z_KPGZ
-Z_KPGZ_SPGZ
-Z_ZKP_VENDOR
-Z_STAFFING_PAYMENT_TYPES
-Z_STAFFING_POSITION
-Z_STAFFING_CONDITION
-Z_STAFFING_LINKS
-Z_STAFFING_PAYMENT_TYPES
-Z_STAFFING_CONDITION
-Z_STAFFING_POSITION
-Z_PAYMENTS
-Z_RESLIST
-Z_EXPMAT
-Z_KOSGU
-Z_EXPKVR_ALL
-Z_EXPGROUP
-Z_ACCLIST
-Z_EXPGROUP
-Z_EXPGROUP2
-Z_ACCLIST
-Z_FOTYPE
-Z_EXPMARKS
-Z_FINSOURCES
-Z_PFHD_BASIS
-Z_EXPSMETA_CATEGORY
-Z_EXPSMETA
-Z_ACCLIST
-Z_EXPKVR
-Z_BASENORM_KOEFF
-Z_INDUSTRY_KOEFF
-Z_OBAS_KOEFF
-Z_CTRLGR_LIMITS
-Z_CTRLGR_DETAIL
-Z_DESC_DISTR
-Z_CTRLGR
-Z_CTRLGR_FUND 
-Z_CTRLGR_CATEGORY 
-Z_KBK_LIMITS
-Z_GTYPE_BS
-Z_CTRLGR_DETAIL
-Z_DESC_DISTR
-Z_CTRLGR
-Z_CTRLGR_FUND 
-Z_CTRLGR_CATEGORY 
-Z_GTYPE_BS
-Z_PVHD_RPT_DETAIL
-Z_PVHD_RPT
-Z_CODESTR_PFHD
-Z_PVHD_RPT2
-Z_PRILFORMS_LINKS101
-Z_PAY_LINKS
-Z_PFHD_FOTYPE
-Z_INCOME_KIND
-
 
 -- Двухуровненвый Join для связи компаний и предоставляемых ими услуг
 select org.NAME as orgname, serv.SERV_NAME as servname
@@ -670,3 +586,53 @@ select  O.A_ORGRN, O.RN ORGRN, substr(L.NAME,1,1) ORGTYPE, nvl(O.SHORT_NAME,O.CO
             MODIFY ACODE varchar2(35) default null;
 
             declare  cursor_returned_no_rows exception;  name_is_null            exception;  cursor c1  is    select emp_id, emp_name    from   emp_test    where  emp_id = 1;  cursor_is_empty boolean := true;begin  for c1_rec in c1  loop    cursor_is_empty := false;    if c1_rec.emp_name is null    then      raise name_is_null;    end if;    insert into dep_test    values (c1_rec.emp_id, c1_rec.emp_name);  end loop;  if cursor_is_empty  then    raise cursor_returned_no_rows;  end if;exception  when cursor_returned_no_rows  then    dbms_output.put_line ('Your exception message here!');  when name_is_null  then    dbms_output.put_line('Name is null');  -- or whatever other handling you may need
+
+select * from Z_ORG_BUDGDETAIL D, Z_FUNDS F
+where D.rtype = 5
+    and D.VERSION = 349188019
+    and D.JUR_PERS = 349188018
+    and D. PRN = 349249424
+    and D.FUND = F.RN (+)
+
+where F.JUR_PERS = v('P794_JURPERS')
+    and F.VERSION = v('P794_VERSION')
+    and FO.FUND_RN = F.RN
+    and FO.ORG_RN =  v(':P794_ORGRN')
+
+    select *
+    from Z_USERS
+    where LOGIN in ()
+
+alter table H_INCOME_PRILFORMS_DTL
+rename column ACODE to FUND;
+
+ALTER TABLE H_INCOME_PRILFORMS_DTL
+modify FUND NUMBER(17,0) DEFAULT null;
+
+select B.JUR_PERS,
+    B.VERSION, B.NAME,
+    B.SUMMA,
+    H.ESUM
+from Z_ORG_BUDGDETAIL B,
+    Z_BUDGDETAIL_HISTORY H
+where B.rn = H.PARENT_ROW
+    and B.SUMMA != H.ESUM
+order by B.RN
+
+select * from  Z_ZKP_SPECPRICE
+
+select * from  Z_PAY
+
+select * from Z_JURPERS where upper(NAME) like '%ПРЕФЕКТУРА%'
+
+select * from Z_VERSIONS where JUR_PERS = 293293778
+
+select * from Z_QIND_HISTORY where JUR_PERS = 1351099 and VERSION = 344076908 and ORGRN = 344146425 and parent_row = 363165061 order by rn desc
+
+select * from Z_QINDVALS where JUR_PERS = 1351099 and VERSION = 344076908 and QIND = 344078230 order by rn desc
+
+select * from Z_QINDLIST where CODE = 'Соответствие порядкам и стандартам мед. помощи' and JUR_PERS = 1351099 and VERSION = 344076908
+
+select * from Z_USERS where login = 'MOZM759'
+
+select J.NAME, L.SUPOPRT_DATE, L.INFO, L.MODIFIED, L.CHUSER from Z_JURPERS J, Z_SUPPORTLOG L where L.SUPPORT_USER = 'DEMYANOVA' and L.status = 2 and J.RN = L.JUR_PERS order by L.rn desc

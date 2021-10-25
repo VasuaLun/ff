@@ -1,7 +1,7 @@
 create or replace PROCEDURE DV_DINAMIC_EKZ
 (
   pFILE        out BLOB,
-  pJURPERS     number,
+  pJURPERS     number,a
   pVERSION     number,
   pFOTYPE2     varchar2,
   pORGRN       number,
