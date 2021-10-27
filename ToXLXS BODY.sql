@@ -96,9 +96,6 @@ create or replace package body APKG_XLSREP is
   nPRIORITY              integer := 1;              -- приоритет условного форматирования
   sCURRENTRELSHEET         varchar2(255);
 
-  nMARKCROSS             number := 0;
-  nCROSTAT             number;
-
   -----------------------------------------------------------------------------------------------------------------------
   -- Процедура выставляет контекст аналогично его первой инициализации
   procedure SET_DEFAULT_VARS
@@ -2074,66 +2071,34 @@ create or replace package body APKG_XLSREP is
   as
     nROWNUM                    number;
     nCOLNUM                    number;
-  begin
+begin  -- A_XLSCELLSTEST
     nROWNUM := case when nROWNUMBER = 0 then nROWCOUNT else nROWNUMBER end;
     nCOLNUM := GET_COLNUMBER_LAST( nROWNUM ) + 1;
     nCURCELL_RN := nCURCELL_RN + 1;
 
-    -- Здесь будет ваш костыль
-    if nMERGEACROSS > 0 and nMERGEDOWN > 0 then
-        nMARKCROSS := nMERGEACROSS;
-        nCROSTAT   := nMERGEDOWN;
+    if lOPTIMIZE_INSERT then
+      vXLSCELLS(vXLSCELLS.Count + 1).RN := nCURCELL_RN;
+      vXLSCELLS(vXLSCELLS.Count).PRN := nROWNUM;
+      vXLSCELLS(vXLSCELLS.Count).STYLE := sSTYLE;
+      vXLSCELLS(vXLSCELLS.Count).MERGEACROSS := nMERGEACROSS;
+      vXLSCELLS(vXLSCELLS.Count).CELLDATA := sCELLDATA;
+      vXLSCELLS(vXLSCELLS.Count).CELLTYPE := sCELLTYPE;
+      vXLSCELLS(vXLSCELLS.Count).SKIP := nSKIP;
+      vXLSCELLS(vXLSCELLS.Count).TAG := sTAG;
+      vXLSCELLS(vXLSCELLS.Count).FORMATCELL := nWITHFORMAT;
+      vXLSCELLS(vXLSCELLS.Count).SKIPINDEX := nSKIPINDEX;
+      vXLSCELLS(vXLSCELLS.Count).MERGEDOWN := nMERGEDOWN;
+      vXLSCELLS(vXLSCELLS.Count).CONDFORMAT := sCONDFORMAT;
+      vXLSCELLS(vXLSCELLS.Count).AUTO_EMPTY := nAUTO_EMPTY;
+      vXLSCELLS(vXLSCELLS.Count).COLNUMB := nCOLNUM;
+
+      rNUMCOL( nROWNUM ) := nCOLNUM + nMERGEDOWN;
+      rINDEX_XLSCELLS( nROWNUM||' '||nCOLNUM ) := vXLSCELLS.Count;
     else
-        nMARKCROSS := nMARKCROSS - 1;
-    end if;
-
-
-    if nMARKCROSS = 0 then
-        if lOPTIMIZE_INSERT then
-          vXLSCELLS(vXLSCELLS.Count + 1).RN := nCURCELL_RN;
-          vXLSCELLS(vXLSCELLS.Count).PRN := nROWNUM;
-          vXLSCELLS(vXLSCELLS.Count).STYLE := sSTYLE;
-          vXLSCELLS(vXLSCELLS.Count).MERGEACROSS := nMERGEACROSS;
-          vXLSCELLS(vXLSCELLS.Count).CELLDATA := sCELLDATA;
-          vXLSCELLS(vXLSCELLS.Count).SKIP := nSKIP;
-          vXLSCELLS(vXLSCELLS.Count).CELLTYPE := sCELLTYPE;
-          vXLSCELLS(vXLSCELLS.Count).TAG := sTAG;
-          vXLSCELLS(vXLSCELLS.Count).FORMATCELL := nWITHFORMAT;
-          vXLSCELLS(vXLSCELLS.Count).SKIPINDEX := nSKIPINDEX;
-          vXLSCELLS(vXLSCELLS.Count).MERGEDOWN := nCROSTAT;
-          vXLSCELLS(vXLSCELLS.Count).CONDFORMAT := sCONDFORMAT;
-          vXLSCELLS(vXLSCELLS.Count).AUTO_EMPTY := nAUTO_EMPTY;
-          vXLSCELLS(vXLSCELLS.Count).COLNUMB := nCOLNUM;
-
-          rNUMCOL( nROWNUM ) := nCOLNUM + nCROSTAT;
-          rINDEX_XLSCELLS( nROWNUM||' '||nCOLNUM ) := vXLSCELLS.Count;
-        else
-          insert into A_XLSCELLS(RN, PRN, STYLE, MERGEACROSS, CELLDATA, CELLTYPE, SKIP, TAG, FORMATCELL, SKIPINDEX, MERGEDOWN, CONDFORMAT, COLNUMB, AUTO_EMPTY )
-            values ( nCURCELL_RN, nROWNUM, sSTYLE, nMERGEACROSS, sCELLDATA, sCELLTYPE, nSKIP, sTAG, nWITHFORMAT, nSKIPINDEX, nCROSTAT, sCONDFORMAT, nCOLNUM, nAUTO_EMPTY );
-        end if;
-    else
-        if lOPTIMIZE_INSERT then
-          vXLSCELLS(vXLSCELLS.Count + 1).RN := nCURCELL_RN;
-          vXLSCELLS(vXLSCELLS.Count).PRN := nROWNUM;
-          vXLSCELLS(vXLSCELLS.Count).STYLE := sSTYLE;
-          vXLSCELLS(vXLSCELLS.Count).MERGEACROSS := nMERGEACROSS;
-          vXLSCELLS(vXLSCELLS.Count).CELLDATA := sCELLDATA;
-          vXLSCELLS(vXLSCELLS.Count).SKIP := nSKIP;
-          vXLSCELLS(vXLSCELLS.Count).CELLTYPE := sCELLTYPE;
-          vXLSCELLS(vXLSCELLS.Count).TAG := sTAG;
-          vXLSCELLS(vXLSCELLS.Count).FORMATCELL := nWITHFORMAT;
-          vXLSCELLS(vXLSCELLS.Count).SKIPINDEX := nSKIPINDEX;
-          vXLSCELLS(vXLSCELLS.Count).MERGEDOWN := nMERGEDOWN;
-          vXLSCELLS(vXLSCELLS.Count).CONDFORMAT := sCONDFORMAT;
-          vXLSCELLS(vXLSCELLS.Count).AUTO_EMPTY := nAUTO_EMPTY;
-          vXLSCELLS(vXLSCELLS.Count).COLNUMB := nCOLNUM;
-
-          rNUMCOL( nROWNUM ) := nCOLNUM + nMERGEDOWN;
-          rINDEX_XLSCELLS( nROWNUM||' '||nCOLNUM ) := vXLSCELLS.Count;
-        else
-          insert into A_XLSCELLS(RN, PRN, STYLE, MERGEACROSS, CELLDATA, CELLTYPE, SKIP, TAG, FORMATCELL, SKIPINDEX, MERGEDOWN, CONDFORMAT, COLNUMB, AUTO_EMPTY )
-            values ( nCURCELL_RN, nROWNUM, sSTYLE, nMERGEACROSS, sCELLDATA, sCELLTYPE, nSKIP, sTAG, nWITHFORMAT, nSKIPINDEX, nMERGEDOWN, sCONDFORMAT, nCOLNUM, nAUTO_EMPTY );
-        end if;
+      insert into A_XLSCELLS(RN, PRN, STYLE, MERGEACROSS, CELLDATA, CELLTYPE, SKIP, TAG, FORMATCELL, SKIPINDEX, MERGEDOWN, CONDFORMAT, COLNUMB, AUTO_EMPTY )
+        values ( nCURCELL_RN, nROWNUM, sSTYLE, nMERGEACROSS, sCELLDATA, sCELLTYPE, nSKIP, sTAG, nWITHFORMAT, nSKIPINDEX, nMERGEDOWN, sCONDFORMAT, nCOLNUM, nAUTO_EMPTY );
+      insert into A_XLSCELLSTEST(RN, PRN, STYLE, MERGEACROSS, CELLDATA, CELLTYPE, SKIP, TAG, FORMATCELL, SKIPINDEX, MERGEDOWN, CONDFORMAT, COLNUMB, AUTO_EMPTY )
+        values ( nCURCELL_RN, nROWNUM, sSTYLE, nMERGEACROSS, sCELLDATA, sCELLTYPE, nSKIP, sTAG, nWITHFORMAT, nSKIPINDEX, nMERGEDOWN, sCONDFORMAT, nCOLNUM, nAUTO_EMPTY );
     end if;
   end;
 
@@ -3097,7 +3062,7 @@ create or replace package body APKG_XLSREP is
       for cur_merge in
       (
         select c.*
-            from A_XLSROWS r
+          from A_XLSROWS r
           join A_XLSCELLS c on c.PRN = r.RN
          where r.SKIP = 0
            and c.SKIP = 0
@@ -3148,10 +3113,11 @@ create or replace package body APKG_XLSREP is
               nCOLNUM      => cur_merge.COLNUMB,
               sSTYLE       => cur_merge.STYLE
             );
-          end if;
+        end if;
         end loop;
 
-        lMERGEDOWN := true;
+        lMERGEDOWN := true;*/
+        null;
       end loop;
 
       -- повторно перезаполняем из коллекции
