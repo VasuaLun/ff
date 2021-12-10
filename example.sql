@@ -636,3 +636,293 @@ select * from Z_QINDLIST where CODE = 'Соответствие порядкам
 select * from Z_USERS where login = 'MOZM759'
 
 select J.NAME, L.SUPOPRT_DATE, L.INFO, L.MODIFIED, L.CHUSER from Z_JURPERS J, Z_SUPPORTLOG L where L.SUPPORT_USER = 'DEMYANOVA' and L.status = 2 and J.RN = L.JUR_PERS order by L.rn desc
+
+-- Добавить в таблицу на прод PRN
+ALTER TABLE Z_PURPOSE_OUTCOME
+ADD PRN number(17, 0) DEFAULT null
+
+
+select * from Z_SERVLINKS_NORM
+
+select * from X_FOT where SERV_RN = 350465743
+
+select * from Z_ORGREG where INN = '5031097320' and VERSION = 351290431
+
+select * from Z_JURPERS where rn = 272007622
+
+select * from Z_VERSIONS where JUR_PERS= 272007622
+
+select * from Z_SERVREG where rn = 350465743
+
+select MAT.RN from Z_EXPALL EALL, Z_EXPMAT MAT where EALL.EXP_ARTICLE = MAT.RN and EALL.VERSION = 351290431 and ORGRN in (270793923, 351303311, 351303419)
+
+select * from Z_PRILFORMS_EXPMAT where EXPMAT in (select MAT.RN from Z_EXPALL EALL, Z_EXPMAT MAT where EALL.EXP_ARTICLE = MAT.RN and EALL.VERSION = 351290431 and ORGRN in (270793923, 351303311, 351303419) )
+
+select * from Z_PRILFORMS_EXPMAT
+
+select * from ZV_XPRILFORMS, Z_EXPMAT where nexpmat in (select MAT.RN from Z_EXPALL EALL, Z_EXPMAT MAT where EALL.EXP_ARTICLE = MAT.RN and EALL.VERSION = 351290431 and ORGRN in (270793923, 351303311, 351303419))
+
+
+select ATTACH_ID,
+dbms_lob.getlength(ADD_DOCDATA) ADD_DOCDATA,
+ADD_MIMETYPE,
+ADD_FILENAME,
+ADD_LASTUPDATE,
+ADD_CHARSET,
+ATTACH_USER
+from TBL_ATTACH_FILE
+
+select E.EXPTYPE, EA.SERVRN, sum(EA.SERVSUM) ,
+   sum(nvl(EA.SERVSUM,0)) PSUM,
+sum(FSERVSUM1)+sum(FSERVSUM2)+sum(FSERVSUM3)+sum(FSERVSUM4) FSUM
+  from Z_EXPALL EA, Z_SERVREG SR, Z_EXPMAT E
+ where EA.SERVRN     = SR.RN
+   and (nvl(EA.SERVSUM,0) > 0 or
+        nvl(EA.SERVSUM_0,0) > 0 or
+        nvl(EA.SERVSUM_1,0) > 0 or
+        nvl(EA.SERVSUM_2,0) > 0 or
+        nvl(EA.SERVSUM_3,0) > 0 or
+        nvl(EA.SERVSUM_4,0) > 0)
+   and SR.WORKSERV_SIGN in (1,3)
+   and SR.PARENT_SIGN is null
+   and EA.JUR_PERS = 349188018
+   and EA.VERSION  = 349188019
+   and EA.ORGRN    = 349248213
+   and EA.FILIAL   = 349248215
+   and EA.VNEBUDG_SIGN = 0
+   and EA.EXP_ARTICLE = E.RN
+ group by E.EXPTYPE, EA.SERVRN
+
+ select E.EXPTYPE, EA.SERVRN, sum(EA.SERVSUM) ,
+    sum(nvl(EA.SERVSUM,0)) PSUM,
+ sum(FSERVSUM1)+sum(FSERVSUM2)+sum(FSERVSUM3)+sum(FSERVSUM4) FSUM
+   from Z_EXPALL EA, Z_SERVREG SR, Z_EXPMAT E, Z_SERVLINKS SL
+  where EA.SERVRN     = SR.RN
+    and (nvl(EA.SERVSUM,0) > 0 or
+         nvl(EA.SERVSUM_0,0) > 0 or
+         nvl(EA.SERVSUM_1,0) > 0 or
+         nvl(EA.SERVSUM_2,0) > 0 or
+         nvl(EA.SERVSUM_3,0) > 0 or
+         nvl(EA.SERVSUM_4,0) > 0)
+    and SR.WORKSERV_SIGN in (1,3)
+    and SR.PARENT_SIGN is null
+    and EA.JUR_PERS = 349188018
+    and EA.VERSION  = 349188019
+    and EA.ORGRN    = 349248213
+    and EA.FILIAL   = 349248215
+    and EA.VNEBUDG_SIGN = 0
+    and EA.EXP_ARTICLE = E.RN
+    and SL.SERVRN = SR.RN
+    and SL.ORGRN = 349248213
+    and (SL.NORM_EXPGTOUP is NULL or (SL.NORM_EXPGTOUP is not null and E.EXPGROUP is not null))
+  group by E.EXPTYPE, EA.SERVRN
+
+  select E.EXPTYPE, EA.SERVRN, sum(EA.SERVSUM) ,
+     case pPERIOD when 'NEXTPERIOD' then sum(nvl(EA.SERVSUM,0))
+                     when 'MPLAN_02' then sum(nvl(EA.SERVSUM_0,0))
+                     when 'MPLAN_01' then sum(nvl(EA.SERVSUM_1,0))
+                     when 'PLAN1' then sum(nvl(EA.SERVSUM_2,0))
+                     when 'PLAN2' then sum(nvl(EA.SERVSUM_3,0))
+                     when 'PLAN3' then sum(nvl(EA.SERVSUM_4,0)) end PSUM,
+  sum(FSERVSUM1)+sum(FSERVSUM2)+sum(FSERVSUM3)+sum(FSERVSUM4) FSUM
+  from Z_EXPALL EA, Z_SERVREG SR, Z_EXPMAT E, Z_SERVLINKS SL
+   where EA.SERVRN     = SR.RN
+     and (nvl(EA.SERVSUM,0) > 0 or
+          nvl(EA.SERVSUM_0,0) > 0 or
+          nvl(EA.SERVSUM_1,0) > 0 or
+          nvl(EA.SERVSUM_2,0) > 0 or
+          nvl(EA.SERVSUM_3,0) > 0 or
+          nvl(EA.SERVSUM_4,0) > 0)
+     and SR.WORKSERV_SIGN in (1,3)
+     and SR.PARENT_SIGN is null
+     and EA.JUR_PERS = pJURPERS
+     and EA.VERSION  = pVERSION
+     and EA.ORGRN    = pORGRN
+     and ((pORGFL is null) or (EA.FILIAL   = pORGFL))
+     and EA.VNEBUDG_SIGN = 0
+     and EA.EXP_ARTICLE = E.RN
+     and SL.SERVRN = SR.RN
+     and SL.ORGRN = pORGRN
+     and (SL.NORM_EXPGTOUP is NULL or (SL.NORM_EXPGTOUP is not null and E.EXPGROUP is not null))
+   group by E.EXPTYPE, EA.SERVRN
+
+
+   select
+   RN,
+   JUR_PERS,
+   CODE,
+   NAME
+   from Z_FOTYPE
+   where VERSION = 343567920
+   order by CODE
+
+
+   case pQUARTER when 'f1' then vQUARTER := '<th class="header th7" ><div class="th7">ФАКТ 1кв</div></th>'
+                     when 'f2' then vQUARTER := '<th class="header th8" ><div class="th8">ФАКТ 2кв</div></th>'
+                     when 'f3' then vQUARTER := '<th class="header th9" ><div class="th9">ФАКТ 3кв</div></th>'
+                     when 'f4' then vQUARTER := '<th class="header th10" ><div class="th10">ФАКТ 4кв</div></th>'
+       end;
+
+
+       SELECT
+          xt.content, xt.position, xt.financialYear, xt.fullName, xt.inn, xt.firstYear, xt.lastYear,
+          xtp.law, xtp.content, xtp.supplier, xtp.innSupplier, xtp.contractNumber, xtp.conclusionDate,
+          xtp.expirationDate, xtp.reestrNumber, xtp.scheduleNumber, xtp.publicationDate, xtp.identificationCode,
+          xtp.methodSupplier
+
+       FROM   Test_xml x,
+              XMLTABLE('/calculatePurchaseRamzes'
+                PASSING x.xml_data
+                COLUMNS
+                    content       VARCHAR2(100) PATH '/calculatePurchaseRamzes/header/createDateTime',
+                    position      varchar2(100) path '/calculatePurchaseRamzes/position/versionNumber',
+                    financialYear varchar2(100) path '/calculatePurchaseRamzes/position/financialYear',
+                    firstYear     varchar2(100) path '/calculatePurchaseRamzes/position/firstYear',
+                    lastYear      varchar2(100) path '/calculatePurchaseRamzes/position/lastYear',
+                    fullName      varchar2(100) path '/calculatePurchaseRamzes/position/institution/fullName',
+                    inn           varchar2(100) path '/calculatePurchaseRamzes/position/institution/inn',
+                    purchase xmltype path '/calculatePurchaseRamzes/position/purchase'
+                ) xt,
+
+                XMLTABLE('/purchase'
+                  PASSING xt.purchase
+                  COLUMNS
+                      law      varchar2(100) path '/purchase/generalInformation/law',
+                      content  varchar2(100) path '/purchase/generalInformation/content',
+                      supplier varchar2(100) path '/purchase/generalInformation/contractInformation/supplier',
+                      innSupplier varchar2(100) path '/purchase/generalInformation/contractInformation/innSupplier',
+                      contractNumber varchar2(100) path '/purchase/generalInformation/contractInformation/contractNumber',
+                      conclusionDate varchar2(100) path '/purchase/generalInformation/contractInformation/conclusionDate',
+                      expirationDate varchar2(100) path '/purchase/generalInformation/contractInformation/expirationDate',
+                      reestrNumber  varchar2(100) path '/purchase/generalInformation/purchaseInformation/reestrNumber',
+                      scheduleNumber  varchar2(100) path '/purchase/generalInformation/purchaseInformation/scheduleNumber',
+                      publicationDate varchar2(100) path '/purchase/generalInformation/purchaseInformation/publicationDate',
+                      identificationCode varchar2(100) path '/purchase/generalInformation/purchaseInformation/identificationCode',
+                      methodSupplier varchar2(100) path '/purchase/generalInformation/purchaseInformation/methodSupplier',
+                      purchaseValue xmltype path '/purchase/purchaseValue'
+                ) xtp
+       where x.prn = 6
+
+
+-- Ошибка 9.12.2021 14:00
+
+       select * from Z_FUNDS where SUBCODE = 'УДАЛИТЬ'
+
+       select * from X_ALLSIX_DETAIL where version = 366830712 and FUND in (select RN from Z_FUNDS where SUBCODE = 'УДАЛИТЬ')
+
+
+       select code from Z_ORGREG where rn = 367631877
+
+       select * from X_ALLSIX where rn = 368109012
+
+       544 страница
+
+
+       SELECT
+                  xt.id, xt.createDateTime, xt.positionId, xt.changeDate, xt.placregNum, xt.placfullName, xt.placinn, xt.plackpp, xt.initregNum, xt.initfullName, xt.initinn,
+                  xt.initkpp, xt.versionNumber, xt.reportYear, xt.financialYear,  xt.nextFinancialYear, xt.planFirstYear, xt.planLastYear,
+                  xtp.code, xtp.name, xtp.typeserv, xtp.ordinalNumber, xtp.catcode, xtp.catname,
+                  xtq.regNum, xtq.name, xtq.code, xtq.symbol, xtq.reportYear, xtq.currentYear, xtq.nextYear, xtq.planFirstYear, xtq.planLastYear,
+                  xtv.regNum, xtv.name, xtv.code, xtv.symbol, xtv.reportYear, xtv.currentYear, xtv.nextYear, xtv.planFirstYear, xtv.planLastYear, xti.regNum
+              FROM   Test_xml x,
+                     XMLTABLE('/stateTask640r'
+                       PASSING x.xml_data
+                       COLUMNS
+                           id             varchar2(300) PATH '/stateTask640r/header/id',
+                           createDateTime varchar2(300) path '/stateTask640r/header/createDateTime',
+                           positionId     varchar2(300) path '/stateTask640r/body/position/positionId',
+                           changeDate     varchar2(300) path '/stateTask640r/body/position/changeDate',
+                           placregNum     varchar2(300) path '/stateTask640r/body/position/placer/regNum',
+                           placfullName   varchar2(300) path '/stateTask640r/body/position/placer/fullName',
+                           placinn        varchar2(300) path '/stateTask640r/body/position/placer/inn',
+                           plackpp        varchar2(300) path '/stateTask640r/body/position/placer/kpp',
+                           initregNum     varchar2(300) path '/stateTask640r/body/position/initiator/regNum',
+                           initfullName   varchar2(300) path '/stateTask640r/body/position/initiator/fullName',
+                           initinn        varchar2(300) path '/stateTask640r/body/position/initiator/inn',
+                           initkpp        varchar2(300) path '/stateTask640r/body/position/initiator/kpp',
+                           versionNumber  varchar2(300) path '/stateTask640r/body/position/versionNumber',
+                           reportYear     varchar2(300) path '/stateTask640r/body/position/reportYear',
+                           financialYear  varchar2(300) path '/stateTask640r/body/position/financialYear',
+                           nextFinancialYear varchar2(300) path '/stateTask640r/body/position/nextFinancialYear',
+                           planFirstYear varchar2(300) path '/stateTask640r/body/position/planFirstYear',
+                           planLastYear  varchar2(300) path '/stateTask640r/body/position/planLastYear',
+                           service xmltype path '/stateTask640r/body/position/service'
+                       ) xt,
+
+                           XMLTABLE('/service'
+                             PASSING xt.service
+                             COLUMNS
+                                 code          varchar2(300) path '/service/code',
+                                 name          varchar2(300) path '/service/name',
+                                 typeserv      varchar2(300) path '/service/type',
+                                 ordinalNumber varchar2(300) path '/service/ordinalNumber',
+                                 catcode       varchar2(300) path '/service/category/code',
+                                 catname       varchar2(300) path '/service/category/name',
+                                 qualityIndex xmltype path '/service/qualityIndex',
+                                 volumeIndex  xmltype path '/service/volumeIndex',
+                                 servindexes  xmltype path '/service/indexes'
+                           ) xtp,
+
+                               XMLTABLE('/qualityIndex'
+                                 PASSING xtp.qualityIndex
+                                 COLUMNS
+                                     regNum varchar2(300) path '/qualityIndex/index/regNum',
+                                     name   varchar2(300) path '/qualityIndex/index/name',
+                                     code   varchar2(300) path '/qualityIndex/index/unit/code',
+                                     symbol varchar2(300) path '/qualityIndex/index/unit/symbol',
+                                     reportYear varchar2(300) path '/qualityIndex/valueYear/reportYear',
+                                     currentYear varchar2(300) path '/qualityIndex/valueYear/currentYear',
+                                     nextYear varchar2(300) path '/qualityIndex/valueYear/nextYear',
+                                     planFirstYear varchar2(300) path '/qualityIndex/valueYear/planFirstYear',
+                                     planLastYear varchar2(300) path '/qualityIndex/valueYear/planLastYear'
+                               ) xtq,
+
+                               XMLTABLE('/volumeIndex'
+                                 PASSING xtp.volumeIndex
+                                 COLUMNS
+                                     regNum        varchar2(300) path '/volumeIndex/index/regNum',
+                                     name          varchar2(300) path '/volumeIndex/index/name',
+                                     code          varchar2(300) path '/volumeIndex/index/unit/code',
+                                     symbol        varchar2(300) path '/volumeIndex/index/unit/symbol',
+                                     reportYear    varchar2(300) path '/volumeIndex/valueYear/reportYear',
+                                     currentYear   varchar2(300) path '/volumeIndex/valueYear/currentYear',
+                                     nextYear      varchar2(300) path '/volumeIndex/valueYear/nextYear',
+                                     planFirstYear varchar2(300) path '/volumeIndex/valueYear/planFirstYear',
+                                     planLastYear  varchar2(300) path '/volumeIndex/valueYear/planLastYear'
+                               ) xtv,
+
+                               XMLTABLE('/indexes'
+                                 PASSING xtp.servindexes
+                                 COLUMNS
+                                     regNum        varchar2(300) path '/indexes/regNum'
+                               ) xti
+              where x.prn = 368557371
+
+              SELECT
+                         xt.id, xt.createDateTime, xt.positionId, xt.changeDate, xt.placregNum, xt.placfullName, xt.placinn, xt.plackpp, xt.initregNum, xt.initfullName, xt.initinn,
+                         xt.initkpp, xt.versionNumber, xt.reportYear, xt.financialYear,  xt.nextFinancialYear, xt.planFirstYear, xt.planLastYear
+                     FROM   Test_xml x,
+                            XMLTABLE('/stateTask640r'
+                              PASSING x.xml_data
+                              COLUMNS
+                              id             varchar2(300) PATH '/stateTask640r/header/id',
+                              createDateTime varchar2(300) path '/stateTask640r/header/createDateTime',
+                              positionId     varchar2(300) path '/stateTask640r/body/position/positionId',
+                              changeDate     varchar2(300) path '/stateTask640r/body/position/changeDate',
+                              placregNum     varchar2(300) path '/stateTask640r/body/position/placer/regNum',
+                              placfullName   varchar2(300) path '/stateTask640r/body/position/placer/fullName',
+                              placinn        varchar2(300) path '/stateTask640r/body/position/placer/inn',
+                              plackpp        varchar2(300) path '/stateTask640r/body/position/placer/kpp',
+                              initregNum     varchar2(300) path '/stateTask640r/body/position/initiator/regNum',
+                              initfullName   varchar2(300) path '/stateTask640r/body/position/initiator/fullName',
+                              initinn        varchar2(300) path '/stateTask640r/body/position/initiator/inn',
+                              initkpp        varchar2(300) path '/stateTask640r/body/position/initiator/kpp',
+                              versionNumber  varchar2(300) path '/stateTask640r/body/position/versionNumber',
+                              reportYear     varchar2(300) path '/stateTask640r/body/position/reportYear',
+                              financialYear  varchar2(300) path '/stateTask640r/body/position/financialYear',
+                              nextFinancialYear varchar2(300) path '/stateTask640r/body/position/nextFinancialYear',
+                              planFirstYear varchar2(300) path '/stateTask640r/body/position/planFirstYear',
+                              planLastYear  varchar2(300) path '/stateTask640r/body/position/planLastYear',
+                              service xmltype path '/stateTask640r/body/position/service'
+                              ) xt
+                     where x.prn = 368557371
