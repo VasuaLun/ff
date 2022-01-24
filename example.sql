@@ -926,3 +926,407 @@ sum(FSERVSUM1)+sum(FSERVSUM2)+sum(FSERVSUM3)+sum(FSERVSUM4) FSUM
                               service xmltype path '/stateTask640r/body/position/service'
                               ) xt
                      where x.prn = 368557371
+
+
+ declare
+ sERRMSG xmltype;
+ begin
+ select XML_DATA into sERRMSG from Test_xml where rn = 364814692;
+ dbms_output.put_line(sERRMSG.getclobval());
+ end;
+
+
+select * from Z_XML_PARSDATE
+where IDENT = :P3032_PRN
+  and (lower(:P3032_FIND) like lower(Sv1)
+    or lower(:P3032_FIND) like lower(Sv2)
+    or lower(:P3032_FIND) like lower(Sv3)
+    or lower(:P3032_FIND) like lower(Sv4)
+    or lower(:P3032_FIND) like lower(Sv5)
+    or lower(:P3032_FIND) like lower(Sv6)
+    or lower(:P3032_FIND) like lower(Sv7)
+    or lower(:P3032_FIND) like lower(Sv8)
+    or lower(:P3032_FIND) like lower(Sv9)
+    or lower(:P3032_FIND) like lower(Sv10)
+    or lower(:P3032_FIND) like lower(Sv11)
+    or lower(:P3032_FIND) like lower(Sv12)
+    or lower(:P3032_FIND) like lower(Sv13)
+    or lower(:P3032_FIND) like lower(Sv14)
+    or lower(:P3032_FIND) like lower(Sv15)
+    or lower(:P3032_FIND) like lower(Sv16)
+    or lower(:P3032_FIND) like lower(Sv17)
+    or lower(:P3032_FIND) like lower(Sv18)
+    or lower(:P3032_FIND) like lower(Sv19)
+    or lower(:P3032_FIND) like lower(Sv20)
+    or lower(:P3032_FIND) like lower(Sv21)
+    or lower(:P3032_FIND) like lower(Sv22)
+    or lower(:P3032_FIND) like lower(Sv23)
+    or lower(:P3032_FIND) like lower(Sv24)
+    or lower(:P3032_FIND) like lower(Sv25)
+    or lower(:P3032_FIND) like lower(Sv26)
+    or lower(:P3032_FIND) like lower(Sv27)
+    or lower(:P3032_FIND) like lower(Sv28)
+    or lower(:P3032_FIND) like lower(Sv29)
+    or lower(:P3032_FIND) like lower(Sv30)
+    or lower(:P3032_FIND) like lower(Sv31)
+    or lower(:P3032_FIND) like lower(Sv32)
+    or lower(:P3032_FIND) like lower(Sv33)
+    or lower(:P3032_FIND) like lower(Sv34)
+    or lower(:P3032_FIND) like lower(Sv35)
+    or lower(:P3032_FIND) like lower(Sv36)
+    or lower(:P3032_FIND) like lower(Sv37)
+    or lower(:P3032_FIND) like lower(Sv38)
+    or lower(:P3032_FIND) like lower(Sv39)
+    or lower(:P3032_FIND) like lower(Sv40)
+    or lower(:P3032_FIND) like lower(Sv41)
+    or lower(:P3032_FIND) like lower(Sv42)
+    or lower(:P3032_FIND) like lower(Sv43)
+    or lower(:P3032_FIND) like lower(Sv44)
+    or lower(:P3032_FIND) like lower(Sv45)
+    or lower(:P3032_FIND) like lower(Sv46)
+    or lower(:P3032_FIND) like lower(Sv47)
+    or lower(:P3032_FIND) like lower(Sv48)
+    or lower(:P3032_FIND) like lower(Sv49)
+    or lower(:P3032_FIND) like lower(Sv50)
+    or :P3032_FIND is null)
+order by RN asc
+
+declare
+PRN number := :P3032_PRN;
+TYPEF number := nvl(:P3032_PARSING_TYPE, 0);
+nRES number;
+Begin
+    ZP_BLOB_TO_XML(PRN);
+
+    if TYPEF = 1 then
+        ZP_XML_PARSING(PRN, nRES);
+        update TBL_ATTACH_FILE set PARS_PROC = 'ZP_XML_PARSING' where ATTACH_ID = :P3030_RPN;
+    elsif TYPEF = 2 then
+        ZP_XML_PARSING2(PRN, nRES);
+        update TBL_ATTACH_FILE set PARS_PROC = 'ZP_XML_PARSING2' where ATTACH_ID = :P3030_RPN;
+    elsif TYPEF = 3 then
+        ZP_XML_PARSING3(PRN, nRES);
+        update TBL_ATTACH_FILE set PARS_PROC = 'ZP_XML_PARSING3' where ATTACH_ID = :P3030_RPN;
+    elsif TYPEF = 4 then
+        ZP_XML_PARSING5(PRN, nRES);
+        update TBL_ATTACH_FILE set PARS_PROC = 'ZP_XML_PARSING5' where ATTACH_ID = :P3030_RPN;
+    else zp_exception(0, 'Выберите тип загруженного файла');
+    end if;
+
+    if nRES = 0 then
+        zp_exception(0, 'Файл неверно сформирован или выбран неверный тип файла');
+    end if;
+end;
+
+
+select NFORMNUM, NKOSGU, NKVR, NFOTYPE2, sum(JUSTIFY) JUSTIFY, sum(OUTCOME) OUTCOME
+from
+(select NFORMNUM, NKOSGU, NKVR, NFOTYPE2,
+sum(nvl(NTOTAL, 0)) JUSTIFY, 0 OUTCOME
+from ZV_XPRILFORMS where NORGRN =  367631715
+and NFILIAL = 367631741 and NVERSION = 366830712 and  NFORMNUM = 19 and NNO_INCLUDE is null
+group by NFORMNUM, NKOSGU, NKVR, NFOTYPE2
+union all
+select PRILFORM_NUM, E.KOSGURN, E.EXPKVR, E.FOTYPE2, 0,
+     sum(nvl(A.SERVSUM,0) + nvl(A.MSUM,0)+ nvl(A.RESTSUM,0))
+from Z_EXPALL A, Z_EXPMAT E, Z_PRILFORMS_EXPMAT L
+            where A.ORGRN = 367631715
+            and A.FILIAL = 367631741
+            and A.VERSION = 366830712
+            and L.VERSION = A.VERSION
+            and L.PRILFORM_NUM = 19
+            and A.EXP_ARTICLE = E.RN
+            and E.RN          = L.EXPMAT
+group by L.PRILFORM_NUM, E.KOSGURN, E.EXPKVR, E.FOTYPE2)
+group by NFORMNUM, NKOSGU, NKVR, NFOTYPE2;
+
+select NFORMNUM, NKOSGU, NKVR, NFOTYPE2, sum(JUSTIFY) JUSTIFY, sum(OUTCOME)
+from
+(select NFORMNUM, NKOSGU, NKVR, NFOTYPE2,
+sum(nvl(NTOTAL, 0)) JUSTIFY, 0 OUTCOME
+from ZV_XPRILFORMS where NORGRN =  367631715
+and NFILIAL = 367631741 and NVERSION = 366830712 and  NFORMNUM = 19 and NNO_INCLUDE is null
+group by NFORMNUM, NKOSGU, NKVR, NFOTYPE2
+union all
+select PRILFORM_NUM, L.KOSGU_RN, L.EXPKVR, L.FOTYPE2, 0,
+    sum(nvl(A.SERVSUM,0) + nvl(A.MSUM,0)+ nvl(A.RESTSUM,0))
+from Z_EXPALL A, Z_EXPMAT E, Z_PRILFORMS_LINKS101 L
+where A.ORGRN     = 367631715
+    and A.FILIAL = 367631741
+    and A.VERSION     = 366830712
+    and L.VERSION     = A.VERSION
+    and A.EXP_ARTICLE = E.RN
+    and L.PRILFORM_NUM = 19
+    and E.FOTYPE2 = L.FOTYPE2
+    and e.KOSGURN = L.KOSGU_RN
+    and e.EXPKVR  = L.EXPKVR
+group by L.PRILFORM_NUM, L.KOSGU_RN, L.EXPKVR, L.FOTYPE2)
+group by NFORMNUM, NKOSGU, NKVR, NFOTYPE2;
+
+select count(*)
+  from Z_PRILFORMS_EXPMAT D, Z_EXPMAT E,  Z_KOSGU K, Z_LOV L1
+ where D.VERSION = 366830712
+   and D.EXPMAT = E.RN
+   and E.KOSGURN = K.RN
+   and E.EXPDIR = L1.NUM and L1.PART = 'EXPDIR'
+   and PRILFORM_NUM  = 19;
+
+   select PRILFORM_NUM, L.KOSGU_RN, L.EXPKVR, L.FOTYPE2, 0,
+        sum(nvl(A.SERVSUM,0) + nvl(A.MSUM,0)+ nvl(A.RESTSUM,0))
+   from Z_EXPALL A, Z_EXPMAT E, Z_PRILFORMS_LINKS101 L
+   where A.ORGRN     = 367631715
+       and A.FILIAL = 367631741
+       and A.VERSION     = 366830712
+       and L.VERSION     = A.VERSION
+       and A.EXP_ARTICLE = E.RN
+       and L.PRILFORM_NUM = 19
+       and E.FOTYPE2 = L.FOTYPE2
+       and e.KOSGURN = L.KOSGU_RN
+       and e.EXPKVR  = L.EXPKVR
+   group by L.PRILFORM_NUM, L.KOSGU_RN, L.EXPKVR, L.FOTYPE2
+
+   select NFORMNUM, NKOSGU, NKVR, NFOTYPE2,
+   sum(nvl(NTOTAL, 0)) JUSTIFY, 0 OUTCOME
+   from ZV_XPRILFORMS where NORGRN =  367631715
+   and NFILIAL = 367631741 and NVERSION = 366830712 and  NFORMNUM = 19 and NNO_INCLUDE is null
+   group by NFORMNUM, NKOSGU, NKVR, NFOTYPE2
+
+   select V.RN from Z_QINDVALS V, Z_QINDLIST L where PRN in (select L.RN from Z_SERVLINKS L, Z_SERVREG S where L.SERVRN = S.RN and S.WORKSERV_SIGN = 3 and S.VERSION = 344328102) and V.QIND = L.RN and L.QINDSIGN = 2 and nvl(YPLAN3, 0) != 1 and nvl(YPLAN4, 0) != 1 and nvl(YPLAN5, 0) != 1
+
+   alter table Z_QINDVALS set YPLAN3 = 1, YPLAN4 = 1, YPLAN5 = 1 where rn in (344891473, 345536374, 345536371, 345536391, 344891475, 345536344, 344891474, 345536396, 344891476, 344872608, 345536392, 345536370, 344890077, 344872610, 345536375, 345536369, 344872609, 345536372, 345536334, 344890075, 344891471, 344872607, 345536338)
+
+344891473, 345536374, 345536371, 345536391, 344891475, 345536344, 344891474, 345536396, 344891476, 344872608, 345536392, 345536370, 344890077, 344872610, 345536375, 345536369, 344872609, 345536372, 345536334, 344890075, 344891471, 344872607, 345536338
+
+
+select * from Z_QINDVALS where rn in (344891473, 345536374, 345536371, 345536391, 344891475, 345536344, 344891474, 345536396, 344891476, 344872608, 345536392, 345536370, 344890077, 344872610, 345536375, 345536369, 344872609, 345536372, 345536334, 344890075, 344891471, 344872607, 345536338)
+
+select V.RN from Z_QINDVALS V, Z_QINDLIST L where PRN in (select L.RN from Z_SERVLINKS L, Z_SERVREG S where L.SERVRN = S.RN and S.WORKSERV_SIGN = 3 and S.VERSION = 364129300) and V.QIND = L.RN and L.QINDSIGN = 2 and nvl(YPLAN3, 0) != 1 and nvl(YPLAN4, 0) != 1 and nvl(YPLAN5, 0) != 1 and V.VERSION = 364129300
+
+update Z_QINDVALS set YPLAN3 = 1, YPLAN4 = 1, YPLAN5 = 1 where RN in (select V.RN from Z_QINDVALS V, Z_QINDLIST L where PRN in (select L.RN from Z_SERVLINKS L, Z_SERVREG S where L.SERVRN = S.RN and S.WORKSERV_SIGN = 3 and S.VERSION = 364129300) and V.QIND = L.RN and L.QINDSIGN = 2 and nvl(YPLAN3, 0) != 1 and nvl(YPLAN4, 0) != 1 and nvl(YPLAN5, 0) != 1 and V.VERSION = 364129300)
+
+select * from Z_SERVLINKS
+
+select K.CODE||'-'||E.KOSGU||' '||E.CODE, E.RN
+from Z_EXPMAT E, Z_KOSGU K, Z_TRANSFER_GRAPH G
+where E.KOSGURN = K.RN
+and E.VERSION = :P1_VERSION
+and FOTYPE2 = decode(:P529_ETYPE, 0, 4, 4, 5)
+and E.RN = G.EXPMAT
+and G.RN = :P529_PARENT_ROW
+
+select * from Z_TRANSFER_GRAPH_HISTORY H1, Z_TRANSFER_GRAPH_HISTORY H2 where H1.PARENT_ROW  = H2.PARENT_ROW and H1.PREVSUM = H2.ESUM and H1.EXPMAT is null and H2.EXPMAT is not null order by H1.RN desc
+
+select H1.RN from Z_TRANSFER_GRAPH_HISTORY H1, Z_TRANSFER_GRAPH_HISTORY H2 where H1.PARENT_ROW  = H2.PARENT_ROW and H1.PREVSUM = H2.ESUM and H1.EXPMAT is null and H2.EXPMAT is not null and H1.ORGRN = H2.ORGRN and H1.REDACTION = H2.REDACTION and H1.VERSION = 368475462 order by H1.RN desc
+
+select H.RN, H.ESUM, H.EXPMAT, G.RN, G.SUMMA, G.EXPMAT from Z_TRANSFER_GRAPH_HISTORY H, Z_VERSIONS V, Z_TRANSFER_GRAPH G where H.VERSION = V.RN and V.NEXT_PERIOD = 2022 and G.RN = H.PARENT_ROW and (H.ESUM != G.SUMMA or G.EXPMAT != H.EXPMAT) and NUM = (select max(NUM) from Z_TRANSFER_GRAPH_HISTORY where PARENT_ROW = H.PARENT_ROW)
+
+
+begin
+
+
+    select V.RN VERSION
+    from Z_TRANSFER_GRAPH TG, Z_VERSIONS V
+    where TG.VERSION = V.RN
+        and V.NEXT_PERIOD = 2022
+        and TG.rn not in
+        (select PARENT_ROW from Z_TRANSFER_GRAPH_HISTORY)
+        and V.NEW_TRANS_GRAPH = 1 and TG.ORGRN = 364197326
+        and TG.JURPERS = 254562839
+
+begin
+for rec in (
+    select distinct TG.ORGRN, TG.FILIAL, TG.VERSION
+    from Z_TRANSFER_GRAPH TG, Z_VERSIONS V
+    where TG.VERSION = V.RN
+        and V.NEXT_PERIOD = 2022
+        and TG.rn not in
+        (select PARENT_ROW from Z_TRANSFER_GRAPH_HISTORY)
+        and V.NEW_TRANS_GRAPH = 1 and TG.ORGRN = 364197326
+        and TG.JURPERS = 254562839
+)
+loop
+    ZP_TRANSFER_GRAPH_LIST_DUBL(254562839, rec.VERSION, rec.ORGRN, rec.FILIAL);
+end loop;
+end;
+
+select * from Z_ORGREG where rn = 364197326
+
+select * from z_phfd_version where rn =370781868
+
+select REP_PERIOD,   REP_PERIOD sRN from Z_VERSIONS where ((JUR_PERS = :P1501_JUR)  or (:P1501_JUR is NULL and RN = :P1_VERSION)) and VISIBLE_SIGN = 1
+union all
+select CUR_PERIOD,   CUR_PERIOD sRN from Z_VERSIONS where ((JUR_PERS = :P1501_JUR)  or (:P1501_JUR is NULL and RN = :P1_VERSION)) and VISIBLE_SIGN = 1
+union all
+select NEXT_PERIOD, NEXT_PERIOD sRN from Z_VERSIONS where ((JUR_PERS = :P1501_JUR)  or (:P1501_JUR is NULL and RN = :P1_VERSION)) and VISIBLE_SIGN = 1
+
+select * from Z_RPT_LIB where numb = 367083409
+
+select * from Z_RPT_LIB_DETAIL where prn = 367083409
+
+select * from Z_VERSIONS
+
+declare
+MESS varchar2(4000);
+begin
+ ZP_CHANGE_YEAR_PROC('ZP_TEST_YEAR2022', '2022', '2023', MESS);
+ htp.p(MESS);
+end;
+
+select V.CODE VCODE,  V.NAME VNAME, sum(SD.SUMMA), sum(SD.FSUM1)
+			  from Z_SMETA_DISTR SD, Z_EXPKVR_ALL V
+			 where SD.EXPKVR = V.RN
+			--   and ((SD.TYPE_BS = :P232_GTYPE_BS) or (:P232_GTYPE_BS is null))
+			   and SD.ORGRN = 364967255
+			group by V.CODE,  V.NAME
+			   and SD.EXPKVR = :P232_KVR
+			   and (SD.KBK = :P232_KBK or :P232_KBK is null)
+			   and SD.VERSION=:P1_VERSION
+			   and SD.JUR_PERS =:P1_JURPERS
+			group by V.CODE,  V.NAME
+
+select ED.KBK, ED.EXPKVR, GB.RN nTYPE_BS, GB.NUMB sTYPE_BS,
+               sum(ED.SUMMA) SUMMA,
+               sum (ED.FSUM1) FSUM1, sum (ED.FSUM2) FSUM2, sum (ED.FSUM3) FSUM3, sum (ED.FSUM4) FSUM4
+            from Z_SMETA_DISTR ED, Z_EXPSMETA  E, Z_GTYPE_BS GB
+           where ED.VERSION=364948348
+             and ED.PRN is not null
+			 and ED.TYPE_BS = GB.RN(+)
+             and ED.PRN = E.RN (+)
+             and ED.ORGRN = 364967255
+and  EXPKVR is null
+           group by ED.KBK, ED.EXPKVR, GB.NUMB,GB.RN
+           order by ZF_GET_SMETA_KBK2 (KBK, ED.EXPKVR, GB.RN)
+
+           select * from Z_SMETA_DISTR where VERSION = 364948348  and  EXPKVR is null
+
+select * from Z_EXPSMETA where rn in (select PRN from Z_SMETA_DISTR where VERSION = 364948348  and  EXPKVR is null)
+
+select E.CODE, E.RN SMETA, SD.PRN, SD.KVR, SD.RN from Z_EXPSMETA E, Z_SMETA_DISTR SD where SD.PRN = E.RN and SD.VERSION = 364948348  and  SD.EXPKVR is null and E.CODE like '%244%'
+
+select E.CODE, E.RN SMETA, SD.PRN, SD.KVR, SD.RN from Z_EXPSMETA E, Z_SMETA_DISTR SD where SD.PRN = E.RN and SD.VERSION = 364948348  and  SD.EXPKVR is null and E.CODE like '%244%'
+
+update Z_SMETA_DISTR set
+
+364948672 - 244 КВР
+
+select * from Z_EXPKVR where VERSION = 364948348
+
+select * from Z_SPORT_NORM
+
+
+select * from Z_SMETA_DISTR where VERSION = 364948348  and  EXPKVR is null
+
+select * from Z_EXPSMETA where rn in (select PRN from Z_SMETA_DISTR where VERSION = 364948348  and  EXPKVR is null)
+
+select E.CODE, E.RN SMETA, SD.PRN, SD.KVR, SD.RN from Z_EXPSMETA E, Z_SMETA_DISTR SD where SD.PRN = E.RN and SD.VERSION = 364948348  and  SD.EXPKVR is null and E.CODE like '%244%'
+
+select E.CODE, E.RN SMETA, SD.PRN, SD.KVR, SD.RN from Z_EXPSMETA E, Z_SMETA_DISTR SD where SD.PRN = E.RN and SD.VERSION = 364948348  and  SD.EXPKVR is null and E.CODE like '%244%'
+
+update Z_SMETA_DISTR set
+
+364948672 - 244 КВР
+
+select * from Z_EXPKVR where VERSION = 364948348
+
+select * from Z_SPORT_NORM
+
+
+select SE.RN MEM_RN, SE.SPORT_EVENT_RN SPORT_RN, SE.MEMBER_TYPE MEMBER_TYPE,
+O.COST, O.DAYS, O.COST_FACT, O.DAYS_FACT,
+F.CODE sCODE, F.NAME sNAME
+from Z_SPORT_EXP SE,
+    Z_SPORT_EXP_D O,
+    Z_SPORT_EXPTYPES F
+where SE.SPORT_EVENT_RN = 359884669
+    and O.EXP_RN   = SE.RN
+    and O.EXPTYPE_RN = F.RN
+    order by F.ORDERNUMB
+
+    select sum(EL.SERVSUM)
+    from Z_EXPALL EL, Z_EXPMAT E
+    where EL.VERSION = 369267229
+        and EL.JUR_PERS = 349188018
+        and EL.SERVRN = 369277509
+        and EL.ORGRN = 369290067
+        and E.RN = EL.EXP_ARTICLE
+        and EL.VNEBUDG_SIGN = 0
+        and E.EXPGROUP = rec.EG;
+
+select * from Z_SERVREG where version = 369267229
+
+select * from Z_SERVLINKS_NORM where SERVRN = 369277509	and orgrn = 369290067
+
+    select SR.CODE SRCODE, SR.UNIQREGNUM_FULL UNIQREGNUM, EG.CODE EXPGROUP, EG.RN EG,
+       nvl(SN.ACCEPT_NORM, 0) *
+        nvl(SN.CORRCOEF, 1) *
+        nvl(SN.ALIG_COEFF, 1) * nvl(SN.REG_COEFF, 1) * 659405.50 REG_COEFF
+    from Z_SERVLINKS SL, Z_SERVREG SR, Z_SERVLINKS_NORM SN, Z_EXPGROUP EG
+    where SL.SERVRN = SR.RN
+        and SR.VERSION = 369267229
+        and SR.JUR_PERS = 349188018
+        and SR.RN = 369277509
+        and SL.ORGRN = 369290067
+        and SN.LINKRN = SL.RN
+        and SN.SERVRN = SR.RN
+        and EG.RN = SN.EXPGROUP
+
+        declare
+        type t_tab1 is record(
+            MEM_RN      number,
+            SPORT_RN    number,
+            MEMBER_TYPE number,
+            COST        number,
+            DAYS        number,
+            COST_FACT   number,
+            DAYS_FACT   number,
+            SUMMA       number,
+            SUMMA_FACT  number,
+            EXPTYPE_RN  number,
+            SCODE       VARCHAR2(500),
+            SNAME       VARCHAR2(500),
+            ORDERNUMB   number
+            );
+          type t_tab_arr1 is table of t_tab1 index BY PLS_INTEGER;
+          EXPMET t_tab_arr1;
+        begin
+        select SE.RN MEM_RN,
+                        SE.SPORT_EVENT_RN SPORT_RN,
+                        SE.MEMBER_TYPE MEMBER_TYPE,
+                        nvl(SUM(O.COST), 0),
+                        nvl(SUM(O.DAYS), 0),
+                        nvl(SUM(O.COST_FACT), 0),
+                        nvl(SUM(O.DAYS_FACT), 0),
+                        nvl(SUM(O.SUMMA), 0),
+                        nvl(SUM(O.SUMMA_FACT), 0),
+                        O.EXPTYPE_RN,
+                        F.CODE sCODE,
+                        F.NAME sNAME,
+                        F.ORDERNUMB
+                BULK COLLECT
+                INTO EXPMET
+                from Z_SPORT_EXP SE,
+                    Z_SPORT_EXP_D O,
+                    Z_SPORT_EXPTYPES F
+                where SE.SPORT_EVENT_RN = 359884669
+                    and O.EXP_RN   = SE.RN
+                    and O.EXPTYPE_RN = F.RN
+                group by SE.RN, F.CODE, F.NAME, F.ORDERNUMB, O.EXPTYPE_RN, SE.MEMBER_TYPE, SE.SPORT_EVENT_RN
+                order by F.ORDERNUMB;
+        for i in EXPMET.FIRST..EXPMET.COUNT
+        loop
+            htp.p('MEM_RN  '||EXPMET(I).MEM_RN);
+            htp.p('SPORT_RN  '||EXPMET(I).SPORT_RN);
+            htp.p('MEMBER_TYPE  '||EXPMET(I).MEMBER_TYPE);
+            htp.p('COST  '||EXPMET(I).COST);
+            htp.p('DAYS  '||EXPMET(I).DAYS);
+            htp.p('COST_FACT  '||EXPMET(I).COST_FACT);
+            htp.p('DAYS_FACT  '||EXPMET(I).DAYS_FACT);
+            htp.p('SUMMA  '||EXPMET(I).SUMMA);
+            htp.p('SUMMA_FACT  '||EXPMET(I).SUMMA_FACT);
+            htp.p('EXPTYPE_RN  '||EXPMET(I).EXPTYPE_RN);
+            htp.p('SCODE  '||EXPMET(I).SCODE);
+            htp.p('SNAME  '||EXPMET(I).SNAME);
+            htp.p('ORDERNUMB  '||EXPMET(I).ORDERNUMB);
+        end loop;
+        htp.p('hello');
+        end;

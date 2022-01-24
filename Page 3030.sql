@@ -5,7 +5,9 @@ declare
  sNAME         varchar2(4000);
  sUSER         varchar2(4000);
  sDOWNLOAD     varchar2(4000);
+ sDOWNPROC     varchar2(4000);
  sDATE         varchar2(4000);
+ sSTATUS       varchar2(4000);
  sFILEDATA     varchar2(4000);
 
  -----------------------------------------------
@@ -116,6 +118,8 @@ begin
         .th4{width: 120px;text-align:center;} .c4 {width: 120px; word-wrap: break-word; text-align:center;}
         .th5{width: 120px;text-align:center;} .c5 {width: 120px; word-wrap: break-word; text-align:center;}
         .th6{width: 120px;text-align:center;} .c6 {width: 120px; word-wrap: break-word; text-align:center;}
+        .th7{width: 120px;text-align:center;} .c7 {width: 120px; word-wrap: break-word; text-align:left;}
+        .th8{width: 120px;text-align:center;} .c8 {width: 120px; word-wrap: break-word; text-align:center;}
 
 
         .pagination {text-align: right;
@@ -141,8 +145,10 @@ begin
          <th class="header th2" ><div class="th2">Имя файла</div></th>
          <th class="header th3" ><div class="th3">Скачать файл</div></th>
          <th class="header th4" ><div class="th4">Пользователь</div></th>
-         <th class="header th5" ><div class="th4">Время добавления</div></th>
-         <th class="header th6" ><div class="th5">Данные файла</div></th>
+         <th class="header th5" ><div class="th5">Название процедуры</div></th>
+         <th class="header th6" ><div class="th6">Время добавления</div></th>
+         <th class="header th7" ><div class="th6">Статус загрузки</div></th>
+         <th class="header th8" ><div class="th7">Данные файла</div></th>
 
          <th class="header"><div style="width:8px"></div></th>
         </tr>
@@ -158,11 +164,12 @@ begin
             ADD_CHARSET,
             CREATET,
             ATTACH_USER,
+            PARS_PROC,
             case STATUS when null then 'Файл загружен'
-                        when 1 then 'Преобразован в XML, ошибка при парсинге'
-                        when 2 then 'Получены данные'
-                        when 3 then 'Ошибка при загрузке данных в систему'
-                        when 4 then 'Данные загружены в систему' end STATUS,
+                        when 1 then 'Файл преобразован в XML, ошибка при парсинге'
+                        when 2 then 'Получены данные из файла'
+                        when 3 then 'Ошибка при загрузке данных файла в систему'
+                        when 4 then 'Данные файла загружены в систему' end STATUS
             from TBL_ATTACH_FILE
         order by ADD_LASTUPDATE desc
 	)
@@ -178,8 +185,13 @@ begin
 
         sUSER     := '<td class="c4"><div class="c4">'||rec.ATTACH_USER||'</div></td>';
 
-        sDATE     := '<td class="c5"><div class="c5">'||to_char( rec.CREATET,'DD.MM.YYYY HH24-MI-SS')||'</div></td>';
-        sFILEDATA := '<td class="c6"><div class="c6"><a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':3032:'||:APP_SESSION||'::NO::P3032_PRN:'||rec.ATTACH_ID)||'" title="Получить данные из файла"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Данные файла</span></a></div></td>';
+        sDOWNPROC := '<td class="c5"><div class="c5">'||nvl(rec.PARS_PROC, '-')||'</div></td>';
+
+        sDATE     := '<td class="c6"><div class="c6">'||to_char( rec.CREATET,'DD.MM.YYYY HH24-MI-SS')||'</div></td>';
+
+        sSTATUS   := '<td class="c7"><div class="c7">'||rec.STATUS||'</div></td>';
+
+        sFILEDATA := '<td class="c8"><div class="c8"><a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':3032:'||:APP_SESSION||'::NO::P3032_PRN:'||rec.ATTACH_ID)||'" title="Получить данные из файла"><span style="font-weight: bold; color:#0000ff" onclick="openLoader();">Данные файла</span></a></div></td>';
 
 		htp.p('
 			<tr>
@@ -187,7 +199,9 @@ begin
                 '||sNAME||'
 				'||sDOWNLOAD||'
                 '||sUSER||'
+                '||sDOWNPROC||'
                 '||sDATE||'
+                '||sSTATUS||'
                 '||sFILEDATA||'
 		   </tr>');
 	end loop;
@@ -208,10 +222,10 @@ begin
 
 
           if (window.screen.height<=1024) {
-          table_body.height("260px");
+          table_body.height("350px");
           $(".report_standard").css("width","100%");
           } else {
-          table_body.height("350px");
+          table_body.height("650px");
           $(".report_standard").css("width","100%");
           }
             $(".pagination").mousedown(startDrag);

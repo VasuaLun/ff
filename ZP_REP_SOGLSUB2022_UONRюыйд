@@ -1,0 +1,1568 @@
+create or replace procedure ZP_REP_SOGLSUB2022_UONR
+(
+  pFile        out BLOB,
+  --
+  pREDACTION   number,
+  pREGNUMB     varchar2,
+  pUSER        varchar
+)
+as
+  pJURPERS         number;
+  pVERSION         number;
+  pORGRN           number;
+  --
+  nValueRow         varchar2(4000);
+  nCountCol         pls_integer:= 4;
+  sTITLE            varchar2(2000);
+  nNextPeriod       Z_VERSIONS.NEXT_PERIOD%type;
+  nPLAN1            Z_VERSIONS.PLAN1%type;
+  nPLAN2            Z_VERSIONS.PLAN2%type;
+  nFUNDNOTES        Z_FUNDS.NOTES%type;
+  sFUNDNAME            Z_FUNDS.NAME%type;
+  nFUNDNPA          Z_FUNDS.NPA%type;
+  nFUNDSUM          number;
+  sFUNDCODE         Z_FUNDS.CODE%type;
+  nKBK              number;
+  sDATE             varchar2(4000);
+  nROWSTRLENGHT     number := 80;
+  nROWSTRHEIGHT     number := 18;
+  sNOTES            Z_FUNDS.NOTES%type;
+  nEXSUM            number;
+  nPLANSUM          number;
+  nPLANSUM1         number;
+  nPLANSUM2         number;
+  nNATPROJECT        number;
+  sEXPDIRCODE        varchar2(100);
+  sKBKCODE            varchar2(100);
+
+  nFUND             Z_REP_REESTR.FUND%type;
+  sMAINNUMB            Z_REP_REESTR.MAIN_SOGLNUMB%type;
+  dMAINDATE         Z_REP_REESTR.SOGLDATE%type;
+
+  sORGNAME          Z_ORGREG.NAME%type;
+  sORGUBPCODE       Z_ORGREG.UBP_CODE%type;
+  sJURNAME          Z_JURPERS.FULLNAME%type;
+  sJURUBPCODE       Z_JURPERS.UBP_CODE%type;
+  sGLAVACODE        Z_JURPERS.GLAVA_CODE%type;
+
+  sORGPERSNAME      Z_ESIGN.PERSNAME%type;
+  dORGVALIDFROM     Z_ESIGN.VALIDFROM%type;
+  dORGVALIDTO       Z_ESIGN.VALIDTO%type;
+  nORGSIGN_ID       Z_ESIGN.SIGN_ID%type;
+  sORGISSUERNAME    Z_ESIGN.ISSUERNAME%type;
+  dORGSIGN_DATE     Z_ESIGN.SIGN_DATE%type;
+  sORGPOSITION      Z_ESIGN.POSITION%type;
+
+  sJURPERSNAME      Z_ESIGN.PERSNAME%type;
+  dJURVALIDFROM     Z_ESIGN.VALIDFROM%type;
+  dJURVALIDTO       Z_ESIGN.VALIDTO%type;
+  nJURSIGN_ID       Z_ESIGN.SIGN_ID%type;
+  sJURISSUERNAME    Z_ESIGN.ISSUERNAME%type;
+  dJURSIGN_DATE     Z_ESIGN.SIGN_DATE%type;
+  sJURPOSITION      Z_ESIGN.POSITION%type;
+
+  nCOUNTROW         number;
+  nCOUNTALLROW      number;
+  nCOUNTFUND        number;
+  nRESULT           number;
+  SFOOTERLEFT       varchar2(4000);
+  SHEADERRIGTH      varchar2(4000);
+
+begin
+    begin
+        APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
+
+        -- initializations globals
+        -------------------------------------------------------
+        begin
+            select JUR_PERS, VERSION, ORGRN
+              into pJURPERS, pVERSION, pORGRN
+              from Z_REP_REESTR
+             where RN = pREDACTION;
+        exception when OTHERS then
+            ZP_EXCEPTION (0, 'Ошибка. Редакция электронного документа документа не найдена.');
+            pJURPERS  := null;
+            pVERSION  := null;
+            pORGRN    := null;
+        end;
+
+        -- initializations
+        -------------------------------------------------------
+        begin
+            select FUND, KBK, nvl(MAIN_SOGLNUMB, '___'), SOGLDATE
+              into nFUND, nKBK, sMAINNUMB, dMAINDATE
+              from Z_REP_REESTR
+             where RN = pREDACTION;
+        exception when others then
+            sMAINNUMB  := null;
+            dMAINDATE  := null;
+            nFUND      := null;
+            nKBK       := null;
+        end;
+
+        if nFUND is null then
+            ZP_EXCEPTION (0, 'В редакции соглашения не выбрана ЦС. Формирование соглашения невозможно.');
+        end if;
+
+        if nKBK is null then
+            ZP_EXCEPTION (0, 'В редакции соглашения не выбран КБК. Формирование соглашения невозможно.');
+        end if;
+
+        begin
+            select NAME, UBP_CODE
+              into sORGNAME, sORGUBPCODE
+              from Z_ORGREG
+             where RN = pORGRN;
+        exception when others then
+            sORGNAME    := null;
+            sORGUBPCODE := null;
+        end;
+
+        begin
+            select FULLNAME, UBP_CODE, GLAVA_CODE
+              into sJURNAME, sJURUBPCODE, sGLAVACODE
+              from Z_JURPERS
+             where RN = pJURPERS;
+        exception when others then
+            sJURNAME    := null;
+            sJURUBPCODE := null;
+            sGLAVACODE  := null;
+        end;
+
+        begin
+            select NEXT_PERIOD, PLAN1, PLAN2
+              into nNextPeriod, nPLAN1, nPLAN2
+              from Z_VERSIONS
+             where RN = pVersion;
+        exception when others then
+            nNextPeriod := null;
+        end;
+
+        begin
+            select CODE, NAME, NOTES
+              into sFUNDCODE, sFUNDNAME, sNOTES
+              from Z_FUNDS
+             where RN = nFUND;
+        exception when others then
+            sNOTES := null;
+            sFUNDNAME := null;
+            sFUNDCODE := null;
+            zp_exception(0, sqlerrm);
+        end;
+
+        begin
+            select SCODE
+              into sKBKCODE
+              from ZV_KBKALL
+             where NKBK_RN = nKBK;
+        exception when others then
+            sKBKCODE  := null;
+        end;
+
+        begin
+            select count(*)
+              into nNATPROJECT
+              from Z_FUNDS_KBK FK, ZV_KBKALL KBK
+             where FK.PRN = nFUND
+               and FK.KBK_RN = KBK.NKBK_RN
+               and KBK.NNATPROJECT = 1;
+        exception when others then
+            nNATPROJECT := null;
+        end;
+
+        begin
+            select PERSNAME, VALIDFROM, VALIDTO, SIGN_ID, ISSUERNAME, SIGN_DATE, POSITION
+              into sORGPERSNAME, dORGVALIDFROM, dORGVALIDTO, nORGSIGN_ID, sORGISSUERNAME, dORGSIGN_DATE, sORGPOSITION
+              from Z_ESIGN
+             where USEROLE = 'ORG'
+               and ORGRN   = pORGRN
+               and DOC_RN  = pREDACTION;
+        exception when others then
+            sORGPERSNAME   := null;
+            dORGVALIDFROM  := null;
+            dORGVALIDTO    := null;
+            nORGSIGN_ID    := null;
+            sORGISSUERNAME := null;
+            dORGSIGN_DATE  := null;
+            sORGPOSITION   := null;
+        end;
+
+        begin
+            select PERSNAME, VALIDFROM, VALIDTO, SIGN_ID, ISSUERNAME, SIGN_DATE, POSITION
+              into sJURPERSNAME, dJURVALIDFROM, dJURVALIDTO, nJURSIGN_ID, sJURISSUERNAME, dJURSIGN_DATE, sJURPOSITION
+              from Z_ESIGN
+             where USEROLE = 'GRBS'
+               and ORGRN   = pORGRN
+               and DOC_RN  = pREDACTION;
+        exception when others then
+            sJURPERSNAME   := null;
+            dJURVALIDFROM  := null;
+            dJURVALIDTO    := null;
+            nJURSIGN_ID    := null;
+            sJURISSUERNAME := null;
+            dJURSIGN_DATE  := null;
+            sJURPOSITION   := null;
+        end;
+
+        -- style
+        -------------------------------------------------------
+        begin
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'title',
+            sHALIGNMENT         => 'Center',
+            nFONTSIZE           => 12,
+            nFONTBOLD           => 1,
+            nWRAPTEXT           => 1);
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'center_str',
+            nWRAPTEXT           => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'Center');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'left_str',
+            nWRAPTEXT           => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'Left');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'right_str',
+            nWRAPTEXT           => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'Right');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'bottom_left_str',
+            nWRAPTEXT           => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'Left',
+            sVALIGNMENT         => 'Bottom');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'bold_center_str',
+            nWRAPTEXT           => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'Center',
+            nFONTBOLD           => 1);
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'bold_left_str',
+            nWRAPTEXT           => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'left',
+            nFONTBOLD           => 1);
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'top_left_str',
+            nWRAPTEXT           => 1,
+            sHALIGNMENT         => 'Justify',
+            nFONTSIZE           => 11,
+            sVALIGNMENT         => 'Top');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'border_left_str',
+            nWRAPTEXT           => 1,
+            nBORDERTOPWEIGHT    => 1,
+            nBORDERBOTTOMWEIGHT => 1,
+            nBORDERLEFTWEIGHT   => 1,
+            nBORDERRIGHTWEIGHT  => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'Left');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'border_right_str',
+            nWRAPTEXT           => 1,
+            nBORDERTOPWEIGHT    => 1,
+            nBORDERBOTTOMWEIGHT => 1,
+            nBORDERLEFTWEIGHT   => 1,
+            nBORDERRIGHTWEIGHT  => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'Right');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'border_center_str',
+            nWRAPTEXT           => 1,
+            nBORDERTOPWEIGHT    => 1,
+            nBORDERBOTTOMWEIGHT => 1,
+            nBORDERLEFTWEIGHT   => 1,
+            nBORDERRIGHTWEIGHT  => 1,
+            nFONTSIZE           => 11,
+            sHALIGNMENT         => 'Center');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'border_right_num',
+            sHALIGNMENT         => 'Right',
+            nWRAPTEXT           => 1,
+            nBORDERBOTTOMWEIGHT => 1,
+            nBORDERTOPWEIGHT    => 1,
+            nBORDERLEFTWEIGHT   => 1,
+            nBORDERRIGHTWEIGHT  => 1,
+            nFONTSIZE           => 11,
+            sINDENT             => 1,
+            sNUMBERFORMAT       => 'Standard');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'bold_border_right_num',
+            sHALIGNMENT         => 'Right',
+            nWRAPTEXT           => 1,
+            nBORDERBOTTOMWEIGHT => 1,
+            nBORDERLEFTWEIGHT   => 1,
+            nBORDERRIGHTWEIGHT  => 1,
+            sNUMBERFORMAT       => 'Standard',
+            nFONTSIZE           => 11,
+            nFONTBOLD           => 1,
+            sINDENT             => 1);
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'bold_ecp1',
+            nWRAPTEXT           => 1,
+            nFONTBOLD           => 1,
+            nBORDERTOPWEIGHT    => 2,
+            nBORDERLEFTWEIGHT   => 2,
+            nBORDERRIGHTWEIGHT  => 2,
+            sBORDERCOLOR        => '#0000ff',
+            sFONTCOLOR          => '#0000ff',
+            sHALIGNMENT         => 'Left');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'bold_ecp2',
+            nWRAPTEXT           => 1,
+            nFONTBOLD           => 1,
+            nBORDERLEFTWEIGHT   => 2,
+            nBORDERRIGHTWEIGHT  => 2,
+            sBORDERCOLOR        => '#0000ff',
+            sFONTCOLOR          => '#0000ff',
+            sHALIGNMENT         => 'Left');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'bold_ecp3',
+            nWRAPTEXT           => 1,
+            nFONTBOLD           => 1,
+            nBORDERBOTTOMWEIGHT => 2,
+            nBORDERLEFTWEIGHT   => 2,
+            nBORDERRIGHTWEIGHT  => 2,
+            sBORDERCOLOR        => '#0000ff',
+            sFONTCOLOR          => '#0000ff',
+            sHALIGNMENT         => 'Left');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'border_bottom_left_str',
+            nWRAPTEXT           => 1,
+            nBORDERBOTTOMWEIGHT => 1,
+            nFONTSIZE           => 9,
+            sHALIGNMENT         => 'Left');
+
+            APKG_XLSREP.ADD_STYLE(sSTYLE => 'border_top',
+            sHALIGNMENT         => 'Right',
+            nWRAPTEXT           => 1,
+            nBORDERTOPWEIGHT    => 1);
+        end;
+        -------------------------------------------------------
+
+        begin
+            ZP_REP_VDK_CHECK (pJURPERS   => pJURPERS,
+                               pVERSION  => pVERSION,
+                               pORGRN    => pORGRN,
+                               pPFHDVERS => pREDACTION,
+                               pPROCNAME => 'ZP_REP_SOGLSUB2022_UONR',
+                               pUSER     => null,
+                               pRESULT   => nRESULT);
+        end;
+
+        sFOOTERLEFT := '&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K000000&amp;L&amp;&quot;Verdana,Полужирный&quot;&amp;K00-014';
+        if nvl(nRESULT,0) = 1 then
+            sHEADERRIGTH := '&amp;C&amp;&quot;Times New Roman,обычный&quot;&amp;72&#10;&amp;100&#10;Черновик';
+        else
+            sHEADERRIGTH := '&amp;R&amp;&quot;Verdana,полужирный&quot; &amp;12 &amp;K00-009'||pREGNUMB||'';
+        end if;
+
+        begin -- Body
+            APKG_XLSREP.OPEN_SHEET(nPROTECTED => 0, sORIENTATION => 'Portrait'/*, sPASSWORD => ZF_GET_REP_PASS*/, sSHEETNAME => 'Соглашение');
+            APKG_XLSREP.ADD_RUNTITLE(sFOOTERLEFT => sFOOTERLEFT,  sHEADERRIGTH => sHEADERRIGTH);
+
+            APKG_XLSREP.OPEN_TABLE();
+            APKG_XLSREP.ADD_COLUMN(nWIDTH => 50);
+            APKG_XLSREP.ADD_COLUMN(nWIDTH => 250);
+            APKG_XLSREP.ADD_COLUMN(nWIDTH => 150, nCOUNT => 2);
+
+            sTITLE := 'СОГЛАШЕНИЕ';
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'title', nMERGEACROSS => nCountCol-1, sCELLDATA => sTITLE, sCELLTYPE => 'String');
+
+            sTITLE := 'о предоставлении из бюджета Неклиновского района'||chr(13)||chr(10)||
+                      'муниципальному бюджетному учреждению субсидии в соответствии с абзацем'||chr(13)||chr(10)||
+                      'вторым пункта 1 статьи 78.1 Бюджетного кодекса Российской Федерации';
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 60);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'title', nMERGEACROSS => nCountCol-1, sCELLDATA => sTITLE, sCELLTYPE => 'String');
+
+            /*sTITLE := sNOTES;
+            APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HeightRow (STRVAL => sNOTES, ROWSTRLENGHT => 80, ROWSTRHEIGHT => nROWSTRHEIGHT));
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'title', nMERGEACROSS => nCountCol-1, sCELLDATA => sTITLE, sCELLTYPE => 'String');*/
+
+            for QOrg in
+            (
+             select J.SDIRECTOR          SJURDIRECTOR,          -- директор ГРБС
+                    J.SJURNAME           SJURNAME,              -- наименование ГРБС
+                    J.SJURCODE             SJURCODE,                -- краткое наименование ГРБС
+                    J.SPERSPOSITION      SJURPERSPOSITION,      -- должность под. лица ГРБС
+                    J.SSIGNPERSON        SJURSIGNPERSON,        -- руководитель ГРБС. в род. пад.
+                    J.SSIGNDOC           SJURSIGNDOC,           -- наим. и номер документа основания ГРБС
+                    J.SJUR_ADDRESS       SJURADDRESS,
+                    J.SINN               SJURINN,
+                    J.SKPP               SJURKPP,
+                    J.SBANKREQ           SJURBANKREQ,
+                    J.DSIGNDOCDATE       DJURSIGNDOCDATE,
+
+                    O.SDIRECTOR          SORGDIRECTOR,          -- директор орг.
+                    O.SORGNAME           SORGNAME,              -- наименование орг.
+                    O.SORGCODE             SORGCODE,                -- краткое наименование орг.
+                    O.SSIGNPERSON        SORGSIGNPERSON,        -- руководитель орг. в род. пад.
+                    O.SSIGNDOC           SORGSIGNDOC,           -- наим. и номер документа основания орг
+                    O.SPERSPOSITION      SORGPERSPOSITION,      -- должность под. лица орг
+                    O.SSIGNORGNAME       SORGSIGNORGNAME,       -- должность под. лица орг
+                    O.SSIGNPERSPOSITION  SORGSIGNPERSPOSITION,  -- должность под. лица орг
+                    O.SORG_ADDRESS       SORGADDRESS,
+                    O.SINN               SORGINN,
+                    O.SKPP               SORGKPP,
+                    O.SBANKREQ_SUB       SORGBANKREQ,
+                    O.DSIGNDOCDATE       DORGSIGNDOCDATE
+
+             from ZV_ORGREG O,
+                  ZV_JURPERS J
+            where O.NJURPERS = J.NJURPERS
+              and O.NVERSION = pVersion
+              and O.NORGRN = pOrgRn
+            )
+            loop
+                if dMAINDATE is not null then
+                    sDATE := '"' ||to_char(dMAINDATE, 'dd') ||'" ' || LOWER(F_GET_MONTH (to_char(dMAINDATE, 'mm'),1)) || ' ' || to_char(dMAINDATE,'yyyy')||' г.';
+                else
+                    sDATE := '"__" ______________ 20__ г.';
+                end if;
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => 'с. Покровское', sCELLTYPE => 'String', nMERGEACROSS => 3);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => sDATE, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => '№'|| sMAINNUMB, sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                nValueRow := QOrg.SJURNAME|| ', именуемое в дальнейшем "Учредитель", в лице '|| nvl(QOrg.SJURSIGNPERSON, nvl(QOrg.SJURDIRECTOR, '__________________________________________________________')) ||', действующего на основании ' || nvl(QOrg.SJURSIGNDOC, '__________________________________________________________') ||' , с одной стороны, и ' ||
+                QOrg.SORGNAME || ', именуемое в дальнейшем "Учреждение",  в лице '|| nvl(QOrg.SORGSIGNPERSPOSITION, nvl(QOrg.SORGPERSPOSITION, '__________________________________________________________')) || ' ' || nvl(QOrg.SORGSIGNPERSON, nvl(QOrg.SORGDIRECTOR, '__________________________________________________________')) ||', действующего(ей) на основании ' || nvl(QOrg.SORGSIGNDOC, '__________________________________________________________') || ', с другой стороны, '||
+                'вместе именуемые "Стороны", в соответствии с Бюджетным кодексом   Российской   Федерации, с Порядком определения объемов субсидии на иные цели муниципальным автономным и бюджетным учреждениям Неклиновского района, в отношении которых функции и полномочия учредителя осуществляет Управление образования, утвержденным Приказом Управления образования Администрации Неклиновского района Ростовской области регулирующим  порядок  предоставления  субсидии в соответствии с абзацем   вторым   пункта  1  статьи  78.1  Бюджетного  кодекса  Российской Федерации,  от  "30" декабря 2020  г. № 645 (далее - Субсидия, Правила   предоставления   субсидии),   заключили  настоящее  Соглашение  о нижеследующем.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => 100, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                -- 1 Пункт
+                nValueRow := 'I. Предмет Соглашения';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '1.1. Предметом настоящего Соглашения является предоставление Учреждению из  бюджета  Неклиновского района  в 2022 году/2023 - 2024 годах Субсидии в целях:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                /*
+                nValueRow := 'на погашение кредиторской задолженности прошлых лет';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+                */
+
+                nValueRow := case when nNATPROJECT > 0 then '1.1.1. достижения результатов федерального проекта «Образование» в рамках регионального проекта ' else '' end|| nvl(sNOTES, '_____________________________________');
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                begin
+                    select sum(nvl(B.SUMMA, 0) + nvl(B.PLANSUM1, 0) + nvl(B.PLANSUM2, 0)) SUMMA
+                      into nEXSUM
+                      from Z_ORG_BUDGDETAIL B
+                     where B.PRN        = pORGRN
+                       and B.RTYPE      = 4
+                       and B.TOTAL_SIGN = 0
+                       and B.VERSION    = pVERSION
+                       and B.JUR_PERS   = pJURPERS
+                       and B.FUND       = nFUND;
+                exception when others then
+                    nEXSUM   := null;
+                end;
+
+                -- 2 Пункт
+                nValueRow := 'II. Условия и финансовое обеспечение предоставления Субсидии';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '2.1. Субсидия  предоставляется  Учреждению  для  достижения цели(ей), указанной(ых) в пункте 1.1 настоящего Соглашения.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 40);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '2.2. Субсидия предоставляется Учреждению в размере '||LTRIM(to_char(nvl(nEXSUM,0),'999G999G999G999G999G990D00'),' ')|| '('||IntToStrPrim (TRUNC(nEXSUM), 2) || ') рублей '|| substr (to_char(nEXSUM,'999G999G999G999G990D00'), -2,2) || ' копеек, в том числе:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '2.2.1.   в   пределах   лимитов   бюджетных  обязательств,  доведенных Учредителю как получателю средств бюджета Неклиновского района по кодам классификации расходов бюджета Неклиновского района    (далее  -  коды  БК), по аналитическому коду Субсидии '||nvl(sFUNDCODE,'____')||', в следующем размере:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+
+
+                begin
+                    select sum(B.SUMMA) SUMMA, sum(PLANSUM1) PLANSUM1, sum(PLANSUM2) PLANSUM2
+                      into nPLANSUM, nPLANSUM1, nPLANSUM2
+                      from Z_ORG_BUDGDETAIL B, ZV_KBKALL KBK
+                     where B.PRN        = pORGRN
+                       and KBK.NKBK_RN  = B.KBK
+                       and B.RTYPE      = 4
+                       and B.TOTAL_SIGN = 0
+                       and B.VERSION    = pVERSION
+                       and B.JUR_PERS   = pJURPERS
+                       and B.FUND       = nFUND
+                       and (nvl(B.SUMMA,0) > 0 or nvl(B.PLANSUM1,0) > 0 or nvl(B.PLANSUM2,0) > 0)
+                       and (KBK.SCODE = sKBKCODE /*or sKBKCODE is null*/) ;
+                exception when others then
+                    nPLANSUM   := null;
+                    nPLANSUM1  := null;
+                    nPLANSUM2  := null;
+                    --sKBKCODE   := null;
+                end;
+
+                if sKBKCODE is not null then
+                    begin
+                        select substr(E.CODE, 1, 2)
+                         into sEXPDIRCODE
+                         from ZV_KBKALL KBK, Z_PARTICLE P, Z_EXPDIR E
+                        where KBK.NVERSION     = pVERSION
+                          and KBK.SCODE     = sKBKCODE
+                          and KBK.NPARTICLE = P.RN
+                          and P.EXPDIR         = E.RN
+                          and rownum        = 1;
+                    exception when others then
+                        sEXPDIRCODE := null;
+                    end;
+                end if;
+
+                nVALUEROW := 'в 2022 году '||LTRIM(to_char(nvl(nPLANSUM,0),'999G999G999G999G999G990D00'),' ')|| '('||IntToStrPrim (TRUNC(nPLANSUM), 2) || ') рублей '|| substr (to_char(nPLANSUM,'999G999G999G999G990D00'), -2,2) || ' копеек - ';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nVALUEROW, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-2, nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'по коду БК '||nvl(sKBKCODE, '_________________')||';', sCELLTYPE => 'String', nMERGEACROSS => nCountCol-2, nSKIPINDEX => 1);
+
+                nVALUEROW := 'в 2023 году '|| LTRIM(to_char(nvl(nPLANSUM1,0),'999G999G999G999G999G990D00'),' ')|| '('||IntToStrPrim (TRUNC(nPLANSUM1), 2) || ') рублей '|| substr (to_char(nPLANSUM1,'999G999G999G999G990D00'), -2,2) || ' копеек - ';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nVALUEROW, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1, nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'по коду БК '||nvl(sKBKCODE, '_________________')||';', sCELLTYPE => 'String', nMERGEACROSS => nCountCol-2, nSKIPINDEX => 1);
+
+                nVALUEROW := 'в 2024 году '|| LTRIM(to_char(nvl(nPLANSUM2,0),'999G999G999G999G999G990D00'),' ')|| '('||IntToStrPrim (TRUNC(nPLANSUM2), 2) || ') рублей '|| substr (to_char(nPLANSUM2,'999G999G999G999G990D00'), -2,2) || ' копеек - ';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nVALUEROW, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1, nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'по коду БК '||nvl(sKBKCODE, '_________________')||';', sCELLTYPE => 'String', nMERGEACROSS => nCountCol-2, nSKIPINDEX => 1);
+
+                nValueRow := '2.3.   Размер Субсидии рассчитывается в соответствии с Правилами предоставления субсидии.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+
+
+                -- III. Порядок перечисления Субсидии
+                nValueRow := 'III. Порядок перечисления Субсидии';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                -- nValueRow := '3.1.  Перечисление Субсидии осуществляется в установленном порядке санкционирования расходов, утвержденым приказом Финансового управления администрации Неклиновского района от 07.07.2014 № 25:';
+                nValueRow := '3.1.  Перечисление Субсидии осуществляется в установленном порядке санкционирования расходов, утвержденым приказом Финансового управления администрации Неклиновского района от 24.12.2021  № 48:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '3.1.1. на лицевой счет, открытый Учреждению в УФК по Ростовской области согласно графику перечисления Субсидии в соответствии с приложением №1 к  настоящему  Соглашению, являющимся  неотъемлемой частью настоящего Соглашения.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                -- IV. Взаимодействие Сторон
+                nValueRow := 'IV. Взаимодействие Сторон';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1. Учредитель обязуется:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.1.  обеспечивать предоставление Учреждению Субсидии на цель, указанную в пункте 1.1 настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.2.  осуществлять проверку документов, направляемых Учреждением Учредителю в целях принятия последним решения о перечислении Субсидии на предмет соответствия указанных в них расходов цели предоставления Субсидии, указанной в пункте 1.1 настоящего Соглашения, в течение 5 рабочих дней со дня поступления документов от Учреждения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                if nNATPROJECT > 0 then
+                    nValueRow := '4.1.2(1). устанавливать значения результатов предоставления Субсидии в соответствии с приложением №3 к настоящему Соглашению, являющимся неотъемлемой частью настоящего Соглашения;';
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+                end if;
+
+                nValueRow := '4.1.3. обеспечивать перечисление Субсидии на счет Учреждения, указанный в разделе VII настоящего Соглашения, согласно графику перечисления Субсидии в соответствии с приложением N 1 к настоящему Соглашению, являющимся неотъемлемой частью настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.4. утверждать Сведения об операциях с целевыми субсидиями на 2022 г. (далее - Сведения) по форме Сведений об операциях с целевыми субсидиями на 2022 г. (ф. 0501016), утвержденной приказом Финансового управления администрации Неклиновского района от 24.12.2021 № 48, Сведения с учетом внесенных изменений не позднее 5 рабочих дней со дня получения указанных документов от Учреждения в соответствии с пунктом 4.3.2 настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.5. осуществлять контроль за соблюдением Учреждением цели и условий предоставления Субсидии, а также оценку достижения значений результатов предоставления Субсидии, установленных Правилами предоставления субсидии, и настоящим Соглашением, в том числе путем осуществления следующих мероприятий:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.5.1. проведение плановых и внеплановых проверок:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.5.1.1. по месту нахождения Учредителя на основании документов, представленных по его запросу Учреждением в соответствии с пунктом 4.3.3 настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.5.1.2. по месту нахождения Учреждения по документальному и фактическому изучению операций с использованием средств Субсидии, произведенных Учреждением;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.5.2. приостановление предоставления Субсидии в случае установления по итогам проверки(ок), указанной(ых) в пункте 4.1.5.1 настоящего Соглашения, факта(ов) нарушений цели(ей) и условий, определенных Правилами предоставления субсидии и настоящим Соглашением (получения от органа муниципального финансового контроля информации о нарушении Учреждением цели(ей) и условий предоставления Субсидии, установленных Правилами предоставления субсидии, и настоящим Соглашением), до устранения указанных нарушений с обязательным уведомлением Учреждения не позднее 3 рабочих дней после принятия решения о приостановлении;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.5.3. направление требования Учреждению о возврате Учредителю в бюджет Неклиновского района Субсидии или ее части, в том числе в случае неустранения нарушений, указанных в пункте 4.1.5.2 настоящего Соглашения, в размере и сроки, установленные в данном требовании;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.6. рассматривать предложения, документы и иную информацию, направленную Учреждением, в том числе в соответствии с пунктами 4.4.1 - 4.4.2 настоящего Соглашения, в течение 15 рабочих дней со дня их получения и уведомлять Учреждение о принятом решении (при необходимости);';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.1.7. направлять разъяснения Учреждению по вопросам, связанным с исполнением настоящего Соглашения, не позднее 10 рабочих дней со дня получения обращения Учреждения в соответствии с пунктом 4.4.5 настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.2. Учредитель вправе:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.2.1. запрашивать у Учреждения информацию и документы, необходимые для осуществления контроля за соблюдением Учреждением цели и условий предоставления Субсидии, установленных Правилами предоставления субсидии, и настоящим Соглашением в соответствии с пунктом 4.1.5 настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.2.2. принимать решение об изменении условий настоящего Соглашения на основании информации и предложений, направленных Учреждением в соответствии с пунктом 4.4.2 настоящего Соглашения, включая уменьшение размера Субсидии, а также увеличение размера Субсидии, при наличии неиспользованных лимитов бюджетных обязательств, указанных в пункте 2.2 настоящего Соглашения, и при условии предоставления Учреждением информации, содержащей финансово-экономическое обоснование данных изменений;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.2.3. принимать в установленном бюджетным законодательством Российской Федерации порядке решение о наличии или отсутствии потребности в направлении в 2023 году остатка Субсидии, не использованного в 2022 году, а также об использовании средств, поступивших в 2022 году Учреждению от возврата дебиторской задолженности прошлых лет, возникшей от использования Субсидии, на цель, указанную в пункте 1.1 настоящего Соглашения, не позднее 15 рабочих дней после получения от Учреждения следующих документов, обосновывающих потребность в направлении остатка Субсидии на цель, указанную в пункте 1.1 настоящего Соглашения:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.2.3.1. Заявление об использовании средств, поступивших от возврата дебиторской задолженности прошлых лет с указанием цели, размера субсидии;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.2.3.2. Пояснительную записку содержащую финансово-экономическое обоснование, с приложением расчетов и платежных документов.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.3. Учреждение обязуется:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.3.1. направлять Учредителю на утверждение:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.3.1.1. Сведения не позднее 14 рабочих дней со дня заключения настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.3.1.2. Сведения с учетом внесенных изменений не позднее 14 рабочих дней со дня получения от Учредителя информации о принятом решении об изменении размера Субсидии;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.3.2. использовать Субсидию для достижения цели, указанной в пункте 1.1 настоящего Соглашения, в соответствии с условиями предоставления Субсидии, установленными Правилами предоставления субсидии, и настоящим Соглашением на осуществление выплат, указанных в Сведениях;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                if nNATPROJECT > 0 then
+                    nValueRow := '4.3.2(1). обеспечить достижение значений результатов предоставления Субсидии и соблюдение сроков их достижения, устанавливаемых в соответствии с пунктом 4.1.2(1) настоящего Соглашения;';
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+                end if;
+
+                nValueRow := '4.3.3. направлять по запросу Учредителя документы и информацию, необходимые для осуществления контроля за соблюдением цели и условий предоставления Субсидии в соответствии с пунктом 4.2.1 настоящего Соглашения, не позднее 5 рабочих дней со дня получения указанного запроса;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.3.4. направлять Учредителю не позднее 15 рабочих дней, следующих за отчетным годом , в котором была получена Субсидия:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.3.4.1. отчет о расходах, источником финансового обеспечения которых является Субсидия, по форме в соответствии с приложением №2 к настоящему Соглашению, являющимся неотъемлемой частью настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                if nNATPROJECT > 0 then
+                    nValueRow := '4.3.4.2. отчет о достижении значений результатов предоставления Субсидии по форме в соответствии с приложением №4 к настоящему Соглашению, являющимся неотъемлемой частью настоящего Соглашения;';
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+                end if;
+
+                nValueRow := '4.3.5. устранять выявленный(е) по итогам проверки, проведенной Учредителем, факт(ы) нарушения цели(ей) и условий предоставления Субсидии, определенных Правилами предоставления субсидии, и настоящим Соглашением (получения от органа муниципального финансового контроля информации о нарушении Учреждением цели(ей) и условий предоставления Субсидии, установленных Правилами предоставления субсидии и настоящим Соглашением), включая возврат Субсидии или ее части Учредителю в бюджет Неклиновского района, в течение 5 рабочих дней со дня получения требования Учредителя об устранении нарушения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.3.6. возвращать неиспользованный остаток Субсидии в доход бюджета Неклиновского района в случае отсутствия решения Учредителя о наличии потребности в направлении не использованного в 2022 году остатка Субсидии на цель, указанную в пункте 1.1 настоящего Соглашения, в срок до "01"февраля 2023 г.;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.4. Учреждение вправе:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.4.1. направлять Учредителю документы, указанные в пункте 4.2.3 настоящего Соглашения, не позднее 3 рабочих дней, следующих за отчетным финансовым годом;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.4.2. направлять Учредителю предложения о внесении изменений в настоящее Соглашение, в том числе в случае выявления необходимости изменения размера Субсидии с приложением информации, содержащей финансово-экономическое обоснование данного изменения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.4.3. направлять в 2023 году не использованный остаток Субсидии, полученный в соответствии с настоящим Соглашением, на осуществление выплат в соответствии с целью, указанной в пункте 1.1 настоящего Соглашения, на основании решения Учредителя, указанного в пункте 4.2.3 настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.4.4. направлять в 2023 году средства, поступившие Учреждению от возврата дебиторской задолженности прошлых лет, возникшей от использования Субсидии, на осуществление выплат в соответствии с целью, указанной в пункте 1.1 настоящего Соглашения, на основании решения Учредителя, указанного в пункте 4.2.3 настоящего Соглашения;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '4.4.5. обращаться к Учредителю в целях получения разъяснений в связи с исполнением настоящего Соглашения.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                -- V. Ответственность Сторон
+                nValueRow := 'V. Ответственность Сторон';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '5.1. В случае неисполнения или ненадлежащего исполнения своих обязательств по настоящему Соглашению Стороны несут ответственность в соответствии с законодательством Российской Федерации.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+
+                -- VI. Заключительные положения
+                nValueRow := 'VI. Заключительные положения';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.1. Расторжение настоящего Соглашения Учредителем в одностороннем порядке возможно в случаях:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.1.1. прекращения деятельности Учреждения при реорганизации или ликвидации;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.1.2. нарушения Учреждением цели и условий предоставления Субсидии, установленных Правилами предоставления субсидии, и настоящим Соглашением;';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.2. Расторжение Соглашения осуществляется по соглашению сторон, за исключением расторжения в одностороннем порядке, предусмотренного пунктом 6.1 настоящего Соглашения.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.3. Споры, возникающие между Сторонами в связи с исполнением настоящего Соглашения, решаются ими, по возможности, путем проведения переговоров с оформлением соответствующих протоколов или иных документов. При недостижении согласия споры между Сторонами решаются в судебном порядке.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.4. Настоящее Соглашение вступает в силу с даты его подписания лицами, имеющими право действовать от имени каждой из Сторон, но не ранее доведения лимитов бюджетных обязательств, указанных в пункте 2.2 настоящего Соглашения, и действует до полного исполнения Сторонами своих обязательств по настоящему Соглашению.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.5. Изменение настоящего Соглашения, в том числе в соответствии с положениями пункта 4.2.2 настоящего Соглашения, осуществляется по соглашению Сторон и оформляется в виде дополнительного соглашения, являющегося неотъемлемой частью настоящего Соглашения.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.6. Документы и иная информация, предусмотренные настоящим Соглашением, направляются Сторонами следующими способами: в электронном виде и(или) на бумажных носителях. ';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.7. Настоящее Соглашение заключено Сторонами в форме:';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                nValueRow := '6.7.1. электронного документа в установленном порядке и подписано усиленными квалифицированными электронными подписями лиц, имеющих право действовать от имени каждой из Сторон настоящего Соглашения.';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (STRVAL => nValueRow, ROWSTRLENGHT => nROWSTRLENGHT, ROWSTRHEIGHT => nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                -- VII. Платежные реквизиты Сторон
+                nValueRow := 'VII. Платежные реквизиты Сторон';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => 'Учредитель', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => 'Учреждение', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => greatest (ZF_HEIGHTROW (QORG.SJURNAME, 40, nROWSTRHEIGHT), ZF_HEIGHTROW (QORG.SORGNAME, 40, nROWSTRHEIGHT)));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => QORG.SJURNAME, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => QORG.SORGNAME, sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'Место нахождения:', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'Место нахождения:', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => greatest (ZF_HEIGHTROW (QORG.SJURADDRESS, 40, nROWSTRHEIGHT), ZF_HEIGHTROW (QORG.SORGADDRESS, 40, nROWSTRHEIGHT)));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => QORG.SJURADDRESS, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => QORG.SORGADDRESS, sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'ИНН ' || QORG.SJURINN, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'ИНН ' || QORG.SORGINN, sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'КПП ' || QORG.SJURKPP, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'КПП ' || QORG.SORGKPP, sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'Платежные реквизиты:', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => 'Платежные реквизиты:', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => greatest (ZF_HEIGHTROW (QORG.SJURBANKREQ, 40, nROWSTRHEIGHT), ZF_HEIGHTROW (QORG.SORGBANKREQ, 40, nROWSTRHEIGHT)));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => QORG.SJURBANKREQ, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => QORG.SORGBANKREQ, sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                -- VIII. Подписи Сторон
+                nValueRow := 'VIII. Подписи Сторон';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+                ---- Подпись
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => greatest(ZF_HEIGHTROW (STRVAL => QOrg.SORGCODE, ROWSTRLENGHT => 40, ROWSTRHEIGHT => nROWSTRHEIGHT), ZF_HEIGHTROW (STRVAL => QOrg.SJURCODE, ROWSTRLENGHT => 40, ROWSTRHEIGHT => nROWSTRHEIGHT)));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => QOrg.SJURCODE, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'top_left_str', sCELLDATA => QOrg.SORGCODE, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_ROW (nHEIGHT => 50);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bottom_left_str', sCELLDATA => lpad('/ ', 40- length(QOrg.SJURDIRECTOR), '_') || QOrg.SJURDIRECTOR, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bottom_left_str', sCELLDATA => lpad('/ ', 40- length(QOrg.SORGDIRECTOR), '_') || QOrg.SORGDIRECTOR, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_ROW (nHEIGHT => 50);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bottom_left_str', sCELLDATA => 'М.П.', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'bottom_left_str', sCELLDATA => 'М.П.', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                if sJURPERSNAME is not null and sORGPERSNAME is not null then
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp1', sCELLDATA => 'Подписано. Заверено ЭП.', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp1', sCELLDATA => 'Подписано. Заверено ЭП.', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'ФИО: '||sJURPERSNAME||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'ФИО: '||sORGPERSNAME||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'Должность: '||sJURPOSITION||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'Должность: '||sORGPOSITION||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'Действует c '||dJURVALIDFROM|| ' по: '||dJURVALIDTO||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'Действует c '||dORGVALIDFROM|| ' по: '||dORGVALIDTO||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'Серийный номер: '||nJURSIGN_ID||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'Серийный номер: '||nORGSIGN_ID||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'Издатель: '||sJURISSUERNAME||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp2', sCELLDATA => 'Издатель: '||sORGISSUERNAME||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                    --APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp3', sCELLDATA => 'Время подписания: '||to_char(dJURSIGN_DATE, 'DD.MM.YYYY HH24:MI:SS')||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                    --APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp3', sCELLDATA => 'Время подписания: '||to_char(dORGSIGN_DATE, 'DD.MM.YYYY HH24:MI:SS')||'', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp3', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'bold_ecp3', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                end if;
+            end loop;
+            APKG_XLSREP.FLUSH_ROWCELLS();
+            APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+        end;
+
+        begin
+            nCOUNTCOL := 10;
+            APKG_XLSREP.OPEN_SHEET(nPROTECTED => 1, sPASSWORD => ZF_GET_REP_PASS, sSHEETNAME => 'прил 1');
+            APKG_XLSREP.ADD_RUNTITLE(sFOOTERLEFT => sFOOTERLEFT,  sHEADERRIGTH => sHEADERRIGTH);
+            APKG_XLSREP.OPEN_TABLE();
+            APKG_XLSREP.ADD_COLUMN(nWIDTH => 140);
+            APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => nCOUNTCOL - 1);
+
+            nVALUEROW := 'Приложение № 1'|| CHR(13)|| CHR(10)||
+                         'к Соглашению от '||to_char(dMAINDATE, 'dd.mm.yyyy')||' № '||nvl(sMAINNUMB, '___');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 40);
+            nValueRow := 'График перечисления Субсидии';
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'КОДЫ', sCELLTYPE => 'String', nSKIPINDEX => nCOUNTCOL-1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование Учреждения', sCELLTYPE => 'String', nMERGEACROSS => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => sORGNAME, sCELLTYPE => 'String', nMERGEACROSS => 3);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по Сводному реестру', sCELLTYPE => 'String', nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sORGUBPCODE, sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование Учредителя', sCELLTYPE => 'String', nMERGEACROSS => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => sJURNAME, sCELLTYPE => 'String', nMERGEACROSS => 3);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по Сводному реестру', sCELLTYPE => 'String', nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sJURUBPCODE, sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование федерального проекта', sCELLTYPE => 'String', nMERGEACROSS => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => case when nNATPROJECT > 0 then sNOTES else null end, sCELLTYPE => 'String', nMERGEACROSS => 3);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по БК', sCELLTYPE => 'String', nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sEXPDIRCODE, sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Вид документа', sCELLTYPE => 'String', nMERGEACROSS => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => 0, sCELLTYPE => 'String', nMERGEACROSS => 3);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Единица измерения: руб. (с точностью до второго знака после запятой)', sCELLTYPE => 'String', nMERGEACROSS => 6);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по ОКЕИ', sCELLTYPE => 'String', nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => '383', sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Наименование направления расходов', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Код строки', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Код по бюджетной классификации', sCELLTYPE => 'String', nMERGEACROSS => 4);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Сроки перечисления Субсидии', nMERGEACROSS => 1, sCELLTYPE => 'String');
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Сумма', nMERGEDOWN => 2, sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'главы', sCELLTYPE => 'String', nSKIPINDEX => 2, nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'раздела, подраздела', sCELLTYPE => 'String', nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'целевой статьи', sCELLTYPE => 'String', nMERGEACROSS => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'вида расходов', sCELLTYPE => 'String', nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'не ранее (дд.мм.гггг.)', sCELLTYPE => 'String', nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'не позднее (дд.мм.гггг.)', sCELLTYPE => 'String', nMERGEDOWN => 1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 50);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'программной (непрограммной) статьи', sCELLTYPE => 'String', nSKIPINDEX => 4);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'направления расходов', sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+            for I in 1..nCOUNTCOL
+            loop
+             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => I, sCELLTYPE => 'Number');
+            end loop;
+
+
+            for QKBK in
+            (
+             select /*KBK.NKBK_RN,*/ ED.CODE EDCODE,  sum(SUMMA) SUMMA, sum(PLANSUM1) PLANSUM1, sum(PLANSUM2) PLANSUM2, ED.NAME EDNAME, KBK.SFKR, /*KBK.SPARTICLE,*/ replace(decode(ZGET_KBK_NEW(BD.VERSION), 1, EP2.CODE, EP.CODE) , '.', ' ') EPCODE, KBK.SKVR
+               from Z_ORG_BUDGDETAIL BD, ZV_KBKALL KBK, Z_PARTICLE P, Z_EXPDIR ED, Z_EXPROGRAM EP, Z_EXPROGRAM EP2
+              where BD.PRN               = pORGRN
+                and BD.FUND              = nFUND
+                and BD.KBK               = KBK.NKBK_RN
+                and KBK.NPARTICLE        = P.RN
+                and P.EXPDIR             = ED.RN
+                and P.SUBPROGRAM         = EP.RN
+                and P.EVENT              = EP2.RN(+)
+                and BD.FOTYPE2           = 5
+                and nvl(BD.TOTAL_SIGN,0) = 0
+                and KBK.SCODE             = sKBKCODE
+                and (nvl(BD.SUMMA,0) > 0 or nvl(BD.PLANSUM1,0) > 0 or nvl(BD.PLANSUM2,0) > 0)
+              group by /*KBK.NKBK_RN,*/ ED.CODE, ED.NAME, KBK.SFKR, /*KBK.SPARTICLE,*/ replace(decode(ZGET_KBK_NEW(BD.VERSION), 1, EP2.CODE, EP.CODE) , '.', ' '), KBK.SKVR/*, KBK.SCODE  */
+              --order by KBK.SCODE
+            )
+            loop
+                nCOUNTFUND := nvl(nCOUNTFUND,0) + 1;
+                nCOUNTALLROW := nvl(nCOUNTALLROW,0) + 1;
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (sFUNDNAME, 70, nROWSTRHEIGHT));
+
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => sFUNDNAME, sCELLTYPE => 'String', nMERGEDOWN => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => lpad(nCOUNTFUND, 3, '0'), sCELLTYPE => 'String', nMERGEDOWN => 3);
+
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sGLAVACODE, sCELLTYPE => 'String', nMERGEDOWN => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => QKBK.SFKR, sCELLTYPE => 'String', nMERGEDOWN => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => QKBK.EPCODE, sCELLTYPE => 'String', nMERGEDOWN => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => QKBK.EDCODE, sCELLTYPE => 'String', nMERGEDOWN => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => QKBK.SKVR, sCELLTYPE => 'String', nMERGEDOWN => 3);
+
+
+                for I in 1..3
+                loop
+                    if I != 1 then
+                        APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (sFUNDNAME, 70, nROWSTRHEIGHT));
+                        nCOUNTALLROW := nvl(nCOUNTALLROW,0) + 1;
+                    end if;
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => '01.01.'||case I when 1 then nNEXTPERIOD when 2 then nPLAN1 when 3 then nPLAN2 end, sCELLTYPE => 'String', nSKIPINDEX => case I when 1 then 0 else 7 end);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => '31.12.'||case I when 1 then nNEXTPERIOD when 2 then nPLAN1 when 3 then nPLAN2 end, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => case I when 1 then nvl(QKBK.SUMMA, 0) when 2 then nvl(QKBK.PLANSUM1, 0) when 3 then nvl(QKBK.PLANSUM2, 0) end , sCELLTYPE => 'Number');
+                end loop;
+
+
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HEIGHTROW (sFUNDNAME, 70, nROWSTRHEIGHT));
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_str', sCELLDATA => 'Итого по коду БК:', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 7);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => '=SUBTOTAL(9,R[-3]C:R[-1]C)', sCELLTYPE => 'Formula');
+                nCOUNTALLROW := nvl(nCOUNTALLROW,0) + 1;
+
+            end loop;
+
+            if nvl(nCOUNTALLROW,0) != 0 then
+                APKG_XLSREP.ADD_ROW;
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_str', sCELLDATA => 'Всего:', sCELLTYPE => 'String', nMERGEACROSS => nCOUNTCOL-2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => '=SUBTOTAL(9,R[-'||nCOUNTALLROW||']C:R[-1]C)', sCELLTYPE => 'Formula');
+            end if;
+
+            APKG_XLSREP.FLUSH_ROWCELLS();
+            APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+        end;
+
+        begin
+            nCOUNTCOL := 14;
+            APKG_XLSREP.OPEN_SHEET(nPROTECTED => 1, sPASSWORD => ZF_GET_REP_PASS, sSHEETNAME => 'прил 2');
+            APKG_XLSREP.ADD_RUNTITLE(sFOOTERLEFT => sFOOTERLEFT,  sHEADERRIGTH => sHEADERRIGTH);
+            APKG_XLSREP.OPEN_TABLE();
+            APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => nCOUNTCOL);
+
+            nVALUEROW := 'Приложение № 2'|| CHR(13)|| CHR(10)||
+                         'к Соглашению от '||to_char(dMAINDATE, 'dd.mm.yyyy')||' № '||nvl(sMAINNUMB, '___');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 50);
+            nValueRow := 'Отчет о расходах,'|| CHR(13)|| CHR(10)||
+            'источником финансового обеспечения которых является Субсидия'|| CHR(13)|| CHR(10)||
+            'на "__" ____________ 20__ г.';
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 60);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование Учредителя', sCELLTYPE => 'String', nMERGEACROSS => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => sJURNAME, sCELLTYPE => 'String', nMERGEACROSS => 10);
+
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование Учреждения', sCELLTYPE => 'String', nMERGEACROSS => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => sORGNAME, sCELLTYPE => 'String', nMERGEACROSS => 10);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Единица измерения: руб. (с точностью до второго знака после запятой)', sCELLTYPE => 'String', nMERGEACROSS => 7);
+
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 50);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Субсидия', sCELLTYPE => 'String', nMERGEACROSS => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Код по бюджетной классификации Российской Федерации', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Остаток Субсидии на начало текущего финансового года', sCELLTYPE => 'String', nMERGEACROSS => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Поступления', nMERGEACROSS => 2, sCELLTYPE => 'String');
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Выплаты', nMERGEACROSS => 1, sCELLTYPE => 'String');
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Курсовая разница', sCELLTYPE => 'String', nMERGEDOWN => 2);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Остаток Субсидии на конец отчетного периода', nMERGEACROSS => 2, sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 18);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'наименование', sCELLTYPE => 'String',  nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'код', sCELLTYPE => 'String', nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'всего', sCELLTYPE => 'String', nMERGEDOWN => 1, nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'из них: разрешенный к использованию', sCELLTYPE => 'String', nMERGEDOWN => 1);
+
+
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'всего, в том числе', sCELLTYPE => 'String', nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'из бюджета Неклиновского района', sCELLTYPE => 'String', nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'возврат дебиторской задолженности прошлых лет', sCELLTYPE => 'String', nMERGEDOWN => 1);
+
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'всего', sCELLTYPE => 'String', nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'из них: возвращено в бюджет Неклиновского района', sCELLTYPE => 'String', nMERGEDOWN => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'всего', sCELLTYPE => 'String', nMERGEDOWN => 1, nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'в том числе:', sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 50);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'требуется в направлении на те же цели', sCELLTYPE => 'String', nSKIPINDEX => 12);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'подлежит возврату', sCELLTYPE => 'String');
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+            for I in 1..nCOUNTCOL
+            loop
+             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => I, sCELLTYPE => 'Number');
+            end loop;
+
+            for I in 1..3
+            loop
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'Number', nCOUNT => nCOUNTCOL);
+            end loop;
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 10);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Руководитель'|| CHR(13)|| CHR(10) ||'(уполномоченное лицо)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 2);
+
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 25);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(должность)', sCELLTYPE => 'String', nSKIPINDEX => 5);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(подпись)', sCELLTYPE => 'String', nSKIPINDEX => 1);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(расшифровка подписи)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+            APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => '"__" _________ 20__ г.', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 2);
+
+            APKG_XLSREP.FLUSH_ROWCELLS();
+            APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+        end;
+
+        if nNATPROJECT > 0 then
+            begin
+                nCOUNTCOL := 14;
+                APKG_XLSREP.OPEN_SHEET(nPROTECTED => 1, sPASSWORD => ZF_GET_REP_PASS, sSHEETNAME => 'прил 3 (Нац.проект)');
+                APKG_XLSREP.ADD_RUNTITLE(sFOOTERLEFT => sFOOTERLEFT,  sHEADERRIGTH => sHEADERRIGTH);
+                APKG_XLSREP.OPEN_TABLE();
+                APKG_XLSREP.ADD_COLUMN(nWIDTH => 120);
+                APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => nCOUNTCOL - 1);
+
+                nVALUEROW := 'Приложение № 3'|| CHR(13)|| CHR(10)||
+                             'к Соглашению от '||to_char(dMAINDATE, 'dd.mm.yyyy')||' № '||nvl(sMAINNUMB, '___');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 40);
+                nValueRow := 'Значения результатов предоставления Субсидии';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'КОДЫ', sCELLTYPE => 'String', nSKIPINDEX => nCOUNTCOL-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование Учреждения', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => sORGNAME, sCELLTYPE => 'String', nMERGEACROSS => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по Сводному реестру', sCELLTYPE => 'String', nSKIPINDEX => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sORGUBPCODE, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование Учредителя', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => sJURNAME, sCELLTYPE => 'String', nMERGEACROSS => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по Сводному реестру', sCELLTYPE => 'String', nSKIPINDEX => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sJURUBPCODE, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование регионального проекта', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по БК', sCELLTYPE => 'String', nSKIPINDEX => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sEXPDIRCODE, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Вид документа', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => 0, sCELLTYPE => 'String', nMERGEACROSS => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 3);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Направление расходов', sCELLTYPE => 'String', nMERGEDOWN => 1, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Результат предоставления Субсидии', sCELLTYPE => 'String', nMERGEDOWN => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Единица измерения', sCELLTYPE => 'String', nMERGEDOWN => 1, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Код строки', sCELLTYPE => 'String', nMERGEDOWN => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Плановые значения результатов предоставления Субсидии по годам (срокам) реализации Соглашения ', sCELLTYPE => 'String',  nMERGEACROSS => 7);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'на 01.12.'||nNEXTPERIOD, sCELLTYPE => 'String', nSKIPINDEX => 6, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'на 01.01.'||nPLAN1, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'на 01.01.'||nPLAN2, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'на 01.01.'||(nPLAN2 + 1), sCELLTYPE => 'String', nMERGEACROSS => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 60);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'наименование', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'код по БК', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'наименование', sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'код по ОКЕИ', sCELLTYPE => 'String' );
+
+                for I in 1..4
+                loop
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'с даты заключения Соглашения', sCELLTYPE => 'String', nSKIPINDEX => case when I = 1 then 1 else 0 end );
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'из них с начала текущего финансового года', sCELLTYPE => 'String' );
+                end loop;
+
+
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                for I in 1..nCOUNTCOL
+                loop
+                 APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => I, sCELLTYPE => 'Number');
+                end loop;
+
+                nCOUNTFUND := null;
+                for QKBK in
+                (
+                 select ED.CODE EDCODE, ED.NAME EDNAME
+                   from Z_FUNDS_KBK FK, ZV_KBKALL KBK, Z_PARTICLE P, Z_EXPDIR ED
+                  where FK.PRN          = nFUND
+                    and FK.KBK_RN      = KBK.NKBK_RN
+                    and KBK.NPARTICLE  = P.RN
+                    and P.EXPDIR       = ED.RN
+                    and KBK.NNATPROJECT = 1
+                  order by ED.CODE
+                )
+                loop
+                    nCOUNTFUND := nvl(nCOUNTFUND,0) + 1;
+
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 25);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => sFUNDNAME, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => QKBK.EDCODE, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 3);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => lpad(nCOUNTFUND, 3, '0'), sCELLTYPE => 'String');
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 8);
+
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 25);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'в том числе:', sCELLTYPE => 'String', nSKIPINDEX => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 11);
+                    APKG_XLSREP.ADD_ROW(nHEIGHT => 25);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 12, nSKIPINDEX => 2);
+
+
+                end loop;
+
+
+                APKG_XLSREP.FLUSH_ROWCELLS();
+                APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+            end;
+
+
+            begin
+                nCOUNTCOL := 18;
+                APKG_XLSREP.OPEN_SHEET(nPROTECTED => 1, sPASSWORD => ZF_GET_REP_PASS, sSHEETNAME => 'прил 4 (Нац.проект)');
+                APKG_XLSREP.ADD_RUNTITLE(sFOOTERLEFT => sFOOTERLEFT,  sHEADERRIGTH => sHEADERRIGTH);
+                APKG_XLSREP.OPEN_TABLE();
+                APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => 2);
+                APKG_XLSREP.ADD_COLUMN(nWIDTH => 120, nCOUNT => nCOUNTCOL);
+                APKG_XLSREP.ADD_COLUMN(nWIDTH => 100, nCOUNT => nCOUNTCOL - 3);
+
+                nVALUEROW := 'Приложение № 4'|| CHR(13)|| CHR(10)||
+                             'к Соглашению от '||to_char(dMAINDATE, 'dd.mm.yyyy')||' № '||nvl(sMAINNUMB, '___');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 40);
+                nValueRow := 'Отчет'|| CHR(13)|| CHR(10)||
+                             'о достижении значений результатов предоставления Субсидии';
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => nValueRow, sCELLTYPE => 'String', nMERGEACROSS => nCountCol-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'КОДЫ', sCELLTYPE => 'String', nSKIPINDEX => nCOUNTCOL-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => 'по состоянию на 1 ___ 20__ г.', sCELLTYPE => 'String', nSKIPINDEX => 6, nMERGEACROSS =>2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'Дата', sCELLTYPE => 'String', nSKIPINDEX => 7);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование Учреждения', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => sORGNAME, sCELLTYPE => 'String', nMERGEACROSS => 7);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по Сводному реестру', sCELLTYPE => 'String', nSKIPINDEX => 4, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sORGUBPCODE, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование Учредителя', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => sJURNAME, sCELLTYPE => 'String', nMERGEACROSS => 7);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по Сводному реестру', sCELLTYPE => 'String', nSKIPINDEX => 4, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sJURUBPCODE, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Наименование регионального проекта', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 7);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по БК', sCELLTYPE => 'String', nSKIPINDEX => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => sEXPDIRCODE, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Вид документа', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => 0, sCELLTYPE => 'String', nMERGEACROSS => 7);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEDOWN => 1);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Периодичность:', sCELLTYPE => 'String', nMERGEACROSS => 10);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 6);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Единица измерения: руб.', sCELLTYPE => 'String', nMERGEACROSS => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'right_str', sCELLDATA => 'по ОКЕИ', sCELLTYPE => 'String', nSKIPINDEX => 13);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => '383', sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 10);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '1. Информация о достижении значений результатов предоставления Субсидии и обязательствах, принятых в целях их достижения', sCELLTYPE => 'String', nMERGEACROSS => nCOUNTCOL-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 60);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Направление расходов', sCELLTYPE => 'String', nMERGEDOWN => 1, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Результат предоставления Субсидии', sCELLTYPE => 'String', nMERGEDOWN => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Единица измерения', sCELLTYPE => 'String', nMERGEDOWN => 1, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Код строки', sCELLTYPE => 'String', nMERGEDOWN => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Плановые значения', sCELLTYPE => 'String',  nMERGEACROSS => 1, nMERGEDOWN => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Размер Субсидии, предусмотренный Соглашением', sCELLTYPE => 'String', nMERGEDOWN => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Фактически достигнутые значения', sCELLTYPE => 'String',  nMERGEACROSS => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Объем обязательств, принятых в целях достижения результатов предоставления Субсидии', sCELLTYPE => 'String',  nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Неиспользованный объем финансового обеспечения', sCELLTYPE => 'String');
+
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'на отчетную дату', sCELLTYPE => 'String', nSKIPINDEX => 9, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'отклонение от планового значения', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'причина отклонения', sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'обязательств', sCELLTYPE => 'String', nMERGEDOWN => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'денежных обязательств', sCELLTYPE => 'String', nMERGEDOWN => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => '(гр. 9 - гр. 16)', sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 60);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'наименование', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'код по БК', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'наименование', sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'код по ОКЕИ', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'с даты заключения Соглашения', sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'из них с начала текущего финансового года', sCELLTYPE => 'String' );
+
+
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'с даты заключения Соглашения', sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'из них с начала текущего финансового года', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'в абсолютных величинах (гр. 7 - гр. 10)', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'в процентах (гр. 12 / гр. 7 x 100%)', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'код', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'наименование', sCELLTYPE => 'String' );
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 2 );
+
+
+
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                for I in 1..nCOUNTCOL
+                loop
+                 APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => I, sCELLTYPE => 'Number');
+                end loop;
+
+                nCOUNTFUND := null;
+                for I in 1..2
+                loop
+                    nCOUNTFUND := nvl(nCOUNTFUND, 0) + 1;
+                    APKG_XLSREP.ADD_ROW;
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str',   sCELLDATA => null, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 3);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => lpad(nCOUNTFUND, 3, '0'), sCELLTYPE => 'String');
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 6);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEDOWN => 2);
+
+                    APKG_XLSREP.ADD_ROW;
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'в том числе:', sCELLTYPE => 'String', nSKIPINDEX => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 5);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 6, nSKIPINDEX => 1);
+                    APKG_XLSREP.ADD_ROW;
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 6, nSKIPINDEX => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 6, nSKIPINDEX => 1);
+
+                end loop;
+                APKG_XLSREP.ADD_ROW;
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_str', sCELLDATA => 'Всего:', sCELLTYPE => 'String', nMERGEACROSS => 7);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_str', sCELLDATA => 'Всего:', sCELLTYPE => 'String', nMERGEACROSS => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 3);
+
+                /*for QKBK in
+                (
+                 select ED.CODE EDCODE, ED.NAME EDNAME
+                   from Z_FUNDS_KBK FK, ZV_KBKALL KBK, Z_PARTICLE P, Z_EXPDIR ED
+                  where FK.PRN          = nFUND
+                    and FK.KBK_RN      = KBK.NKBK_RN
+                    and KBK.NPARTICLE  = P.RN
+                    and P.EXPDIR       = ED.RN
+                    and KBK.NNATPROJECT = 1
+                  order by ED.CODE
+                )
+                loop
+                    nCOUNTFUND := nvl(nCOUNTFUND,0) + 1;
+
+                    APKG_XLSREP.ADD_ROW;
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str', sCELLDATA => QKBK.EDNAME, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => QKBK.EDCODE, sCELLTYPE => 'String', nMERGEDOWN => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 3);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => lpad(nCOUNTFUND, 3, '0'), sCELLTYPE => 'String');
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 8);
+
+                    APKG_XLSREP.ADD_ROW;
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'в том числе:', sCELLTYPE => 'String', nSKIPINDEX => 2);
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 11);
+                    APKG_XLSREP.ADD_ROW;
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String', nCOUNT => 12, nSKIPINDEX => 2);
+
+
+                end loop;  */
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 10);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 10);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 10);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 10);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Руководитель'|| CHR(13)|| CHR(10) ||'(уполномоченное лицо)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String',  nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(должность)', sCELLTYPE => 'String', nSKIPINDEX => 4);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(подпись)', sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(расшифровка подписи)', sCELLTYPE => 'String',  nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Исполнитель', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 30);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(должность)', sCELLTYPE => 'String', nSKIPINDEX => 4);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(фамилия, инициалы)', sCELLTYPE => 'String', nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(телефон)', sCELLTYPE => 'String',  nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => '"__" _________ 20__ г.', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 2);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 40);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '2. Сведения о принятии отчета о достижении значений'|| CHR(13)|| CHR(10)||'результатов предоставления Субсидии ', sCELLTYPE => 'String', nMERGEACROSS => nCOUNTCOL-1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Наименование показателя', sCELLTYPE => 'String', nMERGEDOWN => 1, nMERGEACROSS => 2, nSKIPINDEX => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Код по бюджетной классификации регионального бюджета', sCELLTYPE => 'String', nMERGEDOWN => 1, nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'КОСГУ', sCELLTYPE => 'String', nMERGEDOWN => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Сумма', sCELLTYPE => 'String', nMERGEACROSS => 3);
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 70);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Наименование показателя', sCELLTYPE => 'String', nMERGEACROSS => 2, nSKIPINDEX => 8);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'из них с начала текущего финансового года', sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+                for I in 1..5
+                loop
+                    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => I, sCELLTYPE => 'Number', nMERGEACROSS => case when I in (1, 4) then 2 when I in (3, 5) then 0 else 1 end, nSKIPINDEX => case when I = 1 then 2 else 0 end );
+                end loop;
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Объем Субсидии, направленной на достижение результатов', sCELLTYPE => 'String', nMERGEACROSS => 2, nMERGEDOWN => 1, nSKIPINDEX => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 1, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 2, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 1, sCELLTYPE => 'String', nSKIPINDEX => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 2, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Объем Субсидии, потребность в которой не подтверждена', sCELLTYPE => 'String', nMERGEACROSS => 2, nMERGEDOWN => 1, nSKIPINDEX => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 1, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 2, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 1, sCELLTYPE => 'String', nSKIPINDEX => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 2, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Объем Субсидии, подлежащей возврату в бюджет', sCELLTYPE => 'String', nMERGEACROSS => 2, nMERGEDOWN => 1, nSKIPINDEX => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 1, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 2, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 1, sCELLTYPE => 'String', nSKIPINDEX => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 2, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => 'Сумма штрафных санкций (пени), подлежащих перечислению в бюджет', sCELLTYPE => 'String', nMERGEACROSS => 2, nMERGEDOWN => 1, nSKIPINDEX => 2);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 1, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 2, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 1, sCELLTYPE => 'String', nSKIPINDEX => 5);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, nMERGEACROSS => 2, sCELLTYPE => 'String');
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', sCELLDATA => null, sCELLTYPE => 'String');
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_top', sCELLDATA => null, sCELLTYPE => 'String', nSKIPINDEX => 3, nCOUNT => 2);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 60);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Руководитель'|| CHR(13)|| CHR(10) ||'(уполномоченное лицо) Учредителя', sCELLTYPE => 'String', /*nMERGEACROSS => 1,*/ nSKIPINDEX => 2);
+
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 25);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(должность)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 4);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(подпись)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(расшифровка подписи)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => 'Исполнитель', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 2);
+
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_bottom_left_str', sCELLDATA => null, sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 25);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(должность)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 4);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(фамилия, инициалы)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'center_str', sCELLDATA => '(телефон)', sCELLTYPE => 'String', nMERGEACROSS => 1, nSKIPINDEX => 1);
+
+                APKG_XLSREP.ADD_ROW(nHEIGHT => 20);
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str', sCELLDATA => '"__" _________ 20__ г.', sCELLTYPE => 'String', nMERGEACROSS => 3, nSKIPINDEX => 2);
+
+                APKG_XLSREP.FLUSH_ROWCELLS();
+                APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+            end;
+        end if;
+
+        if nvl(nRESULT,0) != 0 then
+            begin
+                ZP_REP_VDK_LOG (pJURPERS      => pJURPERS,
+                                 pVERSION     => pVERSION,
+                                 pORGRN       => pORGRN,
+                                 pPFHDVERS    => pREDACTION,
+                                 pPROCNAME    => 'ZP_REP_SOGLSUB2022_UONR',
+                                 pUSER        => null);
+            end;
+        end if;
+
+        APKG_XLSREP.CLOSE_REPORT();
+        pFile := APKG_XLSREP.GET_BLOB;
+    exception when others then
+        APKG_XLSREP.CLOSE_REPORT();
+        APKG_XLSREP.FREE_BLOB;
+        raise;
+    end;
+end;
+​

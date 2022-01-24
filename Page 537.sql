@@ -16,6 +16,7 @@ declare
  sFACTSUM      varchar2(4000);
  sSUMBUDG      varchar2(4000);
  sDIFFSUM      varchar2(4000);
+ sUNRZ         varchar2(4000);
  -----------------------------------------------
  sSTRBACK      varchar2(4000);
  sSTRNAMESTR   varchar2(4000);
@@ -196,6 +197,7 @@ begin
 		.th5{width: 120px;text-align:center;}   .c5 {width: 120px; word-wrap: break-word; text-align:right;}
         .th6{width: 120px;text-align:center;}   .c6 {width: 120px; word-wrap: break-word; text-align:right;}
         .th7{width: 120px;text-align:center;}   .c7 {width: 120px; word-wrap: break-word; text-align:right;}
+        .th8{width: 180px;text-align:center;}   .c8 {width: 180px; word-wrap: break-word; text-align:center;}
 		.c2_r{width: 100%; word-wrap: break-word; text-align:right;}
 
         .pagination {text-align: right;
@@ -243,6 +245,7 @@ begin
     <thead>
         <tr>
          <th class="header th1"><div class="th1">Тип</div></th>
+         <th class="header th8"><div class="th8">УНРЗ</div></th>
          <th class="header th2"><div class="th2">Услуга</div></th>
          <th class="header th3"><div class="th3">%</div></th>
 		 <th class="header th31"><div class="th31">Расчетный норматив, руб.</div></th>
@@ -269,7 +272,8 @@ begin
            case pPERIOD when 'NEXTPERIOD' then SL.ALIG_COEFF
                         when 'PLAN1' then SL.ALIG_COEFF_2
                         when 'PLAN2' then SL.ALIG_COEFF_3
-                        when 'PLAN3' then SL.ALIG_COEFF end ALIG_COEFF
+                        when 'PLAN3' then SL.ALIG_COEFF end ALIG_COEFF,
+          SR.UNIQREGNUM_FULL
       from Z_SERVLINKS SL, Z_SERVREG SR, Z_LOV L
      where SL.SERVRN   = SR.RN
        and SL.JUR_PERS = pJURPERS
@@ -318,14 +322,22 @@ begin
         if rec.NORM_EXPGTOUP is null then
     		nSUMBUDG := nvl(nVALSUM,0) * nvl(rec.ACCEPT_NORM,0) * nvl(rec.CORRCOEF,1) * nvl(rec.REG_COEFF,1) * nvl(rec.ALIG_COEFF,1);
         else
-            if pPERIOD = 'NEXTPERIOD' then
-                            select sum(nvl(ACCEPT_NORM, 0) * nvl(ALIG_COEFF, 1) * nvl(REG_COEFF, 1) * nvl(CORRCOEF, 1)) into nSUMBUDG from Z_SERVLINKS_NORM where ORGRN = pORGRN and SERVRN = rec.SERVRN and VERSION = pVERSION;
-            elsif pPERIOD = 'PLAN1' then
-                            select sum(nvl(ACCEPT_NORM2, 0) * nvl(ALIG_COEFF, 1) * nvl(REG_COEFF, 1) * nvl(CORRCOEF2, 1)) into nSUMBUDG from Z_SERVLINKS_NORM where ORGRN = pORGRN and SERVRN = rec.SERVRN and VERSION = pVERSION;
-            elsif pPERIOD = 'PLAN2' then
-                            select sum(nvl(ACCEPT_NORM3, 0) * nvl(ALIG_COEFF, 1) * nvl(REG_COEFF, 1) * nvl(CORRCOEF3, 1)) into nSUMBUDG from Z_SERVLINKS_NORM where ORGRN = pORGRN and SERVRN = rec.SERVRN and VERSION = pVERSION;
-            end if;
+            for QEXP in
+            (
+            select case pPERIOD when 'NEXTPERIOD' then nvl(ACCEPT_NORM, 0)  * nvl(CORRCOEF, 1)
+                                when 'PLAN1'      then nvl(ACCEPT_NORM2, 0) * nvl(CORRCOEF2, 1)
+                                when 'PLAN2'      then nvl(ACCEPT_NORM3, 0) * nvl(CORRCOEF3, 1) end * nvl(ALIG_COEFF, 1) * nvl(REG_COEFF, 1) as SUMMA
+            from Z_SERVLINKS_NORM
+            where ORGRN = pORGRN
+              and SERVRN = rec.SERVRN
+              and VERSION = pVERSION
+            )
+            loop
+                -- nSUMBUDG := nvl(nSUMBUDG,0) + round(nvl(QEXP.SUMMA,0), 2);
+                nSUMBUDG := nvl(nSUMBUDG,0) + nvl(QEXP.SUMMA,0);
+            end loop;
 
+            -- nSUMBUDG := round(nvl(nSUMBUDG, 0), 2) * nvl(nVALSUM,0);
             nSUMBUDG := nvl(nSUMBUDG, 0) * nvl(nVALSUM,0);
         end if;
 
@@ -344,20 +356,24 @@ begin
         if rec.NORM_EXPGTOUP is null then
             sSUMBUDG   := '<td class="c6"><div class="c6"><span class="link_code" onclick="ShowDialog2(''detorg'','||pORGRN||','||rec.SERVRN||','''||pPERIOD||''');">'||case when rec.ACCEPT_NORM is not null then LTRIM(to_char(nSUMBUDG,'999G999G999G999G999G990D00'),' ') else '-Нет-' end||'</span></></div></td>';
         else
-            sSUMBUDG   := '<td class="c6"><div class="c6">'||LTRIM(to_char(nvl(nSUMBUDG,0),'999G999G999G999G999G990D00'),' ')||'</></div></td>';
+            -- sSUMBUDG   := '<td class="c6"><div class="c6">'||LTRIM(to_char(nvl(nSUMBUDG,0),'999G999G999G999G999G990D00'),' ')||'</></div></td>';
+            sSUMBUDG   := '<td class="c6"><div class="c6"><a class="link_code" href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':1537:'||:APP_SESSION||'::::P1537_ORGRN,P1537_SERVRN,P1537_PERIOD:'||pORGRN||','||rec.SERVRN||','||pPERIOD)||'">'||LTRIM(to_char(nvl(nSUMBUDG,0),'999G999G999G999G999G990D00'),' ')||'</a></div></td>';
         end if;
 
 		sDIFFSUM   := '<td class="c7"><div class="c7">'||case when rec.ACCEPT_NORM is not null then LTRIM(to_char(nvl(nSUMBUDG,0) - nvl(nPLANSUM,0),'999G999G999G999G999G990D00'),' ') else '-Нет-' end||'</></div></td>';
 
+        sUNRZ      := '<td class="c8"><div class="c8">'||rec.UNIQREGNUM_FULL ||'</></div></td>';
 
 		nALLPLANSUM := nvl(nALLPLANSUM, 0) + nvl(nPLANSUM,0);
 		nALLFACTSUM := nvl(nALLFACTSUM, 0) + nvl(nFACTSUM,0);
-		nALLSUMBUDG := nvl(nALLSUMBUDG, 0) + nvl(nSUMBUDG,0); -- ТУТ
-		nALLDIFFSUM := nvl(nALLDIFFSUM, 0) + nvl(nSUMBUDG,0) - nvl(nPLANSUM,0);
+        nALLSUMBUDG := nvl(nALLSUMBUDG, 0) + round(nvl(nSUMBUDG,0), 2); -- ТУТ
+		-- nALLSUMBUDG := nvl(nALLSUMBUDG, 0) + nvl(nSUMBUDG,0); -- ТУТ
+		nALLDIFFSUM := nvl(nALLDIFFSUM, 0) + round(nvl(nSUMBUDG,0), 2) - nvl(nPLANSUM,0);
 
 		htp.p('
 			<tr>
 				'||sSERVTYPE||'
+                '||sUNRZ||'
 				'||sSERVCODE||'
 
                 '||sPERCFOT||'

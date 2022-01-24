@@ -2,7 +2,7 @@ create or replace procedure ZP_REP_SPORT_EVENT_DETAIL
 (
   pJURPERS         number,
   pVersion         number,
-  pOrgrn           varchar,
+  pOrgrn           number,
   pCalendRn        varchar,
   pSheetTitle     varchar DEFAULT NULL
 )

@@ -174,6 +174,7 @@ begin
       </thead>
     <tbody id="fullall" >');
 
+    /*
     begin
     select case pPERIOD
             when 1 then nvl(sum(nvl(D.ACCEPT_NORM, 0) * nvl(D.ALIG_COEFF, 1) * nvl(D.REG_COEFF, 1) * nvl(D.CORRCOEF, 1)), 0)
@@ -192,6 +193,27 @@ begin
         nSUMMA := 0;
         nRES := 0;
     end;
+    */
+
+    for QREC in
+    (
+        select case pPERIOD
+               when 1 then nvl(D.ACCEPT_NORM, 0)  * nvl(D.CORRCOEF,  1)
+               when 2 then nvl(D.ACCEPT_NORM2, 0) * nvl(D.CORRCOEF2, 1)
+               when 3 then nvl(D.ACCEPT_NORM3, 0) * nvl(D.CORRCOEF3, 1) end * nvl(D.ALIG_COEFF, 1) * nvl(D.REG_COEFF, 1) as RES,
+            case pPERIOD
+                    when 1 then nvl(D.ACCEPT_NORM, 0)
+                    when 2 then nvl(D.ACCEPT_NORM2, 0)
+                    when 3 then nvl(D.ACCEPT_NORM3, 0) end SUMMA
+        from Z_SERVLINKS_NORM D, Z_EXPGROUP EG
+        where D.VERSION  = :P1_VERSION
+          and D.EXPGROUP = EG.RN
+          and D.LINKRN   = :P22_RN
+    )
+    loop
+        nRES := nvl(nRES, 0) +  QREC.RES;
+        nSUMMA := nvl(nSUMMA, 0) + QREC.SUMMA;
+    end loop;
 
 	sNUMB        := '<td class="c1  itogo"><div class="c1"></div></td>';
 	sEXPKIND     := '<td class="c2  itogo"><div class="c2"></div></td>';
@@ -200,7 +222,7 @@ begin
     sREG_COEFF   := '<td class="c5  itogo"><div class="c4"></div></td>';
     sCORRCOEF    := '<td class="c6  itogo"><div class="c5"></div></td>';
 	sKOSGUCODE   := '<td class="c7  itogo"><div class="c7">'||to_char(nSUMMA,'999G999G999G999G999G990D000000000')||'</div></td>';
-    sRESULT      := '<td class="c8  itogo"><div class="c8">'||to_char(nRES,'999G999G999G999G999G990D000000000')||'</div></td>';
+    sRESULT      := '<td class="c8  itogo"><div class="c8">'||to_char(nRES,'999G999G999G999G999G990D00')||'</div></td>';
 	sDOPKOSGU    := '<td class="c9  itogo"><div class="c9"></div></td>';
 
 	htp.p('<tr>'||sNUMB||'

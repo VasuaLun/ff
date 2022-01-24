@@ -1,0 +1,260 @@
+create or replace procedure ZP_REP_BLANKGZF2021_MKSO_FIN
+(
+  pREDACTION   number,
+  --
+  sFOOTERLEFT  varchar,
+  sHEADERRIGTH varchar
+)
+as
+  pJURPERS     number;
+  pVERSION     number;
+  pORGRN       number;
+  --
+  nCOUNTCOL    number := 9;
+  nPART        number := 1;
+  nQUARTER     number;
+
+  sINDNAME     Z_QINDLIST.NAME%type;
+  sMEASURE     Z_DICMUNTS.NAME%type;
+  sOKEI        Z_DICMUNTS.OKEI%type;
+  nQINDKIND    Z_QINDLIST.QINDKIND%type;
+  nYPLAN3      number;
+  nFACT        number;
+  nSERVPLANSUM number;
+  nSERVSUM     number(19,2);
+  nPrint       number;
+  nSERV3SUM    number;
+  nBLANKREDRN  number;
+
+begin
+    -- initializations globals
+    -------------------------------------------------------
+    begin
+        select JUR_PERS, VERSION, ORGRN
+          into pJURPERS, pVERSION, pORGRN
+          from Z_REP_REESTR
+         where RN = pREDACTION;
+    exception when OTHERS then
+        ZP_EXCEPTION (0, 'Ошибка. Редакция электронного документа не найдена.');
+        pJURPERS  := null;
+        pVERSION  := null;
+        pORGRN    := null;
+    end;
+
+    -- initializations
+    -------------------------------------------------------
+    nBLANKREDRN := ZF_GET_BLANK_REDACTION(pJURPERS, pVERSION, pORGRN, pREDACTION);
+    select NUMB
+      into nQUARTER
+      from Z_REP_REESTR
+     where RN       = pREDACTION
+       and JUR_PERS = pJURPERS
+       and VERSION  = pVERSION
+       and ORGRN    = pORGRN;
+    -------------------------------------------------------
+
+    APKG_XLSREP.OPEN_SHEET(nPROTECTED => 1, sSHEETNAME => 'Фин.обеспечение', sORIENTATION => 'Landscape', SPASSWORD => ZF_GET_REP_PASS);
+    APKG_XLSREP.ADD_RUNTITLE(sFOOTERLEFT => sFOOTERLEFT, sHEADERRIGTH => sHEADERRIGTH);
+    APKG_XLSREP.OPEN_TABLE();
+
+    APKG_XLSREP.ADD_COLUMN(nWIDTH => 300);
+    APKG_XLSREP.ADD_COLUMN(nWIDTH => 80, nCOUNT => 8);
+
+    APKG_XLSREP.ADD_ROW(nHEIGHT => 25);
+    APKG_XLSREP.ADD_CELL(sSTYLE => 'left_str8b', nMERGEACROSS => nCountCol-1, sCELLDATA => 'Часть 3. Сведения об использовании средств, предусмотренных на финансовое обеспечение оказания государственных услуг (выполнение работ)', sCELLTYPE => 'String');
+
+    APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+    APKG_XLSREP.ADD_ROW(nHEIGHT => 40);
+    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str8',  nMERGEDOWN => 1,  sCELLDATA => 'Наименование государственной услуги (работы)', sCELLTYPE => 'String');
+    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str8',  nMERGEACROSS => 3,  sCELLDATA => 'Использование средств, предусмотренных на финансовое обеспечение оказания государственной услуги (за счет средств Сахалинской области, тыс. руб.)', sCELLTYPE => 'String');
+    APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str8',  nMERGEACROSS => 3,  sCELLDATA => 'Использование средств, предусмотренных на финансовое обеспечение оказания государственной услуги (за счет платной деятельности, тыс. руб.) ', sCELLTYPE => 'String');
+    APKG_XLSREP.ADD_ROW(nHEIGHT => 40);
+
+    for I in 1..2
+    loop
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str8',  nSKIPINDEX => case I when 1 then 1 else 0 end,  sCELLDATA => 'Доведено до учреждения на год', sCELLTYPE => 'String');
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str8',  sCELLDATA => 'Исполнено на отчетную дату', sCELLTYPE => 'String');
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str8',  sCELLDATA => 'Отклонение', sCELLTYPE => 'String');
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str8',  sCELLDATA => 'Ожидаемое исполнение за год', sCELLTYPE => 'String');
+    end loop;
+
+    if nQUARTER in (3, 4, 5) then
+        for QServ in
+        (
+         select SR.NSERVRN,
+                SL.NLINKS,
+                SR.SSERVNAME,
+                SR.SUNIQREGNUM,
+                SR.SCONSGROUP_NAME,
+                SR.sSP_CONT1_NAME,
+                SR.sSP_CONT2_NAME,
+                SR.sSP_CONT3_NAME,
+                SR.sSP_COND1_NAME,
+                SR.sSP_COND2_NAME,
+                SL.NACCEPT_NORM,
+                SL.NCORRCOEF,
+                SL.NREGKOEFF,
+                SL.NALIGKOEFF,
+                SR.NPARENT_SIGN,
+                SR.SUNIQREGNUM_FULL
+           from ZV_SERVLINKS SL,
+                ZV_SERVREG SR,
+                Z_ORGREG O
+          where SL.NSERVRN = SR.NSERVRN
+            and SL.NWORKSERV in (1,3)
+            and SL.NVERSION = pVersion
+            and SL.nORGRN = O.RN
+            and O.RN = pORGRN
+            and SR.SUNIQREGNUM is not null
+            and SL.NFICTIV_SERV is null
+
+            and ZF_GET_REDACTION_INDSUM (pJURPERS   => pJURPERS,
+                                         pVERSION   => pVERSION,
+
+                                         pORGRN     => pORGRN,
+                                         pSERVRN    => SR.NSERVRN,
+                                         pQINDRN    => null,
+
+                                        pREDACTION => nBLANKREDRN,
+                                        pTYPESUM   => 'YPLAN3',
+                                        pTYPEPLAN  => null,
+                                        pGROWUP    => null) > 0
+            and ((SR.NPARENT_SIGN = 1) or (SR.NPARENT_SIGN is null and NSERVPRN is null))
+          order by SL.NWORKSERV, SR.NORDERNUMB, SR.SREGNUM, SR.SSERVCODE
+        )
+        loop
+            for rec in(
+             select QL.NQINDRN, QL.NQINDKIND
+               from ZV_SERVIND SI, ZV_QINDLIST QL
+              where SI.NQINDRN = QL.NQINDRN
+                and SI.NSERVRN = QServ.NSERVRN
+                and QL.NQINDSIGN = 2
+            )
+            loop
+                nYPLAN3 := ZF_GET_REDACTION_INDSUM (pJURPERS   => pJURPERS,
+                                                     pVERSION   => pVERSION,
+                                                     pORGRN     => pORGRN,
+                                                     pSERVRN    => QSERV.NSERVRN,
+                                                     pQINDRN    => rec.NQINDRN,
+                                                     pREDACTION => pREDACTION,
+                                                     pTYPESUM   => 'YPLAN3',
+                                                     pTYPEPLAN  => null,
+                                                     pGROWUP    => null);
+
+                nFACT := ZF_GET_REDACTION_INDSUM    (pJURPERS   => pJURPERS,
+                                                     pVERSION   => pVERSION,
+                                                     pORGRN     => pORGRN,
+                                                     pSERVRN    => QSERV.NSERVRN,
+                                                     pQINDRN    => rec.NQINDRN,
+                                                     pREDACTION => pREDACTION,
+                                                     pTYPESUM   => 'QFACT4',
+                                                     pTYPEPLAN  => 1,
+                                                     pGROWUP    => case when rec.NQINDKIND = 2 then 1 else null end);
+            end loop;
+
+            begin
+                select sum(EA.SERVSUM + EA.MSUM)/1000,
+                                    (sum
+                                        (
+                                         nvl(EA.FSERVSUM1,0) + nvl(EA.FMSUM1,0) +
+                                         nvl(EA.FSERVSUM2,0) + nvl(EA.FMSUM2,0) +
+                                         nvl(EA.FSERVSUM3,0) + nvl(EA.FMSUM3,0) +
+                                         case when nQUARTER in (4,5) then nvl(EA.FSERVSUM4,0) + nvl(EA.FMSUM4,0) else 0 end
+                                        )
+                                    )/1000  SUMMA,
+                       sum(nvl(EA.FSERVSUM1,0) + nvl(EA.FMSUM1,0) +
+                           nvl(EA.FSERVSUM2,0) + nvl(EA.FMSUM2,0) +
+                           nvl(EA.FSERVSUM3,0) + nvl(EA.FMSUM3,0) +
+                           nvl(EA.FSERVSUM4,0) + nvl(EA.FMSUM4,0))/1000
+                  into nSERVPLANSUM, nSERVSUM, nSERV3SUM
+                  from Z_EXPALL EA, Z_SERVREG SR
+                 where EA.ORGRN = pORGRN
+                   and EA.SERVRN = SR.RN
+                   and SR.RN = QServ.NSERVRN;
+            exception when OTHERS then
+                nSERVPLANSUM := null;
+                nSERVSUM     := null;
+                nSERV3SUM    := null;
+            end;
+
+
+            APKG_XLSREP.ADD_ROW(nHEIGHT => ZF_HeightRow (StrVal => QServ.SSERVNAME||' ('||QServ.SUNIQREGNUM||')', RowStrLenght => 40, RowStrHeight => 15));
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str8', sCELLDATA => QServ.SSERVNAME||' ('||QServ.SUNIQREGNUM||')', sCELLTYPE => 'String');
+
+            if nQUARTER in (4,5) then
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => nYPLAN3 * nvl(QServ.NACCEPT_NORM, 1)
+                                                                                        * nvl(QServ.NCORRCOEF, 1)
+                                                                                        * nvl(QServ.NREGKOEFF, 1)
+                                                                                        * nvl(QServ.NALIGKOEFF, 1) / 1000, sCELLTYPE => 'Number');
+            else
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => nvl(nSERVPLANSUM,0), sCELLTYPE => 'Number');
+            end if;
+
+            if nQUARTER in (4,5) then
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => nvl(nSERV3SUM,0), sCELLTYPE => 'Number');
+            else
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => nvl(nSERVSUM,0), sCELLTYPE => 'Number');
+            end if;
+
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => '=RC[-2]-RC[-1]', sCELLTYPE => 'Formula');
+
+            if nQUARTER in (4,5) then
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => '=RC[-2]', sCELLTYPE => 'Formula');
+            else
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => 0, sCELLTYPE => 'Number');
+            end if;
+
+            for I in 1..4
+            loop
+                APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => null, sCELLTYPE => 'Number');
+            end loop;
+
+            nPrint := nvl(nPrint,0) + 1;
+        end loop;
+
+        -- Вывод по КВР 851
+        PKG_XLSREP.ADD_ROW(nHEIGHT => 100, RowStrLenght => 40, RowStrHeight => 15));
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str8', sCELLDATA => 'Справочно: затраты на уплату налогов, в качестве объекта налогообложения по которым признается имущество учреждения и затраты на содержание имущества учреждения, не используемого для оказания государственных услуг (выполнения работ) и для общехозяйственных нужд (далее - не используемое для выполнения государственного задания имущество)', sCELLTYPE => 'String');
+
+        if nQUARTER in (4,5) then
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => nYPLAN3 * nvl(QServ.NACCEPT_NORM, 1)
+                                                                                    * nvl(QServ.NCORRCOEF, 1)
+                                                                                    * nvl(QServ.NREGKOEFF, 1)
+                                                                                    * nvl(QServ.NALIGKOEFF, 1) / 1000, sCELLTYPE => 'Number');
+        else
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => nvl(nSERVPLANSUM,0), sCELLTYPE => 'Number');
+        end if;
+
+        if nQUARTER in (4,5) then
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => nvl(nSERV3SUM,0), sCELLTYPE => 'Number');
+        else
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => nvl(nSERVSUM,0), sCELLTYPE => 'Number');
+        end if;
+
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => '=RC[-2]-RC[-1]', sCELLTYPE => 'Formula');
+
+        if nQUARTER in (4,5) then
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => '=RC[-2]', sCELLTYPE => 'Formula');
+        else
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => 0, sCELLTYPE => 'Number');
+        end if;
+
+        for I in 1..4
+        loop
+            APKG_XLSREP.ADD_CELL(sSTYLE => 'border_right_num', sCELLDATA => null, sCELLTYPE => 'Number');
+        end loop;
+
+        --------------------------------------------------------
+
+        nPrint := nvl(nPrint,0) + 1;
+    end if;
+    --
+    if nvl(nPrint,0) = 0 then
+        APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
+        APKG_XLSREP.ADD_CELL(sSTYLE => 'border_left_str8', nCOUNT => nCountCol, sCELLDATA => null, sCELLTYPE => 'String');
+    end if;
+
+    -----------------------------
+    APKG_XLSREP.FLUSH_ROWCELLS();
+    APKG_XLSREP.CLOSE_TABLE_AND_SHEET;
+end;​
