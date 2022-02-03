@@ -26,10 +26,10 @@ as
     vSTAT varchar2(100);
 begin
     begin
-        select STATUS
-        into vSTAT
-        from USER_OBJECTS
-        where OBJECT_NAME = p_proc;
+            select STATUS
+            into vSTAT
+            from USER_OBJECTS
+            where OBJECT_NAME = p_proc;
     exception when others then
         vSTAT := null;
     end;

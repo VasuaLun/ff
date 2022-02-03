@@ -134,8 +134,8 @@ begin
 
         .th1{width: 160px;text-align:center; border-left: 0px !important} .c1 {width: 160px; word-wrap: break-word; text-align:left; border-left: 0px !important}
         .th2{width: 100%;text-align:center;}   .c2 {width: 100%; word-wrap: break-word; text-align:left;}
-        .th3{width: 100px;text-align:center;}  .c3 {width: 100px; word-wrap: break-word; text-align:center;}
-        .th4{width: 100px;text-align:center;}  .c4 {width: 100px; word-wrap: break-word; text-align:right;}
+        .th3{width: 90px;text-align:center;}  .c3 {width: 90px; word-wrap: break-word; text-align:center;}
+        .th4{width: 110px;text-align:center;}  .c4 {width: 110px; word-wrap: break-word; text-align:right;}
         .th5{width: 100px;text-align:center;}  .c5 {width: 100px; word-wrap: break-word; text-align:right;}
         .th6{width: 120px;text-align:center;}  .c6 {width: 120px; word-wrap: break-word; text-align:right;}
         .th7{width: 100px;text-align:center;}  .c7 {width: 100px; word-wrap: break-word; text-align:right;}
@@ -227,16 +227,16 @@ begin
             and EL.VNEBUDG_SIGN = 0
             and E.EXPGROUP = rec.EG;
 
-        nTOTALSUM := rec.ACCEPT_NORM * rec.ALIG_COEFF * rec.REG_COEFF * rec.CORRCOEF * nVALSUM;
+        nTOTALSUM := rec.ACCEPT_NORM * nvl(rec.ALIG_COEFF,1) * nvl(rec.REG_COEFF,1) * nvl(rec.CORRCOEF,1) * nVALSUM;
         nDIFF := nTOTALSUM - nEXPSUM;
 
         sUNRZ        := '<td class="c1"><div  class="c1">' ||rec.UNIQREGNUM||'</div></td>';
         sSERVCODE    := '<td class="c2"><div  class="c2">' ||rec.SRCODE||'</div></td>';
         sEXPGROUP    := '<td class="c3"><div  class="c3">' ||rec.EXPGROUP||'</div></td>';
-        sACCEPT_NORM := '<td class="c4"><div  class="c4">' ||LTRIM(to_char(nvl(rec.ACCEPT_NORM,0),'999G999G999G999G999G990D00'),' ')||'</div></td>';
-        sREG_COEFF   := '<td class="c5"><div  class="c5">' ||LTRIM(to_char(nvl(rec.ALIG_COEFF,0),'999G999G999G999G999G990D00'),' ')||'</div></td>';
-        sALIG_COEFF  := '<td class="c6"><div  class="c6">' ||LTRIM(to_char(nvl(rec.REG_COEFF,0),'999G999G999G999G999G990D00'),' ')||'</div></td>';
-        sCORRCOEF    := '<td class="c7"><div  class="c7">' ||LTRIM(to_char(nvl(rec.CORRCOEF,0),'999G999G999G999G999G990D00'),' ')||'</div></td>';
+        sACCEPT_NORM := '<td class="c4"><div  class="c4">' ||LTRIM(to_char(nvl(rec.ACCEPT_NORM,0),'999G999G999G999G999G990D00000000'),' ')||'</div></td>';
+        sREG_COEFF   := '<td class="c5"><div  class="c5">' ||LTRIM(to_char(nvl(rec.ALIG_COEFF,0),'999G999G999G999G999G990D00000000'),' ')||'</div></td>';
+        sALIG_COEFF  := '<td class="c6"><div  class="c6">' ||LTRIM(to_char(nvl(rec.REG_COEFF,0),'999G999G999G999G999G990D00000000'),' ')||'</div></td>';
+        sCORRCOEF    := '<td class="c7"><div  class="c7">' ||LTRIM(to_char(nvl(rec.CORRCOEF,0),'999G999G999G999G999G990D00000000'),' ')||'</div></td>';
         sVALSUM      := '<td class="c8"><div  class="c7">' ||LTRIM(to_char(nvl(nVALSUM,0),'999G999G999G999G999G990D00'),' ')||'</div></td>';
         sLIMSUM      := '<td class="c9"><div  class="c8">' ||LTRIM(to_char(nvl(nTOTALSUM,0),'999G999G999G999G999G990D00'),' ')||'</div></td>';
         sEXPSUM      := '<td class="c10"><div  class="c9">' ||LTRIM(to_char(nvl(nEXPSUM,0),'999G999G999G999G999G990D00'),' ')||'</div></td>';

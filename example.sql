@@ -1330,3 +1330,40 @@ select * from Z_SERVLINKS_NORM where SERVRN = 369277509	and orgrn = 369290067
         end loop;
         htp.p('hello');
         end;
+
+    declare
+        p_sub number;
+    begin
+        if nvl(:P1_ORGRN, :P7_ORGFILTER) is not null and :P1_JURPERS = 161583520 then return true;
+        else return false;
+        end if;
+    end;
+declare
+    p_old    varchar2(200) := :P1510_OLD_YEAR;
+    p_new    varchar2(200) := :P1510_NEW_YEAR;
+    p_proc   number := :P1510_PROCNAME;
+    p_param  number := :P1510_PARAM;
+    p_ver    number := :P1510_VERSION;
+    p_vdk    number := :P1510_VDK;
+    p_unproc number := :P1510_UNDERPROC;
+    p_jur    number := :P1510_JURPERS;
+    sMESSAGE varchar2(4000);
+begin
+    ZP_CHANGE_YEAR_LIB(pPRN       => p_proc,
+                       pOLD_YEAR  => p_old,
+                       pNEW_YEAR  => p_new,
+                       pVDKCOPY   => p_vdk,
+                       pVERCOPY   => p_ver,
+                       pPARAMCOPY => p_param,
+                       pPROCRN    => p_unproc,
+                       pJURPERS   => p_
+                       sOUTMSG    => sMESSAGE);
+    :P1510_COPYED := 1;
+
+    :P1510_JUR    := ;
+    :P1510_REP    := p_proc;
+    :P1510_DET    := p_unproc;
+end;
+    P1510_JUR		Hidden
+    P1510_REP		Hidden
+    P1510_DET

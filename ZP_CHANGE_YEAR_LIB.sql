@@ -5,8 +5,9 @@ create or replace procedure  ZP_CHANGE_YEAR_LIB(
     pVDKCOPY      number,
     pVERCOPY      number,
     pPARAMCOPY    number,
-    pPROCRN       number default null,
-    sOUTMSG   out varchar2
+    pPROCRN       varchar2 default null,
+    pJURPERS      number   default null,
+    sOUTMSG   out number
 )
 as
     vREP_NOTE     varchar2(4000);
@@ -39,11 +40,29 @@ as
     nRNPROC       number;
     nRNVDK        number;
 
+    nIDENT        number;
+
 -----------------------------------
 
     sMESS         varchar2(4000);
 
+procedure INSERT_LOG(p_log in varchar2, p_ident in number)
+as
 begin
+    insert into Z_CHANGE_YEAR_LOG(IDENT, LOGSTRING) values(p_ident, p_log);
+end;
+
+begin
+    begin
+        select nvl(max(IDENT), 0) + 1
+        into nIDENT
+        from Z_CHANGE_YEAR_LOG;
+    exception when others then
+        nIDENT := 1;
+    end;
+
+    sOUTMSG := nIDENT;
+
     -- Создание копии отчета
     begin
         select replace(REP_NOTE, pOLD_YEAR, pNEW_YEAR),
@@ -150,19 +169,26 @@ begin
                vPARAMS,
                nHIDDEN);
         commit;
-        sOUTMSG := sOUTMSG || ' создана библиотека отчетов vREP_NOTE' || chr(10);
+        INSERT_LOG('Создана библиотека отчетов '||vREP_NOTE, nIDENT);
+    else
+        INSERT_LOG('Библиотека отчетов уже существует ' || vREP_NOTE, nIDENT);
     end if;
 
     -- Создание копий процедур отчетов
     for rec in(
-        select *
-        from Z_RPT_LIB_DETAIL
+        select D.*, J.NAME
+        from Z_RPT_LIB_DETAIL D, Z_JURPERS J
         where PRN = pPRN
-            and ((pPROCRN is null) or (pPROCRN = RN))
+            and ((pPROCRN is null) or (PROC_NAME = pPROCRN and (pJURPERS is null or pJURPERS = JURPERS)))
+            and D.JURPERS = J.RN (+)
     )
     loop
-        sOUTMSG := sOUTMSG || rec.PROC_NAME ||' скопирована' || chr(10);
-        nMARK := null;
+        nJURPERS := nvl(pJURPERS, rec.JURPERS);
+
+        INSERT_LOG('Процедура '||rec.PROC_NAME, nIDENT);
+
+        -- sOUTMSG := sOUTMSG || 'Процедура '||rec.PROC_NAME;
+
         nRNPROC := null;
         nMARKRN := null;
 
@@ -172,7 +198,9 @@ begin
             into nRNPROC
             from Z_RPT_LIB_DETAIL
             where PROC_NAME = replace(rec.PROC_NAME, to_char(pOLD_YEAR), to_char(pNEW_YEAR))
-            and rec.JURPERS = JURPERS and rec.PRN = rec.PRN;
+            and nJURPERS = JURPERS and rec.PRN = rec.PRN;
+            INSERT_LOG(' существует ', nIDENT);
+            -- sOUTMSG := sOUTMSG||' существует' || chr(10);
         exception when others then
             nMARKRN := 1;
         end;
@@ -194,100 +222,108 @@ begin
                 into nVERSION
                 from Z_VERSIONS
                 where NEXT_PERIOD = pNEW_YEAR
-                    and JUR_PERS = rec.JURPERS;
+                    and JUR_PERS = nJURPERS;
             exception when others then
-                nVERSION := NULL;
-                sOUTMSG := sOUTMSG||'отсутствует версия у ГРБС'||rec.JURPERS;
-                nMARK := 1;
+                nVERSION := rec.VERSION;
+                INSERT_LOG('отсутствует версия у ГРБС '||nJURPERS||' добавлена в существующую', nIDENT);
             end;
         else nVERSION := NULL;
         end if;
 
-        if nMARK = 1 then -- заменить на null после теста
-            -- Копирование парамаетров
-            if pPARAMCOPY is null then
-                vPARAMS := null;
-            else vPARAMS := rec.PARAMS;
-                sOUTMSG := sOUTMSG || rec.PROC_NAME ||' параметры скопирована';
+        -- Копирование парамаетров
+        if pPARAMCOPY is null then
+            vPARAMS := null;
+        else vPARAMS := rec.PARAMS;
+        end if;
+
+        if nMARKRN = 1 then
+            nNUMB_PROC := '#'||to_char(gen_id());
+            insert into Z_RPT_LIB_DETAIL(RN,
+                                         JURPERS,
+                                         PROC_NAME,
+                                         PRN,
+                                         NUMB,
+                                         STATUS,
+                                         ROLE,
+                                         VDKRN,
+                                         VERSION,
+                                         PARAMS,
+                                         HIDDEN)
+            values(nRNPROC,
+                   nJURPERS,
+                   replace(rec.PROC_NAME, pOLD_YEAR, pNEW_YEAR),
+                   nNUMB,
+                   nNUMB_PROC,
+                   rec.STATUS,
+                   rec.ROLE,
+                   rec.VDKRN,
+                   rec.VERSION,
+                   vPARAMS,
+                   rec.HIDDEN);
+            commit;
+
+            INSERT_LOG(' скопирована', nIDENT);
+            -- sOUTMSG := sOUTMSG || ' скопирована' || chr(10);
+
+            if pPARAMCOPY is not null then
+                INSERT_LOG(' параметры скопированы', nIDENT);
+                -- sOUTMSG := sOUTMSG ||' параметры скопированы'|| chr(10);
             end if;
 
-            if nMARKRN = 1 then
-                nNUMB_PROC := '#'||to_char(gen_id());
-                insert into Z_RPT_LIB_DETAIL(RN,
-                                             JURPERS,
-                                             PROC_NAME,
-                                             PRN,
-                                             NUMB,
-                                             STATUS,
-                                             ROLE,
-                                             VDKRN,
-                                             VERSION,
-                                             PARAMS,
-                                             HIDDEN)
-                values(nRNPROC,
-                       rec.JURPERS,
-                       replace(rec.PROC_NAME, pOLD_YEAR, pNEW_YEAR),
-                       nNUMB,
-                       nNUMB_PROC,
-                       rec.STATUS,
-                       rec.ROLE,
-                       rec.VDKRN,
-                       rec.VERSION,
-                       vPARAMS,
-                       rec.HIDDEN);
-                commit;
-            end if;
+        elsif pPARAMCOPY is not null then
+            update Z_RPT_LIB_DETAIL
+            set PARAMS = vPARAMS where rn = nRNPROC;
 
-            -- Копирование VDK
-            if pVDKCOPY is not null then
-                for VDK in(
-                    select *
+            INSERT_LOG(' параметры заменены', nIDENT);
+            -- sOUTMSG := sOUTMSG ||' параметры заменены'|| chr(10);
+        end if;
+
+        -- Копирование VDK
+        if pVDKCOPY is not null then
+            for VDK in(
+                select *
+                from Z_RPT_LIB_VDK_LINKS
+                where LIBDET_RN = rec.RN
+            )
+            loop
+                -- Проверка существования подключенных VDK
+                begin
+                    select RN
+                        into nRNVDK
                     from Z_RPT_LIB_VDK_LINKS
-                    where LIBDET_RN = rec.RN
-                )
-                loop
-                    -- Проверка существования подключенных VDK
-                    begin
-                        select RN
-                            into nRNVDK
-                        from Z_RPT_LIB_VDK_LINKS
-                        where JURPERS = VDK.JURPERS
-                        and VDK_RN = VDK.VDK_RN
-                        and LIBDET_RN = nRNPROC
-                        and EXPR = VDK.EXPR;
-                    exception when others then
-                        nRNVDK := null;
-                    end;
+                    where JURPERS = nJURPERS
+                    and VDK_RN = VDK.VDK_RN
+                    and LIBDET_RN = nRNPROC
+                    and (EXPR = VDK.EXPR or (EXPR is null and VDK.EXPR is null));
+                exception when others then
+                    nRNVDK := null;
+                end;
 
-                    if nRNVDK is null then
-                        nRNVDK := gen_id();
-                        insert into Z_RPT_LIB_VDK_LINKS(RN,
-                                                        JURPERS,
-                                                        USE_SIGN,
-                                                        VDK_RN,
-                                                        LIBDET_RN,
-                                                        NAME,
-                                                        CHJUST,
-                                                        ERRTEXT,
-                                                        EXPR)
-                        values(nRNVDK,
-                               VDK.JURPERS,
-                               VDK.USE_SIGN,
-                               VDK.VDK_RN,
-                               nRNPROC,
-                               VDK.NAME,
-                               'копирование',
-                               VDK.ERRTEXT,
-                               VDK.EXPR);
-                        commit;
-                    end if;
-                end loop;
-            end if;
+                if nRNVDK is null then
+                    nRNVDK := gen_id();
+                    insert into Z_RPT_LIB_VDK_LINKS(RN,
+                                                    JURPERS,
+                                                    USE_SIGN,
+                                                    VDK_RN,
+                                                    LIBDET_RN,
+                                                    NAME,
+                                                    CHJUST,
+                                                    ERRTEXT,
+                                                    EXPR)
+                    values(nRNVDK,
+                           nJURPERS,
+                           VDK.USE_SIGN,
+                           VDK.VDK_RN,
+                           nRNPROC,
+                           VDK.NAME,
+                           'копирование',
+                           VDK.ERRTEXT,
+                           VDK.EXPR);
+                    commit;
+                    INSERT_LOG(' ВДК скопированы', nIDENT);
+                end if;
+            end loop;
         end if;
     end loop;
-    -- zp_exception(0, sOUTMSG);
 end;
-
-
-
 ​
