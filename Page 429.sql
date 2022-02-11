@@ -165,9 +165,9 @@ begin
          <th class="header th5" ><div  class="th5">КОСГУ</div></th>
          <th class="header th6" ><div  class="th6">Услуга</div></th>
          <th class="header th7" ><div  class="th7">Тип</div></th>
-         <th class="header th8" ><div  class="th8">Изменение, руб</div></th>
-         <th class="header th9" ><div  class="th9">Сумма с учетом изменений, руб</div></th>
-		 <th class="header th10" ><div class="th10">Предыдущая сумма, руб</div></th>
+         <th class="header th8" ><div  class="th8">Утверждено</div></th>
+         <th class="header th9" ><div  class="th9">Уточнено</div></th>
+		 <th class="header th10" ><div class="th10">Изменение (+/-)</div></th>
          <th class="header th11" ><div class="th11">Дата</div></th>
          <th class="header th12" ><div class="th12">Основание</div></th>
 
@@ -211,7 +211,8 @@ begin
       and ((H.HDATE >= :P429_DFROM) or (:P429_DFROM is null))
       and ((H.HDATE <= :P429_DTO) or (:P429_DTO is null))
       and ((KB.SCODE LIKE '%'||:P429_KBK||'%') or (KB.SCODE is null))
-      and ((E.CODE LIKE '%'||:P429_KOSGU||'%') or (K.CODE LIKE '%'||:P429_KOSGU||'%') or (H.NOTES LIKE '%'||:P429_KOSGU||'%'));
+      and ((case when E.KOSGU is not null then K.CODE||'.'||E.KOSGU else K.CODE end LIKE '%'||:P429_KOSGU||'%') or (K.CODE is null))
+      and ((upper(E.CODE) LIKE '%'||upper(:P429_FIND)||'%') or (upper(FB.CODE||' '||H.NOTES) LIKE '%'||upper(:P429_FIND)||'%'));
     exception when others then
         nDIFF := 0;
         nSUMMADIF := 0;
@@ -225,9 +226,9 @@ begin
     sKOSGUCODE := '<td class="c5  itogo"><div  class="c5"></div></td>';
     sSERVREG   := '<td class="c6  itogo"><div  class="c6"></div></td>';
     sTYPE      := '<td class="c71  itogo"><div  class="c71">Итого:</div></td>';
-    sDIFF      := '<td class="c8  itogo"><div  class="c8">'||to_char(nvl(nDIFF, 0),'999G999G999G999G990D00')||'</div></td>';
+    sDIFF      := '<td class="c8  itogo"><div  class="c8">'||to_char(nvl(nPRESUM, 0),'999G999G999G999G990D00')||'</div></td>';
     sSUMMDIFF  := '<td class="c9  itogo"><div  class="c9">'||to_char(nvl(nSUMMADIF, 0),'999G999G999G999G990D00')||'</div></td>';
-    sBEFORESUM := '<td class="c10 itogo"><div class="c10">'||to_char(nvl(nPRESUM, 0),'999G999G999G999G990D00')||'</div></td>';
+    sBEFORESUM := '<td class="c10 itogo"><div class="c10">'||to_char(nvl(nDIFF, 0),'999G999G999G999G990D00')||'</div></td>';
     sDATE      := '<td class="c11 itogo"><div class="c11"></div></td>';
     sREASON    := '<td class="c12 itogo"><div class="c12"></div></td>';
 
@@ -291,7 +292,8 @@ begin
           and ((H.HDATE >= :P429_DFROM) or (:P429_DFROM is null))
           and ((H.HDATE <= :P429_DTO) or (:P429_DTO is null))
           and ((KB.SCODE LIKE '%'||:P429_KBK||'%') or (KB.SCODE is null))
-          and ((E.CODE LIKE '%'||:P429_KOSGU||'%') or (K.CODE LIKE '%'||:P429_KOSGU||'%') or (H.NOTES LIKE '%'||:P429_KOSGU||'%'))
+          and ((case when E.KOSGU is not null then K.CODE||'.'||E.KOSGU else K.CODE end LIKE '%'||:P429_KOSGU||'%') or (K.CODE is null))
+          and ((upper(E.CODE) LIKE '%'||upper(:P429_FIND)||'%') or (upper(FB.CODE||' '||H.NOTES) LIKE '%'||upper(:P429_FIND)||'%'))
         order by H.HDATE desc, sEXPMAT, sFUNDNAME, sKBK
 	)
 	loop
@@ -303,9 +305,9 @@ begin
         sKOSGUCODE := '<td class="c5"><div  class="c5">'||rec.sKOSGU||'</div></td>';
         sSERVREG   := '<td class="c6"><div  class="c6">'||rec.sSERVCODE||'</div></td>';
         sTYPE      := '<td class="c7"><div  class="c7">'||rec.sTYPE||'</div></td>';
-        sDIFF      := '<td class="c8"><div  class="c8">'||to_char(nvl(rec.nDIFF, 0),'999G999G999G999G990D00')||'</div></td>';
+        sDIFF      := '<td class="c8"><div  class="c8">'||to_char(nvl(rec.PREVSUM, 0),'999G999G999G999G990D00')||'</div></td>';
         sSUMMDIFF  := '<td class="c9"><div  class="c9">'||to_char(nvl(rec.ESUM, 0),'999G999G999G999G990D00')||'</div></td>';
-        sBEFORESUM := '<td class="c10"><div class="c10">'||to_char(nvl(rec.PREVSUM, 0),'999G999G999G999G990D00')||'</div></td>';
+        sBEFORESUM := '<td class="c10"><div class="c10">'||to_char(nvl(rec.nDIFF, 0),'999G999G999G999G990D00')||'</div></td>';
         sDATE      := '<td class="c11"><div class="c11">'||rec.HDATE||'</div></td>';
         sREASON    := '<td class="c12"><div class="c12">'||rec.sBASIS||'</div></td>';
 

@@ -55,7 +55,7 @@ begin
         where NAME = pPROC
         order by line asc
     )
-    loop dbms_output.put_line('Д''Артаньян');
+    loop
 
         vNEW_TEXT := rec.TEXT;
 

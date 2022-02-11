@@ -30,6 +30,7 @@ as
   nDAYS_TRA        number := 0;
 
   -- количество дней питания
+  -- план
   nFDAYS_MEM       number := 0;
   nFDAYS_TRA       number := 0;
 
@@ -40,6 +41,15 @@ as
   nfSUM_TRA        number := 0;
 
   -- Факт
+  nFDAYS_MEM_F     number := 0;
+  nFDAYS_TRA_F     number := 0;
+
+  nFCOST_MEM_F     number := 0;
+  nFCOST_TRA_F     number := 0;
+
+  nfSUM_MEM_F      number := 0;
+  nfSUM_TRA_F      number := 0;
+
   -- количество дней проживания
   nDAYS_MEM_F      number := 0;
   nDAYS_TRA_F      number := 0;
@@ -48,12 +58,6 @@ as
   nSUM_TRA_F       number := 0;
 
   -- количество дней питания
-  nFDAYS_MEM_F     number := 0;
-  nFDAYS_TRA_F     number := 0;
-
-  nfSUM_MEM_F      number := 0;
-  nfSUM_TRA_F      number := 0;
-
 
   nSUM_B           number;
   nSUM_VB          number;
@@ -62,6 +66,12 @@ as
 
   nMARKM           varchar2(100);
   nMARKT           varchar2(100);
+
+  nMARKM_L         varchar2(100);
+  nMARKT_L         varchar2(100);
+
+  nMARKM_R         varchar2(100);
+  nMARKT_R         varchar2(100);
 
   type t_tab1 is record(
     MEM_RN      number,
@@ -119,7 +129,7 @@ begin
         from Z_SPORT_EXP SE,
             Z_SPORT_EXP_D O,
             Z_SPORT_EXPTYPES F
-        where SE.SPORT_EVENT_RN = 359884669
+        where SE.SPORT_EVENT_RN = pEVENT_RN
             and O.EXP_RN   = SE.RN
             and O.EXPTYPE_RN = F.RN
         group by SE.RN, F.CODE, F.NAME, F.ORDERNUMB, O.EXPTYPE_RN, SE.MEMBER_TYPE, SE.SPORT_EVENT_RN
@@ -143,7 +153,91 @@ begin
                 end if;
             end loop;
 
+            nMARKM := null;
+            nMARKT := null;
+
+            /*  Рассчет данных для первых 3 пунктов
+            03, 01 - питание
+            02, 04 - проживание
+            124    - проезд
+
+            Для каждого случая рассчитываются переменные:
+            nFDAYS_MEM - количество дней, MEM - спортсмен, TRA - тренер
+
+            */
+            for FOOD in EXPMET.FIRST..EXPMET.COUNT
+            loop
+                if EXPMET(FOOD).SCODE = '03' or EXPMET(FOOD).SCODE = '01' then
+                    -- Рассчет для участников
+                    if EXPMET(FOOD).MEMBER_TYPE = 1 then
+                        if nMARKM is null or nMARKM = EXPMET(FOOD).SCODE then
+                            nMARKM := EXPMET(FOOD).SCODE;
+                            -- Рассчет плановой затраты
+                            nFDAYS_MEM := nFDAYS_MEM + EXPMET(FOOD).DAYS; -- дни
+                            nFCOST_MEM := nFCOST_MEM + EXPMET(FOOD).COST; -- цена/день
+                            nfSUM_MEM  := nfSUM_MEM  + EXPMET(FOOD).DAYS * EXPMET(FOOD).COST; -- общая сумма
+                            -- Рассчет фактической затраты
+                            nfSUM_MEM_F  := nfSUM_MEM_F  + EXPMET(FOOD).DAYS_FACT * EXPMET(FOOD).COST_FACT; -- общая сумма
+                        else
+                            nMARKM := '0';
+                        end if;
+                        -- Рассчет для тренеров
+                    else
+                        if nMARKT is null or nMARKT = EXPMET(FOOD).SCODE then
+                            -- Рассчет плановой затраты
+                            nMARKT := EXPMET(FOOD).SCODE;
+                            nFDAYS_TRA := nFDAYS_TRA + EXPMET(FOOD).DAYS; -- дни
+                            nFCOST_TRA := nFCOST_TRA + EXPMET(FOOD).COST; -- цена/день
+                            nfSUM_TRA  := nfSUM_TRA  + EXPMET(FOOD).DAYS * EXPMET(FOOD).COST; -- общая сумма
+                            -- Рассчет фактической затраты
+                            nfSUM_TRA_F  := nfSUM_TRA_F  + EXPMET(FOOD).DAYS_FACT * EXPMET(FOOD).COST_FACT; -- общая сумма
+                        else
+                            nMARKT := '0';
+                        end if;
+                    end if;
+                elsif EXPMET(FOOD).SCODE = '02' or EXPMET(FOOD).SCODE = '04' then
+                    -- Рассчет для участников
+                    if EXPMET(FOOD).MEMBER_TYPE = 1 then
+                        if nMARKM_L is null or nMARKM_L = EXPMET(FOOD).SCODE then
+                            nMARKM_L := EXPMET(FOOD).SCODE;
+                            nDAYS_MEM := nDAYS_MEM + EXPMET(FOOD).DAYS;
+                        else
+                            nMARKM_L := '0';
+                        end if;
+                        -- Рассчет для тренеров
+                    else
+                        if nMARKT_T is null or nMARKT_T = EXPMET(FOOD).SCODE then
+                            nMARKT_T := EXPMET(FOOD).SCODE;
+                            nDAYS_TRA := nDAYS_TRA + EXPMET(FOOD).DAYS;
+                        else
+                            nMARKT_T := '0';
+                        end if;
+                    end if;
+                elsif EXPMET(FOOD).SCODE = '124' then
+                    -- Рассчет для участников
+                    if EXPMET(FOOD).MEMBER_TYPE = 1 then
+                        if nMARKM_R is null or nMARKM_R = EXPMET(FOOD).SCODE then
+                            nMARKM_R := EXPMET(FOOD).SCODE;
+                            nDAYS_MEM := nDAYS_MEM + EXPMET(FOOD).DAYS;
+                        elsif nMARKM_R != EXPMET(FOOD).SCODE then
+                            nMARKM_R := '0';
+                        else
+                            nDAYS_MEM := nDAYS_MEM + EXPMET(FOOD).DAYS;
+                        end if;
+                        -- Рассчет для тренеров
+                    else
+                        if nMARKT_R is null or nMARKT_R = EXPMET(FOOD).SCODE then
+                            nMARKT_R := EXPMET(FOOD).SCODE;
+                            nDAYS_TRA := nDAYS_TRA + EXPMET(FOOD).DAYS;
+                        else
+                            nMARKT_R := '0';
+                        end if;
+                    end if;
+                end if;
+            end loop;
+
         end;
+
         APKG_XLSREP.OPEN_REPORT(nTYPE => 1);
         -- style
         -------------------------------------------------------
@@ -296,82 +390,6 @@ begin
             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', nMERGEACROSS => 1);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'border_center_str', nMERGEACROSS => 1);
 
-            nMARKM := null;
-            nMARKT := null;
-
-            /*  Рассчет данных для первых 3 пунктов
-                    03, 01 - питание
-                    02, 04 - проживание
-                    124    - проезд
-
-                Для каждого случая рассчитываются переменные:
-                    nFDAYS_MEM - количество дней, MEM - спортсмен, TRA - тренер
-
-            */
-            for FOOD in EXPMET.FIRST..EXPMET.COUNT
-            loop
-                if EXPMET(FOOD).SCODE = '03' or EXPMET(FOOD).SCODE = '01' then
-                    -- Рассчет для участников
-                    if EXPMET(FOOD).MEMBER_TYPE = 1 then
-                        if nMARKM is null or nMARKM = EXPMET(FOOD).SCODE then
-                            nMARKM := EXPMET(FOOD).SCODE;
-                            nFDAYS_MEM := nFDAYS_MEM + EXPMET(FOOD).DAYS; -- дни
-                            nFCOST_MEM := nFCOST_MEM + EXPMET(FOOD).DAYS; -- цена/день
-                        else
-                            nMARKM := '0';
-                        end if;
-                    -- Рассчет для тренеров
-                    else
-                        if nMARKT is null or nMARKT = EXPMET(FOOD).SCODE then
-                            nMARKT := EXPMET(FOOD).SCODE;
-                            nFDAYS_TRA := nFDAYS_TRA + EXPMET(FOOD).DAYS; -- дни
-                            nFCOST_MEM := nFCOST_MEM + EXPMET(FOOD).DAYS; -- цена/день
-                        else
-                            nMARKT := '0';
-                        end if;
-                    end if;
-                elsif EXPMET(FOOD).SCODE = '02' or EXPMET(FOOD).SCODE = '04' then
-                        -- Рассчет для участников
-                        if EXPMET(FOOD).MEMBER_TYPE = 1 then
-                            if nMARKM is null or nMARKM = EXPMET(FOOD).SCODE then
-                                nMARKM := EXPMET(FOOD).SCODE;
-                                nDAYS_MEM := nDAYS_MEM + EXPMET(FOOD).DAYS;
-                            else
-                                nMARKM := '0';
-                            end if;
-                        -- Рассчет для тренеров
-                        else
-                            if nMARKT is null or nMARKT = EXPMET(FOOD).SCODE then
-                                nMARKT := EXPMET(FOOD).SCODE;
-                                nDAYS_TRA := nDAYS_TRA + EXPMET(FOOD).DAYS;
-                            else
-                                nMARKT := '0';
-                            end if;
-                        end if;
-                elsif EXPMET(FOOD).SCODE = '124' then
-                        -- Рассчет для участников
-                        if EXPMET(FOOD).MEMBER_TYPE = 1 then
-                            if nMARKM is null or nMARKM = EXPMET(FOOD).SCODE then
-                                nMARKM := EXPMET(FOOD).SCODE;
-                                nDAYS_MEM := nDAYS_MEM + EXPMET(FOOD).DAYS;
-                            elsif nMARKM != EXPMET(FOOD).SCODE then
-                                nMARKM := '0';
-                            else
-                                nDAYS_MEM := nDAYS_MEM + EXPMET(FOOD).DAYS;
-                            end if;
-                        -- Рассчет для тренеров
-                        else
-                            if nMARKT is null or nMARKT = EXPMET(FOOD).SCODE then
-                                nMARKT := EXPMET(FOOD).SCODE;
-                                nDAYS_TRA := nDAYS_TRA + EXPMET(FOOD).DAYS;
-                            else
-                                nMARKT := '0';
-                            end if;
-                        end if;
-                end if;
-            end loop;
-
-            -- zp_exception(0, nFDAYS_MEM);
 
             APKG_XLSREP.ADD_ROW(nHEIGHT => 15);
             APKG_XLSREP.ADD_CELL(sSTYLE => 'left_border_left_text', sCELLDATA => 'Участники', sCELLTYPE => 'String');

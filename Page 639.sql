@@ -1,15 +1,18 @@
---101; 1510;
+--101; 639;
 declare
- nIDENT        number := :P1510_COPYED;
+ pJURPERS      number         := :P1_JURPERS;
+ pVERSION      number         := :P1_VERSION;
+
  -----------------------------------------------
+ sCHECK        varchar2(4000);
  sNUMB         varchar2(4000);
- sLOG          varchar2(4000);
+ sNAME         varchar2(4000);
+ sNOTE         varchar2(4000);
+
  -----------------------------------------------
  nCOUNTROWS    number;
- nCOUNTRES     number;
- -----------------------------------------------
- sMSG          varchar2(4000);
 
+ sMSG	       varchar2(250);
 begin
     apex_javascript.add_library (
     p_name                  => 'jquery.inputmask.bundle',
@@ -95,13 +98,16 @@ begin
         .in_txtl {width:95%; border: 1px solid #ccc;text-align:left;}
         .in_txt2 {width:70%; border: 1px solid #ccc;text-align:right;}
         .itogo {font-weight:bold; background-color:#d4d9f5 !important}
-        '||case when nvl(nCOUNTRES,0) = 0 then '.show{display:none;}' end||'
 
         .link_code {text-decoration: underline;font-weight: bold; color:#0000ff;}
         .row { margin-bottom: 5px;}
 
+
         .th1{width: 50px;text-align:center; border-left: 0px !important} .c1 {width: 50px; word-wrap: break-word; text-align:center; border-left: 0px !important}
+        .th2{width: 70px;text-align:center;}  .c2 {width: 70px; word-wrap: break-word; text-align:left;}
         .th3{width: 100%;text-align:center;}  .c3 {width: 100%; word-wrap: break-word; text-align:left;}
+        .th4{width: 450px;text-align:center;} .c4 {width: 450px; word-wrap: break-word; text-align:left;}
+
 
         .pagination {text-align: right;
           border-left: 1px solid grey;
@@ -122,38 +128,51 @@ begin
     htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
     <thead>
         <tr>
-         <th class="header th1" ><div class="th1">п/п</div></th>
-         <th class="header th3" ><div class="th3">Лог</div></th>
+         <th class="header th1" ><div class="th1"></div></th>
+         <th class="header th2" ><div class="th2">№</div></th>
+         <th class="header th3" ><div class="th3">Краткое наименование</div></th>
+         <th class="header th4" ><div class="th4">Полное Наименование</div></th>
 
          <th class="header"><div style="width:8px"></div></th>
         </tr>
       </thead>
     <tbody id="fullall" >');
 
-    for rec in(
-        select LOGSTRING
-        from Z_CHANGE_YEAR_LOG
-        where IDENT = nIDENT
-        order by rn
+    for rec in (
+        select
+            RN,
+            NUMB,
+            NAME,
+            NOTE
+        from Z_SUBTYPE
+        where JURPERS = :P1_JURPERS
+            and VERSION = :P1_VERSION
+        order by NUMB
     )
     loop
         nCOUNTROWS := nvl(nCOUNTROWS,0) + 1;
 
-        sNUMB     := '<td class="c1"><div class="c1">'||nCOUNTROWS||'</div></td>';
-        sLOG      := '<td class="c3"><div class="c3">'||rec.LOGSTRING||'</div></td>';
+        sCHECK := '<td class="c1"><div class="c1">-</div></td>';
+        sNUMB  := '<td class="c2"><div class="c2">'||rec.NUMB||'</div></td>';
+        sNUMB:= '<td class="c2 " style="border-left:1px solid #ccc"><div class="c2"><textarea placeholder="-" rows="2" value="'||rec.NUMB||'" class="in_txt2 textarea"
+      onfocus="selecter(this,''row_'||rec.RN||''')" onblur="save_data('||rec.RN||',this.value, ''NUMB'', this);"/>'||rec.NUMB||'</textarea></div></td>';
+        sNAME  := '<td class="c3"><div class="c3">'||rec.NAME||'</div></td>';
+        sNOTE  := '<td class="c4"><div class="c4">'||rec.NOTE||'</div></td>';
 
-		htp.p('
-			<tr>
-				'||sNUMB||'
-				'||sLOG||'
-		   </tr>');
+        htp.p('
+            <tr>
+                '||sCHECK||'
+                '||sNUMB||'
+                '||sNAME||'
+                '||sNOTE||'
+           </tr>');
     end loop;
 
 	sMSG := 'Всего записей: ' || nCOUNTROWS;
 
     htp.p('</tbody></table></div>');
     htp.p('<ul class="pagination" style="margin:0px">');
-    htp.p('<li style="float:right;">'||sMSG|| '</li>');
+    htp.p('<li style="float:right">'||sMSG|| '</li>');
     htp.p('<li style="float:left; display: none;" id="loading_scroll"><img src="/i/378.GIF" style="width: 130px"/> </li>');
     htp.p('<li style="float:left; " id="save_shtat"></li>');
     htp.p('<li style="clear:both"></li></ul>');
@@ -165,10 +184,10 @@ begin
 
 
           if (window.screen.height<=1024) {
-          table_body.height("500x");
+          table_body.height("260px");
           $(".report_standard").css("width","100%");
           } else {
-          table_body.height("500px");
+          table_body.height("450px");
           $(".report_standard").css("width","100%");
           }
             $(".pagination").mousedown(startDrag);
@@ -198,5 +217,28 @@ begin
 		  $(el).children().css("background-color","yellow");
 		}
 
+        function save_data(rn, val, field, obj) {
+            console.log(obj)
+
+            apex.server.process("save_data", {
+                    x01: rn,
+                    x02: val,
+                    x03: field
+                }, {
+                    //refreshObject: "#result",
+                   // loadingIndicator: "#save_data",
+                    success: function(data) {
+                       if (data.status === ''good'') {
+                            $(obj).css(''border-bottom'', ''1px solid green'');
+                        } else {
+                            $(obj).css(''border-bottom'', ''1px solid red'');
+                        }
+                        console.log(data);
+                    }
+                });
+
     </script>');
 end;
+
+
+sBTN := '<a style="font-weight:bold; color:blue; text-decoration:underline;float:center" onclick="location.href='''||APEX_UTIL.PREPARE_URL('javascript:modalWin('||RN||',0);')||'''">Ссылка</a>';
