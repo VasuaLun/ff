@@ -763,7 +763,7 @@ begin
                                     '" b4="'||trim(to_char( nvl(rec.TOTAL, 0), '99999999999999990.99'))||
                                     '" b5="'||trim(to_char( nvl(rec.TOTAL_1, 0), '99999999999999990.99'))||
                                     '" b6="'||trim(to_char( nvl(rec.TOTAL_2, 0), '99999999999999990.99'))||
-                                    '" bFILTERINGCOLUMN="'||sGUID||
+                                    '" bFILTERINGCOLUMNИли ="'||sGUID||
                                 '"/>'||CHR(10);
     end loop;
     
