@@ -54,7 +54,6 @@ as
  
     nCOUNTCOL      number;
     sGUID          varchar2(100);
-    vPLACE         varchar2(200);
  
     type t_rec is RECORD (
         RN         number,        
@@ -200,18 +199,16 @@ as
     end;
 begin
     begin
-        select V.NEXT_PERIOD, V.PLAN1, V.PLAN2, D.CODE
-        into nNEXT_PERIOD, nPLAN1, nPLAN2, vPLACE
-        from Z_VERSIONS V, Z_ORGREG O, Z_DISTRICT D
-        where V.RN = O.VERSION
-            and O.RN = pORGRN
-            and O.DISTRICT = D.RN
-            and O.VERSION = D.VERSION;
+        select NEXT_PERIOD, PLAN1, PLAN2
+        into nNEXT_PERIOD, nPLAN1, nPLAN2
+         from Z_VERSIONS
+         where RN = pVERSION;
     exception when others then
         nNEXT_PERIOD := null;
         nPLAN1 := null;
         nPLAN2 := null;
-    end;         
+    end;    
+           
  
     F1 := UTL_FILE.FOPEN(sDIRECTORY, ''||nvl(pFILENAME, 'EB_EXPORT')||'.xml','w',32767);
     prnt(F1,'<?xml version="1.0" encoding="windows-1251"?>');
@@ -517,7 +514,7 @@ begin
     (
      select T.PLACE, T.OKTMO, T.OBJNAME, FIL.CODE FILCODE,
             T.LIC_DATE, T.LIC_NUM, T.PURPOSE, T.WATERCODE,
-            D.*, T.NOTES
+            D.*
        from X_OTHER_TAX T, X_OTHER_TAX_DETAIL D, Z_ORGFL FIL
       where T.JURPERS   = pJURPERS
         and T.VERSION   = pVersion
@@ -581,9 +578,9 @@ begin
         AA_STR(nCOUNTCOL).WATER_KOEFF_LAND_2 := rec.WATER_KOEFF_LAND_2;          
         
         sINNERTAG := sINNERTAG||'<a ID="'||(nSTRCODE - 1) ||
-                                    '" b1="'||nvl(vPLACE,'0')||
+                                    '" b1="'||nvl(rec.PLACE,'0')||
                                     '" b2="'||nvl(rec.OKTMO,'00000000') ||
-                                    '" b3="'||rec.NOTES||
+                                    '" b3="'||rec.OBJNAME || ' ( ' || rec.FILCODE || ' ) ' ||
                                     '" b4="'||trim(to_char( nvl(rec.TOTAL, 0), '99999999999999990.99'))||
                                     '" b5="'||trim(to_char( nvl(rec.TOTAL_1, 0), '99999999999999990.99'))||
                                     '" b6="'||trim(to_char( nvl(rec.TOTAL_2, 0), '99999999999999990.99'))||
@@ -617,6 +614,7 @@ begin
             for K in 1..3
             loop
                 nSTRCODE := nvl(nSTRCODE,0) + 1;
+ 
                 
                 sINNERTAG := sINNERTAG||'<a ID="'||(nSTRCODE - 1) ||
                                             '" b1="' ||case K when 1 then nNEXT_PERIOD
