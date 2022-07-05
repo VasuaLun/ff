@@ -11,17 +11,19 @@ declare
     sSTATUS       varchar2(4000);
 
     sREAD        varchar2(4000);
+    sIMAGE       varchar2(100);
+    sTYPECODE    varchar2(30);
     -----------------------------------------------
     nUSER         number := ZF_GET_USERRN;
     nROLE         number := ZGET_ROLE;
     nJURPERS      number;
     nORGRN        number;
+    nREAD         number;
     -----------------------------------------------
     nCOUNTROWS    number;
     -----------------------------------------------
     sColor        varchar2(100);
-    sMSG	      varchar2(250);
-
+    sMSG  	      varchar2(250);
 begin
 
     -- Инициализация
@@ -117,9 +119,9 @@ begin
         .th3{width: 50px;text-align:center;}   .c3  {width: 50px; word-wrap: break-word; text-align:left;}
         .th4{width: 90px;text-align:center;}   .c4  {width: 90px; word-wrap: break-word; text-align:right;}
         .th5{width: 100%;text-align:center;}   .c5  {width: 100%; word-wrap: break-word; text-align:left;}
-        .th6{width: 90px;text-align:center;}   .c6  {width: 90px; word-wrap: break-word; text-align:center;}
-        .th7{width: 130px;text-align:center;}  .c7  {width: 130px; word-wrap: break-word; text-align:left;}
-        .th8{width: 130px;text-align:center;}  .c8  {width: 130px; word-wrap: break-word; text-align:left;}
+        .th6{width: 180px;text-align:center;}  .c6  {width: 180px; word-wrap: break-word; text-align:left;}
+        .th7{width: 130px;text-align:center;}  .c7  {width: 130px; word-wrap: break-word; text-align:center;}
+        .th8{width: 130px;text-align:center;}  .c8  {width: 130px; word-wrap: break-word; text-align:center;}
         .th9{width: 130px;text-align:center;}  .c9  {width: 130px; word-wrap: break-word; text-align:left;}
         .th10{width: 130px;text-align:center;} .c10 {width: 130px; word-wrap: break-word; text-align:centre;}
         .th11{width: 130px;text-align:center;} .c11 {width: 130px; word-wrap: break-word; text-align:left;}
@@ -128,7 +130,7 @@ begin
 
         .pagination {text-align: right;
           border-left: 1px solid grey;
-          border-right: 1px solid grey;
+          border-right: 1px solid greМы y;
           border-bottom: 1px solid grey;
           margin: 0px;
 
@@ -146,13 +148,13 @@ begin
     htp.p('<div id="tablediv"><table border="0" cellpadding="0" cellspacing="0" class="report_standard" style="width:100%;">
     <thead>
         <tr>
-         <th class="header th1" ><div class="th1" >п/п</div></th>
-         <th class="header th2" ><div class="th2" >Тип</div></th>
-         <th class="header th3" ><div class="th3" >Номер</div></th>
-         <th class="header th5" ><div class="th5" >Сообщение</div></th>
-         <th class="header th7" ><div class="th6" >Автор</div></th>
-         <th class="header th8" ><div class="th7" >Создано</div></th>
-         <th class="header th9" ><div class="th8" >Изменено</div></th>
+         <th class="header th1" ><div class="th1">п/п</div></th>
+         <th class="header th2" ><div class="th2">Тип</div></th>
+         <th class="header th3" ><div class="th3">Номер</div></th>
+         <th class="header th5" ><div class="th5">Сообщение</div></th>
+         <th class="header th7" ><div class="th6">Автор</div></th>
+         <th class="header th8" ><div class="th7">Создано</div></th>
+         <th class="header th9" ><div class="th8">Изменено</div></th>
          <th class="header th10"><div class="th9">Назначен</div></th>
 		 <th class="header th11"><div class="th10">Файл</div></th>
          <th class="header th12"><div class="th11">Статус</div></th>
@@ -175,25 +177,54 @@ begin
         from M_MESSAGES
         where prn is null
             and (to_char(NUMB) like '%'||:P2_NUMBER||'%' or :P2_NUMBER is null)
-            and (ROLE_TO = nROLE and (nJURPERS = JURPERS and ((nORGRN = AORG and nROLE = 2) or nROLE = 1) or nROLE = 0))
+            and ((ROLE_TO = nROLE or ROLE_FROM = nROLE) and (nJURPERS = JURPERS and ((nORGRN = AORG and nROLE = 2) or nROLE = 1) or nROLE = 0))
             and (JURPERS = :P2_JURPERS or :P2_JURPERS is null)
         order by NUMB desc
     )
     loop
         nCOUNTROWS := nvl(nCOUNTROWS, 0) + 1;
         sREAD      := null;
-        if MESS.IS_READ = 0 then sREAD := 'style="font-weight:bold"'; end if;
+        nREAD      := 0;
+
+        begin
+            select RN
+            into nREAD
+            from M_MESSAGES
+            where (prn = MESS.RN)
+                and ROLE_TO = nROLE
+                and IS_READ = 0
+            and rownum = 1;
+        exception when others then
+            nREAD := 0;
+        end;
+
+        if nREAD > 0 then 
+            sREAD := 'style="font-weight:bold"'; 
+        end if;
+        
+        sUSER_AUTHOR := ZF_USER_NAME(MESS.USER_AUTHOR);
+
+        -- закинуть в основной запрос
+        begin
+            select IMG_NAME, CODE
+            into sIMAGE, sTYPECODE
+            from MCTICKETTYPE
+            where RN = MESS.TICKETTYPE;
+        exception when others then 
+            sIMAGE    := null;
+            sTYPECODE := null;
+        end;
 
         sNUMBP       := '<td class="c1" ><div class="c1"><a href="'||APEX_UTIL.PREPARE_URL('f?p='||:APP_ID||':3:'||:APP_SESSION||'::::P3_MESS_RN:'||MESS.RN||'')||'" class = "link_code"><div style="width:33px; height:33px; background:url(&APP_IMAGES.'||case MESS.IS_CLOSED when 0 then 'mail-ic.png' else 'mail-ic-close.png' end||');" title="Сообщение"></div></a></div></td>';
-        sTICKETTYPE  := '<td class="c2" ><div class="c2">' ||MESS.TICKETTYPE ||'</div></td>';
+        sTICKETTYPE  := '<td class="c2" ><div class="c2"><div style="width:30px; height:30px; background:url(&APP_IMAGES.'||sIMAGE||');" title="'||sTYPECODE||'"></div></div></td>';
         sNUMB        := '<td class="c3" ><div class="c3">' ||MESS.NUMB       ||'</div></td>';
         sTEXT        := '<td class="c5" ><div class="c5">' ||MESS.TEXT       ||'</div></td>';
-        sUSER_AUTHOR := '<td class="c6" ><div class="c6">' ||MESS.USER_AUTHOR||'</div></td>';
-        sDATE_CREATE := '<td class="c7" ><div class="c7">' ||MESS.DATE_CREATE||'</div></td>';
-        sDATE_CREATE := '<td class="c8" ><div class="c8">' ||MESS.DATE_CREATE||'</div></td>';
+        sUSER_AUTHOR := '<td class="c6" ><div class="c6">' ||sUSER_AUTHOR||'</div></td>';
+        sDATE_CREATE := '<td class="c7" ><div class="c7">' ||to_char(MESS.DATE_CREATE,'dd.mm.yyyy')||'</div></td>';
+        sDATE_CREATE := '<td class="c8" ><div class="c8">' ||to_char(MESS.DATE_CREATE,'dd.mm.yyyy')||'</div></td>';
         sEXEUSER     := '<td class="c9" ><div class="c9">' ||MESS.EXEUSER    ||'</div></td>';
         sFILE        := '<td class="c10"><div class="c10">'||'MESS.FILE'     ||'</div></td>';
-        sSTATUS      := '<td class="c11"><div class="c11">'||MESS.STATUS     ||'</div></td>';
+        sSTATUS      := '<td class="c11"><div class="c11">'||MF_GETSTATUS_NAME(pSTATUS => MESS.STATUS)||'</div></td>';
 
         if nCOUNTROWS < 100 then
             htp.p('<tr '||sREAD||' id="row_'||MESS.RN||'" row="'||MESS.RN||'">
@@ -209,7 +240,7 @@ begin
                     '||sSTATUS     ||'
         		   </tr>');
         end if;
-	end loop;
+	  end loop;
 
   if nvl(nCOUNTROWS,0) > 100 then
 		sColor := 'font-weight:regular;color:red';
